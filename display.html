@@ -82,12 +82,14 @@
         }
     </style>
     <script>
+        let lastTimeStr = '';
+
         function updateClockDisplay() {
             const now = new Date();
             const options = { weekday: 'long', day: 'numeric', month: 'long' };
             const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
             const dEl = document.getElementById('date');
-            if (dEl) dEl.innerText = dateStr;
+            if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
 
             let h = now.getHours();
             const m = now.getMinutes();
@@ -95,8 +97,16 @@
             h = h % 12;
             h = h ? h : 12;
             const mStr = m < 10 ? '0' + m : m;
-            const cEl = document.getElementById('clock');
-            if (cEl) cEl.innerHTML = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+
+            // Construct HTML string
+            const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+
+            // CHECK IF CHANGED BEFORE UPDATING DOM (Stops 1-sec pulse)
+            if (lastTimeStr !== newHtml) {
+                const cEl = document.getElementById('clock');
+                if (cEl) cEl.innerHTML = newHtml;
+                lastTimeStr = newHtml;
+            }
         }
         setInterval(updateClockDisplay, 1000);
         updateClockDisplay();
