@@ -13,6 +13,7 @@ const particleEngine = new ParticleEngine();
 let rssInterval = null;
 
 // Helper: Fetch RSS Feed via Proxy (CORS fix)
+// Helper: Fetch RSS Feed via Proxy
 async function fetchRSS(url) {
     if (!url) return;
     try {
@@ -21,15 +22,15 @@ async function fetchRSS(url) {
         const data = await res.json();
 
         if (data.status === 'ok') {
-            const items = data.items.map(i => `<span>📰 ${i.title}</span>`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ');
+            const items = data.items.map(i => `<span style="margin-right: 150px; font-weight:800; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">📰 ${i.title}</span>`).join('');
             showTickerText(items);
         } else {
-            console.warn("RSS Feed failed, showing URL as text");
-            showTickerText("⚠️ " + url);
+            console.warn("RSS Feed status error");
+            // Don't show URL to user on error, just hide or show generic
+            // showTickerText("⚠️ Μη διαθέσιμες ειδήσεις");
         }
     } catch (e) {
         console.error("RSS Error:", e);
-        showTickerText("⚠️ RSS Error: " + e.message);
     }
 }
 

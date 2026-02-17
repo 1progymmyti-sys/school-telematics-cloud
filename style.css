@@ -618,51 +618,73 @@ body.theme-national {
     }
 }
 
-@keyframes tickerScroll {
-    0% {
-        transform: translateX(100vw);
-    }
-
-    100% {
-        transform: translateX(-100%);
-    }
-}
-
-/* FORCE TICKER VISIBILITY override */
+/* --- FINAL TICKER STYLES (BLUE EDITION) --- */
 #tickerContainer {
-    display: flex;
-    /* JS toggles this, but base style is flex when visible */
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 60px !important;
-    background: rgba(0, 0, 0, 0.95) !important;
-    z-index: 9999 !important;
-    border-top: 4px solid var(--accent-color, #0ea5e9);
-    box-shadow: 0 -10px 20px rgba(0, 0, 0, 0.5);
+    height: 70px !important;
+    background: #3b82f6 !important;
+    /* BLUE BACKGROUND */
+    border-top: 4px solid #1e40af !important;
+    /* Darker Blue Border */
+    z-index: 20000 !important;
+    display: flex;
+    /* NO !important here, so JS can hide it */
+    align-items: center !important;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
 }
 
 .ticker-label {
-    background: var(--accent-color, #0ea5e9) !important;
-    color: #000 !important;
-    font-weight: 900 !important;
-    padding: 0 20px !important;
+    background: #1e40af !important;
+    /* Darker Blue Label */
+    color: #fff !important;
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    padding: 0 25px !important;
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 1.4rem !important;
-    z-index: 10001;
+    white-space: nowrap !important;
+    z-index: 20001;
+    box-shadow: 5px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 #tickerContent {
     flex: 1 !important;
-    color: #fff !important;
-    font-size: 1.8rem !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
     height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: transparent !important;
+    /* Transparent to show blue */
+}
+
+/* The scanning text element */
+.ticker-text {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    white-space: nowrap !important;
+    color: #ffffff !important;
+    font-size: 2.2rem !important;
+    /* Bigger text */
+    font-weight: bold !important;
+    font-family: 'Segoe UI', sans-serif !important;
+    animation: ticker-slide 30s linear infinite;
+    will-change: left;
+}
+
+
+@keyframes ticker-slide {
+    0% {
+        left: 100vw;
+    }
+
+    100% {
+        left: -150%;
+    }
+
+    /* Move well past the screen */
 }
