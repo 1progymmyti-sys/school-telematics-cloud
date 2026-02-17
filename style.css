@@ -616,3 +616,13 @@ body.theme-national {
         transform: translate(-50%, -50%);
     }
 }
+
+@keyframes tickerScroll {
+    0% {
+        transform: translateX(100vw);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
+}

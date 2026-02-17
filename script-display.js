@@ -10,6 +10,29 @@ let emergencyActive = false;
 let audioCtx = null;
 let weatherInterval = null;
 const particleEngine = new ParticleEngine();
+let rssInterval = null;
+
+// Helper: Fetch RSS Feed via Proxy (CORS fix)
+async function fetchRSS(url) {
+    if (!url) return;
+    try {
+        const proxy = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url);
+        const res = await fetch(proxy);
+        const data = await res.json();
+
+        if (data.status === 'ok') {
+            const items = data.items.map(i => `<span>📰 ${i.title}</span>`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ');
+            const ticker = document.getElementById('tickerContent');
+            const container = document.getElementById('tickerContainer');
+            if (ticker) {
+                ticker.innerHTML = `<div style="display:inline-block; animation: tickerScroll 20s linear infinite; white-space: nowrap;">${items}</div>`;
+                if (container) container.style.display = 'flex';
+            }
+        }
+    } catch (e) {
+        console.error("RSS Error:", e);
+    }
+}
 
 // Helper: Get Active Slides
 const getActiveSlides = (list) => {
@@ -96,6 +119,30 @@ function applySettings(s) {
 
     // Weather
     if (s.weatherCity) updateWeather(s.weatherCity);
+
+    // Ticker (RSS or Text)
+    const tickerContainer = document.getElementById('tickerContainer');
+    const tickerContent = document.getElementById('tickerContent');
+
+    if (s.ticker && s.ticker.trim() !== "") {
+        if (s.ticker.startsWith('http')) {
+            // It's an RSS URL
+            fetchRSS(s.ticker);
+            // Refresh every 10 mins
+            if (rssInterval) clearInterval(rssInterval);
+            rssInterval = setInterval(() => fetchRSS(s.ticker), 600000);
+            if (tickerContainer) tickerContainer.style.display = 'flex';
+        } else {
+            // It's custom text
+            if (tickerContent) {
+                tickerContent.innerHTML = `<div style="display:inline-block; animation: tickerScroll 20s linear infinite; white-space: nowrap;">${s.ticker}</div>`;
+                if (tickerContainer) tickerContainer.style.display = 'flex';
+            }
+        }
+    } else {
+        if (tickerContainer) tickerContainer.style.display = 'none';
+        if (rssInterval) clearInterval(rssInterval);
+    }
 
     // Theme - Remove old theme classes first
     document.body.classList.forEach(cls => {
