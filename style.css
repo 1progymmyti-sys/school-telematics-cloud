@@ -367,9 +367,13 @@ select:focus {
     color: #3b82f6;
     /* Azure Blue */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-variant-numeric: tabular-nums;
+    min-width: 220px;
+    text-align: right;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     line-height: 1;
     margin-left: 1.5rem;
+    animation: none !important;
 }
 
 .weather-container {
