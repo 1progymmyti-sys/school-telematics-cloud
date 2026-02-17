@@ -668,8 +668,8 @@ body.theme-national {
     transform: translateY(-50%);
     white-space: nowrap !important;
     color: #ffffff !important;
-    font-size: 2.2rem !important;
-    /* Bigger text */
+    font-size: 1.8rem !important;
+    /* Smaller text */
     font-weight: bold !important;
     font-family: 'Segoe UI', sans-serif !important;
     animation: ticker-slide 30s linear infinite;
