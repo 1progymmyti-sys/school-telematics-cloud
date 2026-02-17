@@ -621,11 +621,11 @@ body.theme-national {
 /* --- FRAMED WEBSITE & QR --- */
 .framed-web {
     width: 100% !important;
-    height: calc(100vh - 200px) !important;
-    /* Fill space between header and ticker */
+    height: calc(100vh - 170px) !important;
+    /* 100px top + 70px ticker base */
     position: absolute;
-    top: 130px;
-    /* Push down below the header */
+    top: 100px;
+    /* Reduced gap */
     left: 0;
     transform: none;
     /* No centering transform needed */
