@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Telematics Cloud - Διαχείριση</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header style="margin-bottom: 3rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Διαχείριση Ανακοινώσεων (Cloud)</h1>
+                <p style="color: var(--text-secondary);">Προσθέστε ή αφαιρέστε ενημερώσεις για την οθόνη του σχολείου.
+                </p>
+            </div>
+            <a href="display.html" target="_blank" class="btn">Άνοιγμα Οθόνης &rarr;</a>
+        </header>
+
+        <div class="grid" style="grid-template-columns: 1fr 1.5fr; align-items: start;">
+            <!-- Emergency Section -->
+            <div class="card"
+                style="margin-bottom: 2rem; grid-column: 1 / -1; border: 2px solid var(--alert-color); background: rgba(239, 68, 68, 0.05);">
+                <h2 style="color: var(--alert-color); display: flex; align-items: center; gap: 0.5rem;">🚨 ΕΚΤΑΚΤΗ
+                    ΑΝΑΓΚΗ</h2>
+                <form id="emergencyForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 2; margin-bottom: 0; min-width: 300px;">
+                        <label for="emergencyMessage">Μήνυμα Συναγερμού</label>
+                        <input type="text" id="emergencyMessage" name="emergencyMessage"
+                            placeholder="Π.χ. ΑΣΚΗΣΗ ΣΕΙΣΜΟΥ - ΕΚΚΕΝΩΣΗ"
+                            style="font-weight: bold; color: var(--alert-color);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <button type="submit" id="emergencyToggleBtn" class="btn btn-danger"
+                            style="width:auto; min-width: 250px; font-weight: 800; letter-spacing: 1px; color: white !important; background-color: #dc2626 !important; padding: 1rem;">
+                            🚨 ΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ
+                        </button>
+                    </div>
+                </form>
+                <small style="color: var(--text-secondary); margin-top: 0.5rem; display: block;">Η ενεργοποίηση θα
+                    σταματήσει αμέσως όλες τις προβολές και θα εμφανίσει αυτό το μήνυμα σε πλήρη οθόνη με ήχο
+                    ειδοποίησης.</small>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="card" style="margin-bottom: 2rem; grid-column: 1 / -1;">
+                <h2>Ρυθμίσεις Σχολείου</h2>
+                <form id="settingsForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label for="schoolName">Όνομα Σχολείου</label>
+                        <input type="text" id="schoolName" name="schoolName" required>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label for="adminPin">PIN Διαχειριστή</label>
+                        <input type="text" id="adminPin" name="adminPin" placeholder="Default: 1234" pattern="[0-9]*"
+                            maxlength="6">
+                    </div>
+                    <div class="form-group" style="flex: 2; min-width: 300px; margin-bottom: 0;">
+                        <label for="tickerMessage">Κυλιόμενο Μήνυμα (Ticker)</label>
+                        <input type="text" id="tickerMessage" name="tickerMessage"
+                            placeholder="Γράψτε κάτι για να εμφανίζεται κάτω...">
+                    </div>
+                    <div class="form-group" style="flex: 2; min-width: 300px; margin-bottom: 0;">
+                        <label for="hostUrl">IP Υπολογιστή / Base URL (Για QR Codes)</label>
+                        <input type="text" id="hostUrl" name="hostUrl" placeholder="π.χ. http://192.168.1.5:5500">
+                        <small style="color: var(--text-secondary);">Απαραίτητο για να ανοίγουν οι ψηφοφορίες στα
+                            κινητά.</small>
+                    </div>
+                    <div class="form-group" style="flex: 2; min-width: 300px; margin-bottom: 0;">
+                        <label for="rssUrl">RSS Feed Ειδήσεων (URL)</label>
+                        <input type="url" id="rssUrl" name="rssUrl" placeholder="π.χ. https://www.kathimerini.gr/rss">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label for="logoFile">Λογότυπο (Εικόνα)</label>
+                        <input type="file" id="logoFile" name="logoFile" accept="image/*">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label for="weatherCity">Πόλη (για Αυτ. Καιρό)</label>
+                        <input type="text" id="weatherCity" name="weatherCity" placeholder="π.χ. Αθήνα">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label for="weatherUrl">ή Widget URL (Iframe)</label>
+                        <input type="url" id="weatherUrl" name="weatherUrl" placeholder="Link από meteo.gr κλπ">
+                    </div>
+                    <img id="logoPreview" class="media-preview" style="height: 50px; width: auto; margin: 0;"
+                        alt="Logo Preview">
+                    <button type="submit" class="btn">Αποθήκευση</button>
+                </form>
+
+                <!-- Theme Selector -->
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">🎨 Θεματική Εμφάνιση</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <button onclick="window.setTheme('default')" class="theme-btn" data-theme="default">
+                        <span style="font-size: 2rem;">🏫</span>
+                        <span>Προεπιλογή</span>
+                    </button>
+                    <button onclick="window.setTheme('christmas')" class="theme-btn" data-theme="christmas">
+                        <span style="font-size: 2rem;">🎄</span>
+                        <span>Χριστούγεννα</span>
+                    </button>
+                    <button onclick="window.setTheme('easter')" class="theme-btn" data-theme="easter">
+                        <span style="font-size: 2rem;">🐣</span>
+                        <span>Πάσχα</span>
+                    </button>
+                    <button onclick="window.setTheme('national')" class="theme-btn" data-theme="national">
+                        <span style="font-size: 2rem;">🇬🇷</span>
+                        <span>Εθνική Εορτή</span>
+                    </button>
+                    <button onclick="window.setTheme('celebration')" class="theme-btn" data-theme="celebration">
+                        <span style="font-size: 2rem;">🎉</span>
+                        <span>Γιορτή</span>
+                    </button>
+                    <button onclick="window.setTheme('valentine')" class="theme-btn" data-theme="valentine">
+                        <span style="font-size: 2rem;">💕</span>
+                        <span>Αγίου Βαλεντίνου</span>
+                    </button>
+                    <button onclick="window.setTheme('exams')" class="theme-btn" data-theme="exams">
+                        <span style="font-size: 2rem;">📚</span>
+                        <span>Εξετάσεις</span>
+                    </button>
+                </div>
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
+                    Το θέμα θα εφαρμοστεί αυτόματα στην οθόνη προβολής.
+                </small>
+
+                <!-- Banner Settings -->
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">🎄 Διακοσμητικό Banner</h3>
+                <form id="bannerForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <label for="bannerFile">Banner Εικόνα</label>
+                        <input type="file" id="bannerFile" name="bannerFile" accept="image/*">
+                        <small style="color: var(--text-secondary);">Προτεινόμενο μέγεθος: 1920x200px</small>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label for="bannerPosition">Θέση</label>
+                        <select id="bannerPosition" name="bannerPosition">
+                            <option value="top">Πάνω</option>
+                            <option value="bottom">Κάτω</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 0; min-width: auto; margin-bottom: 0;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="bannerEnabled" name="bannerEnabled" style="width: auto;">
+                            <span>Ενεργοποίηση</span>
+                        </label>
+                    </div>
+                    <img id="bannerPreview" class="media-preview" style="height: 80px; width: auto; margin: 0;"
+                        alt="Banner Preview">
+                    <button type="submit" class="btn">Αποθήκευση Banner</button>
+                </form>
+
+            </div>
+
+            <!-- Form Section -->
+            <div class="card">
+                <h2>Νέα Ανακοίνωση</h2>
+                <form id="announcementForm">
+                    <div class="form-group">
+                        <label for="title">Τίτλος</label>
+                        <input type="text" id="title" name="title" required placeholder="π.χ. Αλλαγή ώρας">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="type">Είδος Ειδοποίησης</label>
+                        <select id="type" name="type">
+                            <option value="info">Γενική Ενημέρωση</option>
+                            <option value="alert">Επείγον / Προσοχή</option>
+                            <option value="event">Εκδήλωση</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">Διάρκεια (δευτερόλεπτα)</label>
+                        <input type="number" id="duration" name="duration" min="3" value="10" required>
+                        <small style="color: var(--text-secondary);">Πόση ώρα θα φαίνεται στην οθόνη</small>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="startDate">Έναρξη Προβολής (Προαιρετικό)</label>
+                            <input type="datetime-local" id="startDate" name="startDate">
+                            <small style="color: var(--text-secondary);">Αφήστε κενό για άμεση έναρξη</small>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="endDate">Λήξη Προβολής (Προαιρετικό)</label>
+                            <input type="datetime-local" id="endDate" name="endDate">
+                            <small style="color: var(--text-secondary);">Αφήστε κενό για να μην λήξει ποτέ</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label for="layout">Διάταξη (Layout)</label>
+                        <select id="layout" name="layout">
+                            <option value="fullscreen">Πλήρης Οθόνη (Standard)</option>
+                            <option value="split-left">Split: Εικόνα Αριστερά (50%)</option>
+                            <option value="split-right">Split: Εικόνα Δεξιά (50%)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mediaType">Τύπος Περιεχομένου</label>
+                        <select id="mediaType" name="mediaType">
+                            <option value="text">Μόνο Κείμενο</option>
+                            <option value="image">Εικόνα / Φωτογραφία</option>
+                            <option value="youtube">YouTube Βίντεο</option>
+                            <option value="countdown">Αντίστροφη Μέτρηση</option>
+                            <option value="poll">Ζωντανή Ψηφοφορία (Poll)</option>
+                            <option value="live_image">Ζωντανή Εικόνα (URL)</option>
+                            <option value="website">Ιστοσελίδα (URL)</option>
+                            <option value="schedule">Πρόγραμμα (Μάθημα/Εξετάσεις)</option>
+                            <option value="pdf">Αρχείο PDF</option>
+                        </select>
+                    </div>
+
+                    <div id="contentGroup" class="form-group">
+                        <label for="contentEditor">Κείμενο</label>
+                        <div class="editor-toolbar">
+                            <select
+                                onchange="document.execCommand('fontName', false, this.value); this.selectedIndex=0;"
+                                title="Γραμματοσειρά">
+                                <option value="">Γραμματοσειρά</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Georgia">Georgia</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Courier New">Courier New</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Comic Sans MS">Comic Sans MS</option>
+                            </select>
+                            <select
+                                onchange="document.execCommand('fontSize', false, this.value); this.selectedIndex=0;"
+                                title="Μέγεθος">
+                                <option value="">Μέγεθος</option>
+                                <option value="1">Πολύ Μικρό</option>
+                                <option value="2">Μικρό</option>
+                                <option value="3">Κανονικό</option>
+                                <option value="4">Μεγάλο</option>
+                                <option value="5">Πολύ Μεγάλο</option>
+                                <option value="6">Extra Μεγάλο</option>
+                                <option value="7">Τεράστιο</option>
+                            </select>
+                            <input type="color" onchange="document.execCommand('foreColor', false, this.value)"
+                                title="Χρώμα"
+                                style="height: 30px; width: 35px; padding: 0; border: none; cursor: pointer; background: transparent; vertical-align: middle;">
+                            <span class="separator">|</span>
+                            <button type="button" onclick="document.execCommand('bold', false, null)"
+                                title="Έντονα"><b>B</b></button>
+                            <button type="button" onclick="document.execCommand('italic', false, null)"
+                                title="Πλάγια"><i>I</i></button>
+                            <button type="button" onclick="document.execCommand('underline', false, null)"
+                                title="Υπογράμμιση"><u>U</u></button>
+                            <span class="separator">|</span>
+                            <button type="button" onclick="document.execCommand('insertOrderedList', false, null)"
+                                title="Αρίθμηση">1.</button>
+                            <button type="button" onclick="document.execCommand('insertUnorderedList', false, null)"
+                                title="Λίστα">•</button>
+                            <span class="separator">|</span>
+                            <button type="button" onclick="document.execCommand('removeFormat', false, null)"
+                                title="Καθαρισμός Μορφοποίησης">✕</button>
+                        </div>
+                        <div id="contentEditor" class="editor-content" contenteditable="true"></div>
+                    </div>
+
+                    <div id="fileGroup" class="form-group" style="display: none;">
+                        <label for="file">Επιλογή Αρχείου (Εικόνα, PDF ή Excel)</label>
+                        <input type="file" id="file" name="file" accept="image/*,application/pdf,.xlsx,.xls">
+                        <small style="color: var(--text-secondary);">Για πρόγραμμα, επιλέξτε αρχείο Excel (.xlsx) ή
+                            PDF.</small>
+                    </div>
+
+                    <div id="urlGroup" class="form-group" style="display: none;">
+                        <label for="url">Διεύθυνση Ιστοσελίδας (URL)</label>
+                        <input type="url" id="url" name="url" placeholder="https://www.myschool.gr">
+
+                        <div
+                            style="margin-top: 1rem; padding: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                            <label for="iframeScale" style="display: flex; justify-content: space-between;">
+                                <span>🔍 Ζουμ (Κλίμακα)</span>
+                                <span id="scaleValue" style="color: var(--accent-color); font-weight: bold;">100%</span>
+                            </label>
+                            <input type="range" id="iframeScale" name="iframeScale" min="0.5" max="2.0" step="0.1"
+                                value="1.0" style="width: 100%; margin-top: 0.5rem;"
+                                oninput="document.getElementById('scaleValue').textContent = Math.round(this.value * 100) + '%'">
+                            <small style="color: var(--text-secondary); display: block; margin-top: 0.2rem;">
+                                Ρυθμίστε το αν η σελίδα φαίνεται πολύ μικρή ή κομμένη. (Λιγότερο από 100% =
+                                Σμίκρυνση/Χωράει περισσότερα).
+                            </small>
+                        </div>
+                    </div>
+
+                    <div id="liveImageGroup" class="form-group" style="display: none;">
+                        <label for="liveImageUrl">Διεύθυνση Εικόνας (URL)</label>
+                        <input type="url" id="liveImageUrl" name="liveImageUrl"
+                            placeholder="π.χ. http://192.168.1.100/seismo.jpg">
+                        <small style="color: var(--text-secondary);">Η εικόνα θα ανανεώνεται αυτόματα. Βάλτε το πλήρες
+                            URL της εικόνας (π.χ. από σεισμογράφο, καιρό, κλπ).</small>
+                    </div>
+
+                    <div id="youtubeGroup" class="form-group" style="display: none;">
+                        <label for="youtubeUrl">YouTube Link</label>
+                        <input type="url" id="youtubeUrl" name="youtubeUrl"
+                            placeholder="π.χ. https://www.youtube.com/watch?v=dQw4w9WgXcQ">
+                        <small style="color: var(--text-secondary);">Το βίντεο θα παίζει αυτόματα (χωρίς ήχο για
+                            συμβατότητα).</small>
+                    </div>
+
+                    <div id="countdownGroup" class="form-group" style="display: none;">
+                        <label for="countdownDate">Ημερομηνία & Ώρα Στόχου</label>
+                        <input type="datetime-local" id="countdownDate" name="countdownDate">
+                        <small style="color: var(--text-secondary);">Μέχρι πότε μετράμε;</small>
+                    </div>
+
+                    <div id="pollGroup" class="form-group" style="display: none;">
+                        <label for="pollQuestionText">Ερώτηση Ψηφοφορίας</label>
+                        <input type="text" id="pollQuestionText" name="pollQuestionText"
+                            placeholder="π.χ. Τι χρώμα να βάψουμε την τάξη;">
+
+                        <label for="pollOptions" style="margin-top: 1rem;">Επιλογές (χωρισμένες με κόμμα)</label>
+                        <input type="text" id="pollOptions" name="pollOptions"
+                            placeholder="π.χ. Κόκκινο, Μπλε, Πράσινο">
+                        <small style="color: var(--text-secondary);">Οι μαθητές θα μπορούν να επιλέξουν μία από
+                            αυτές.</small>
+                    </div>
+
+                    <div id="formActions" style="display: flex; gap: 1rem;">
+                        <button type="submit" class="btn" style="flex: 1;">Δημοσίευση</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- List Section -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2>Ενεργές Ανακοινώσεις</h2>
+                    <button onclick="AdminApp.renderList(DataManager.getAll())" class="btn"
+                        style="background: transparent; border: 1px solid var(--text-secondary); padding: 0.5rem;">↻
+                        Ανανέωση</button>
+                </div>
+                <div id="announcementList" class="announcement-list">
+                    <!-- Items will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN SCRIPT (MODULE) -->
+    <script type="module" src="script-admin.js"></script>
+
+    <style>
+        /* Fix for dropdowns */
+        .editor-toolbar select {
+            background: #1e293b !important;
+            color: #ffffff !important;
+        }
+
+        .editor-toolbar select option {
+            background: #1e293b !important;
+            color: #ffffff !important;
+        }
+
+        /* Fix for banner - full width */
+        .banner-container {
+            width: 100% !important;
+            display: block !important;
+        }
+
+        .banner-image {
+            width: 100% !important;
+            max-height: 150px !important;
+            display: block !important;
+        }
+    </style>
+</body>
+
+</html>
