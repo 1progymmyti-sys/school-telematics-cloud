@@ -261,14 +261,14 @@ function renderSlide(item) {
         const scale = parseFloat(item.mediaScale) || 1.0;
         let style = 'position: absolute; top: 0; left: 0; border: none;';
 
-        if (scale === 1) {
-            style += 'width: 100vw; height: 100vh;';
-        } else {
-            // For scaling: we make it huge/small based on scale, then transform it
-            style += `width: ${100 / scale}vw; height: ${100 / scale}vh; transform: scale(${scale}); transform-origin: 0 0;`;
-        }
-
-        contentHtml = `<iframe src="${item.mediaSource}" class="slide-iframe" style="${style}"></iframe>`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+        contentHtml = `
+            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0"></iframe>
+            <div class="qr-box">
+                <img src="${qrUrl}" alt="Scan QR">
+                <div class="qr-label">SCAN ME</div>
+            </div>
+        `;
     }
     else if (item.mediaType === 'countdown') {
         // Countdown Logic

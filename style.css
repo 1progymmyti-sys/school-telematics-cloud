@@ -618,6 +618,66 @@ body.theme-national {
     }
 }
 
+/* --- FRAMED WEBSITE & QR --- */
+.framed-web {
+    width: 90vw !important;
+    height: 75vh !important;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    /* Center, slightly higher to avoid ticker */
+    border: 8px solid white;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    border-radius: 15px;
+    z-index: 50;
+    background: white;
+}
+
+.qr-box {
+    position: fixed;
+    bottom: 90px;
+    /* Above Ticker (70px height) */
+    right: 30px;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    z-index: 20002;
+    /* Above Ticker Label */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.qr-box img {
+    width: 120px;
+    height: 120px;
+    display: block;
+}
+
+.qr-label {
+    margin-top: 5px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #000;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0) translateY(100px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
 /* --- FINAL TICKER STYLES (BLUE EDITION) --- */
 #tickerContainer {
     position: fixed !important;
