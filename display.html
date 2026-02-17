@@ -81,9 +81,43 @@
             height: 100% !important;
         }
     </style>
-    <script>
-        let lastTimeStr = '';
+    <style>
+        /* FORCED OVERRIDES TO BYPASS CACHE */
+        #clock {
+            position: fixed !important;
+            top: 20px !important;
+            right: 30px !important;
+            font-family: 'Arial', sans-serif !important;
+            font-size: 3rem !important;
+            font-weight: 700 !important;
+            color: #3b82f6 !important;
+            z-index: 20005 !important;
+            animation: none !important;
+            background: transparent !important;
+            width: auto !important;
+            height: auto !important;
+            line-height: 1 !important;
+            text-align: right !important;
+        }
 
+        #weather {
+            position: fixed !important;
+            top: 40px !important;
+            right: 600px !important;
+            /* HUGE GAP */
+            z-index: 20005 !important;
+            color: #fff !important;
+            font-size: 1.5rem !important;
+            animation: none !important;
+            display: flex !important;
+            align-items: center !important;
+            width: auto !important;
+            background: transparent !important;
+        }
+
+        /* Hide original header content partially if needed, but keep logo */
+    </style>
+    <script>
         function updateClockDisplay() {
             const now = new Date();
             const options = { weekday: 'long', day: 'numeric', month: 'long' };
@@ -98,17 +132,10 @@
             h = h ? h : 12;
             const mStr = m < 10 ? '0' + m : m;
 
-            // Construct HTML string
-            const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
-
-            // CHECK IF CHANGED BEFORE UPDATING DOM (Stops 1-sec pulse)
-            if (lastTimeStr !== newHtml) {
-                const cEl = document.getElementById('clock');
-                if (cEl) cEl.innerHTML = newHtml;
-                lastTimeStr = newHtml;
-            }
+            const cEl = document.getElementById('clock');
+            if (cEl) cEl.innerHTML = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
         }
-        setInterval(updateClockDisplay, 1000);
+        setInterval(updateClockDisplay, 1000); // Check every second
         updateClockDisplay();
     </script>
 </body>
