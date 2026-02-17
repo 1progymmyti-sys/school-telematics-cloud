@@ -620,16 +620,18 @@ body.theme-national {
 
 /* --- FRAMED WEBSITE & QR --- */
 .framed-web {
-    width: 90vw !important;
-    height: 75vh !important;
+    width: 100% !important;
+    height: calc(100vh - 200px) !important;
+    /* Fill space between header and ticker */
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -55%);
-    /* Center, slightly higher to avoid ticker */
-    border: 8px solid white;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-    border-radius: 15px;
+    top: 130px;
+    /* Push down below the header */
+    left: 0;
+    transform: none;
+    /* No centering transform needed */
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
     z-index: 50;
     background: white;
 }
