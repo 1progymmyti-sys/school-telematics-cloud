@@ -33,14 +33,18 @@ async function fetchRSS(url) {
     }
 }
 
+
 function showTickerText(htmlContent) {
     const tickerContainer = document.getElementById('tickerContainer');
     const tickerContent = document.getElementById('tickerContent');
 
+    // Debug Log
+    console.log("Showing Ticker:", htmlContent);
+
     if (tickerContainer && tickerContent) {
         tickerContainer.style.display = 'flex';
-        // Use a wrapper for smoother animation reset
-        tickerContent.innerHTML = `<div style="display:inline-block; animation: tickerScroll 30s linear infinite; white-space: nowrap; padding-left: 100vw;">${htmlContent}</div>`;
+        // Use clean class based logic
+        tickerContent.innerHTML = `<div class="ticker-text">${htmlContent}</div>`;
     }
 }
 
@@ -58,6 +62,7 @@ const getActiveSlides = (list) => {
 
 window.onload = () => {
     console.log("Display Cloud App Starting...");
+    showTickerText("⏳ Φόρτωση ενημερώσεων..."); // Initial debug text
 
     // 1. Settings Listener
     onSnapshot(doc(db, "settings", "schoolConfig"), (docSnap) => {
