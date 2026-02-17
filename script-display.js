@@ -22,15 +22,25 @@ async function fetchRSS(url) {
 
         if (data.status === 'ok') {
             const items = data.items.map(i => `<span>📰 ${i.title}</span>`).join(' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ');
-            const ticker = document.getElementById('tickerContent');
-            const container = document.getElementById('tickerContainer');
-            if (ticker) {
-                ticker.innerHTML = `<div style="display:inline-block; animation: tickerScroll 20s linear infinite; white-space: nowrap;">${items}</div>`;
-                if (container) container.style.display = 'flex';
-            }
+            showTickerText(items);
+        } else {
+            console.warn("RSS Feed failed, showing URL as text");
+            showTickerText("⚠️ " + url);
         }
     } catch (e) {
         console.error("RSS Error:", e);
+        showTickerText("⚠️ RSS Error: " + e.message);
+    }
+}
+
+function showTickerText(htmlContent) {
+    const tickerContainer = document.getElementById('tickerContainer');
+    const tickerContent = document.getElementById('tickerContent');
+
+    if (tickerContainer && tickerContent) {
+        tickerContainer.style.display = 'flex';
+        // Use a wrapper for smoother animation reset
+        tickerContent.innerHTML = `<div style="display:inline-block; animation: tickerScroll 30s linear infinite; white-space: nowrap; padding-left: 100vw;">${htmlContent}</div>`;
     }
 }
 
@@ -108,39 +118,26 @@ function applySettings(s) {
     if (s.schoolName) document.getElementById('schoolNameDisplay').innerText = s.schoolName;
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
-    // Ticker
-    const ticker = document.getElementById('tickerContainer');
-    if (s.tickerMessage) {
-        document.getElementById('tickerContent').innerText = s.tickerMessage;
-        ticker.style.display = 'flex';
-    } else {
-        ticker.style.display = 'none';
-    }
-
     // Weather
     if (s.weatherCity) updateWeather(s.weatherCity);
 
-    // Ticker (RSS or Text)
-    const tickerContainer = document.getElementById('tickerContainer');
-    const tickerContent = document.getElementById('tickerContent');
-
+    // Ticker (Unified Logic)
     if (s.ticker && s.ticker.trim() !== "") {
+        // Clear any old interval
+        if (rssInterval) clearInterval(rssInterval);
+
         if (s.ticker.startsWith('http')) {
-            // It's an RSS URL
+            // RSS URL
             fetchRSS(s.ticker);
-            // Refresh every 10 mins
-            if (rssInterval) clearInterval(rssInterval);
             rssInterval = setInterval(() => fetchRSS(s.ticker), 600000);
-            if (tickerContainer) tickerContainer.style.display = 'flex';
         } else {
-            // It's custom text
-            if (tickerContent) {
-                tickerContent.innerHTML = `<div style="display:inline-block; animation: tickerScroll 20s linear infinite; white-space: nowrap;">${s.ticker}</div>`;
-                if (tickerContainer) tickerContainer.style.display = 'flex';
-            }
+            // Plain Text
+            showTickerText(`<span>📢 ${s.ticker}</span>`);
         }
     } else {
-        if (tickerContainer) tickerContainer.style.display = 'none';
+        // No ticker
+        const tc = document.getElementById('tickerContainer');
+        if (tc) tc.style.display = 'none';
         if (rssInterval) clearInterval(rssInterval);
     }
 
