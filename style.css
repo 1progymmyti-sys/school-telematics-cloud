@@ -365,7 +365,8 @@ select:focus {
     position: fixed !important;
     /* Detach from Header completely */
     top: 25px !important;
-    right: 30px !important;
+    right: 40px !important;
+    /* Slightly more inset */
     font-size: 3rem !important;
     /* Slightly smaller to fit layout */
     font-weight: 700 !important;
@@ -390,8 +391,8 @@ select:focus {
     /* Detach from Header completely */
     top: 45px !important;
     /* Vertically aligned roughly with clock center */
-    right: 380px !important;
-    /* Move LEFT to avoid overlap */
+    right: 500px !important;
+    /* LARGE GAP to prevent overlap */
     display: flex;
     align-items: center;
     gap: 0.5rem;
