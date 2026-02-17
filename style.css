@@ -703,7 +703,8 @@ body.theme-national {
     border: none !important;
     z-index: 50 !important;
     background: white !important;
-    transform: none !important;
+    /* Transformation allowed for Zoom */
+    transform-origin: 0 0 !important;
 }
 
 /* Ensure Body doesn't hide it */

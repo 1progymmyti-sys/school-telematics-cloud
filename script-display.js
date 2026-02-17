@@ -289,11 +289,22 @@ function renderSlide(item) {
     }
     else if (item.mediaType === 'website') {
         const scale = parseFloat(item.mediaScale) || 1.0;
-        let style = 'position: absolute; top: 0; left: 0; border: none;';
+        let scaleStyle = '';
+
+        // Apply Zoom (Scale) Logic
+        if (scale !== 1.0) {
+            const w = 100 / scale;
+            const h = `calc((100vh - 190px) / ${scale})`;
+            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
+        } else {
+            // Default (Fit container) - handled by CSS class .framed-web
+            // CSS: width: 100%, height: calc(100vh - 190px)
+        }
 
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+        // Add style attribute to iframe if zoomed
         contentHtml = `
-            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0"></iframe>
+            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
             <div class="qr-box">
                 <img src="${qrUrl}" alt="Scan QR">
                 <div class="qr-label">SCAN ME</div>
