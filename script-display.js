@@ -11,8 +11,10 @@ let audioCtx = null;
 let weatherInterval = null;
 const particleEngine = new ParticleEngine();
 let rssInterval = null;
+let tickerAnimId = null;
+let tickerOffset = window.innerWidth;
+let lastTickerContent = '';
 
-// Helper: Fetch RSS Feed via Proxy (CORS fix)
 // Helper: Fetch RSS Feed via Proxy
 async function fetchRSS(url) {
     if (!url) return;
@@ -39,14 +41,41 @@ function showTickerText(htmlContent) {
     const tickerContainer = document.getElementById('tickerContainer');
     const tickerContent = document.getElementById('tickerContent');
 
-    // Debug Log
-    console.log("Showing Ticker:", htmlContent);
+    // Check if changed to avoid reset
+    if (lastTickerContent === htmlContent && tickerAnimId) return;
+    lastTickerContent = htmlContent;
+
+    console.log("Showing New Ticker Content");
 
     if (tickerContainer && tickerContent) {
         tickerContainer.style.display = 'flex';
         // Use clean class based logic
-        tickerContent.innerHTML = `<div class="ticker-text">${htmlContent}</div>`;
+        tickerContent.innerHTML = `<div class="ticker-text" id="movingTicker">${htmlContent}</div>`;
+
+        // Start JS Animation
+        const el = document.getElementById('movingTicker');
+        if (el) startTickerAnim(el);
     }
+}
+
+function startTickerAnim(element) {
+    if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
+    tickerOffset = window.innerWidth; // Reset start pos
+
+    function loop() {
+        tickerOffset -= 2.5; // Speed (Adjustable)
+
+        // If fully off-screen left, reset to right
+        if (tickerOffset < -element.offsetWidth) {
+            tickerOffset = window.innerWidth;
+        }
+
+        // Apply transform (maintain Y centering)
+        element.style.transform = `translate3d(${tickerOffset}px, -50%, 0)`;
+
+        tickerAnimId = requestAnimationFrame(loop);
+    }
+    loop();
 }
 
 // Helper: Get Active Slides

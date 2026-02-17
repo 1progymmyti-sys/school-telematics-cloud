@@ -752,14 +752,15 @@ body.fullscreen-mode .display-header {
     position: absolute !important;
     top: 50% !important;
     transform: translateY(-50%);
+    /* Handled by JS mostly, but initial state ok */
     white-space: nowrap !important;
     color: #ffffff !important;
     font-size: 1.5rem !important;
     font-weight: 500 !important;
     /* Medium weight, not bold */
     font-family: 'Segoe UI', sans-serif !important;
-    animation: ticker-slide 30s linear infinite;
-    will-change: left;
+    /* Animation removed - handled by JS to prevent resets */
+    will-change: transform;
 }
 
 
