@@ -654,6 +654,7 @@ body.theme-national {
     z-index: 10000 !important;
     /* Above everything except Popups */
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
+    /* Animation REMOVED */
 }
 
 /* 2. Web Iframe starts EXACTLY after Header */
