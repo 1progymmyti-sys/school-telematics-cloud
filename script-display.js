@@ -127,24 +127,27 @@ function applySettings(s) {
     // Weather
     if (s.weatherCity) updateWeather(s.weatherCity);
 
-    // Ticker (Unified Logic)
-    if (s.tickerMessage && s.tickerMessage.trim() !== "") {
-        // Clear any old interval
-        if (rssInterval) clearInterval(rssInterval);
+    // Ticker Logic (Text Priority, then RSS)
+    const tickerContainer = document.getElementById('tickerContainer');
 
-        if (s.tickerMessage.startsWith('http')) {
-            // RSS URL
-            fetchRSS(s.tickerMessage);
-            rssInterval = setInterval(() => fetchRSS(s.tickerMessage), 600000);
-        } else {
-            // Plain Text
-            showTickerText(`<span>📢 ${s.tickerMessage}</span>`);
-        }
-    } else {
-        // No ticker
-        const tc = document.getElementById('tickerContainer');
-        if (tc) tc.style.display = 'none';
-        if (rssInterval) clearInterval(rssInterval);
+    // Clear previous interval
+    if (rssInterval) {
+        clearInterval(rssInterval);
+        rssInterval = null;
+    }
+
+    if (s.tickerMessage && s.tickerMessage.trim() !== "") {
+        // 1. Text Message (Highest Priority)
+        showTickerText(`<span>📢 ${s.tickerMessage}</span>`);
+    }
+    else if (s.rssUrl && s.rssUrl.trim() !== "") {
+        // 2. RSS Feed (If text is empty)
+        fetchRSS(s.rssUrl);
+        rssInterval = setInterval(() => fetchRSS(s.rssUrl), 600000);
+    }
+    else {
+        // 3. Nothing -> Hide
+        if (tickerContainer) tickerContainer.style.display = 'none';
     }
 
     // Theme - Remove old theme classes first
