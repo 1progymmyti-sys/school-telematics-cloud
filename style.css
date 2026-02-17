@@ -655,6 +655,12 @@ body.theme-national {
     /* Above everything except Popups */
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
     /* Animation REMOVED */
+    animation: none !important;
+    /* KILL ALL ANIMATIONS */
+    transform: none !important;
+    /* STOP SCALING */
+    transition: none !important;
+    /* STOP TRANSITIONS */
 }
 
 /* 2. Web Iframe starts EXACTLY after Header */
