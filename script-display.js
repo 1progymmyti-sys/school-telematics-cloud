@@ -122,17 +122,17 @@ function applySettings(s) {
     if (s.weatherCity) updateWeather(s.weatherCity);
 
     // Ticker (Unified Logic)
-    if (s.ticker && s.ticker.trim() !== "") {
+    if (s.tickerMessage && s.tickerMessage.trim() !== "") {
         // Clear any old interval
         if (rssInterval) clearInterval(rssInterval);
 
-        if (s.ticker.startsWith('http')) {
+        if (s.tickerMessage.startsWith('http')) {
             // RSS URL
-            fetchRSS(s.ticker);
-            rssInterval = setInterval(() => fetchRSS(s.ticker), 600000);
+            fetchRSS(s.tickerMessage);
+            rssInterval = setInterval(() => fetchRSS(s.tickerMessage), 600000);
         } else {
             // Plain Text
-            showTickerText(`<span>📢 ${s.ticker}</span>`);
+            showTickerText(`<span>📢 ${s.tickerMessage}</span>`);
         }
     } else {
         // No ticker
