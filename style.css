@@ -618,34 +618,47 @@ body.theme-national {
     }
 }
 
-/* Ensure Header is visible when not fullscreen */
-body:not(.fullscreen-mode) .display-header {
+/* --- ROBUST FIXED LAYOUT --- */
+
+/* 1. Header is ALWAYS Fixed at Top */
+.display-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 120px !important;
+    /* Explicit Height */
+    background: #0f172a !important;
+    /* Dark Slate Blue */
     display: flex !important;
-    background: #111827 !important;
-    /* Force visible background */
-    z-index: 1000 !important;
-    position: relative !important;
+    z-index: 10000 !important;
+    /* Above everything except Popups */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* --- FRAMED WEBSITE & QR --- */
+/* 2. Web Iframe starts EXACTLY after Header */
 .framed-web {
+    position: fixed !important;
+    top: 120px !important;
+    /* Match Header Height */
+    left: 0 !important;
     width: 100% !important;
-    height: calc(100vh - 200px) !important;
-    /* 130px Header + 70px Ticker */
-    /* 100px top + 70px ticker base */
-    position: absolute;
-    top: 130px !important;
-    /* Push down below the header */
-    /* Reduced gap */
-    left: 0;
-    transform: none;
-    /* No centering transform needed */
-    border: none;
-    box-shadow: none;
-    border-radius: 0;
-    z-index: 50;
-    background: white;
+    height: calc(100vh - 190px) !important;
+    /* 100vh - 120px(Header) - 70px(Ticker) */
+    border: none !important;
+    z-index: 50 !important;
+    background: white !important;
+    transform: none !important;
 }
+
+/* Ensure Body doesn't hide it */
+body.fullscreen-mode .display-header {
+    display: none !important;
+    /* Hide ONLY if truly fullscreen mode (video/image) */
+}
+
+/* But if iframe exists, force show? Handled by JS logic (removed .fullscreen-mode) */
+
 
 .qr-box {
     position: fixed;
