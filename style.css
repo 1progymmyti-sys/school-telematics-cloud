@@ -360,43 +360,46 @@ select:focus {
     }
 }
 
-/* Clock & Weather Styles */
+/* Clock & Weather Styles - FIXED OVERLAY STRATEGY */
 #clock {
-    position: relative !important;
-    /* Restore Flex flow */
+    position: fixed !important;
+    /* Detach from Header completely */
+    top: 25px !important;
+    right: 30px !important;
     font-size: 3.5rem !important;
     font-weight: 700 !important;
     color: #3b82f6 !important;
-    /* Azure Blue */
     font-family: 'Arial', 'Helvetica', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
-    /* Fixed width numbers */
-    min-width: auto !important;
     text-align: right !important;
-    text-shadow: none !important;
     line-height: 1 !important;
-    margin-left: 1.5rem !important;
-    padding: 0 !important;
+    z-index: 20005 !important;
+    /* Above Header */
     animation: none !important;
-    /* STOP PULSE */
     transform: none !important;
-    white-space: nowrap !important;
-    left: auto !important;
-    top: auto !important;
-    right: auto !important;
+    width: auto !important;
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-shadow: none !important;
 }
 
 .weather-container {
-    position: relative !important;
-    /* Restore Flex flow */
-    transform: none !important;
+    position: fixed !important;
+    /* Detach from Header completely */
+    top: 45px !important;
+    /* Vertically aligned roughly with clock center */
+    right: 280px !important;
+    /* Left of clock */
     display: flex;
     align-items: center;
     gap: 0.5rem;
     color: var(--text-primary);
     font-size: 1.2rem;
-    right: auto !important;
-    top: auto !important;
+    z-index: 20005 !important;
+    /* Above Header */
+    animation: none !important;
+    transform: none !important;
 }
 
 /* NUCLEAR OPTION FOR PULSING */
