@@ -81,6 +81,26 @@
             height: 100% !important;
         }
     </style>
+    <script>
+        function updateClockDisplay() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+            const dEl = document.getElementById('date');
+            if (dEl) dEl.innerText = dateStr;
+
+            let h = now.getHours();
+            const m = now.getMinutes();
+            const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
+            h = h % 12;
+            h = h ? h : 12;
+            const mStr = m < 10 ? '0' + m : m;
+            const cEl = document.getElementById('clock');
+            if (cEl) cEl.innerHTML = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+        }
+        setInterval(updateClockDisplay, 1000);
+        updateClockDisplay();
+    </script>
 </body>
 
 </html>
