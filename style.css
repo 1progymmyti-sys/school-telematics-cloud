@@ -360,8 +360,24 @@ select:focus {
     }
 }
 
-.loading {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* Clock & Weather Styles */
+#clock {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #3b82f6;
+    /* Azure Blue */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    line-height: 1;
+    margin-left: 1.5rem;
+}
+
+.weather-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1.2rem;
 }
 
 /* Ticker Styles */
@@ -755,10 +771,14 @@ body.fullscreen-mode .display-header {
     /* Handled by JS mostly, but initial state ok */
     white-space: nowrap !important;
     color: #ffffff !important;
-    font-size: 1.5rem !important;
-    font-weight: 500 !important;
-    /* Medium weight, not bold */
-    font-family: 'Segoe UI', sans-serif !important;
+    font-size: 1.6rem !important;
+    /* Slightly larger for clarity */
+    font-weight: 700 !important;
+    /* Bold like the image */
+    font-family: 'Arial', 'Helvetica', sans-serif !important;
+    /* Classic Ticker Font */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    /* Subtle shadow for depth */
     /* Animation removed - handled by JS to prevent resets */
     will-change: transform;
 }

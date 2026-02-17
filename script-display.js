@@ -63,7 +63,7 @@ function startTickerAnim(element) {
     tickerOffset = window.innerWidth; // Reset start pos
 
     function loop() {
-        tickerOffset -= 2.5; // Speed (Adjustable)
+        tickerOffset -= 1.2; // Slower Speed (was 2.5)
 
         // If fully off-screen left, reset to right
         if (tickerOffset < -element.offsetWidth) {
@@ -76,6 +76,32 @@ function startTickerAnim(element) {
         tickerAnimId = requestAnimationFrame(loop);
     }
     loop();
+}
+
+// Helper: Update Clock (12h format)
+function updateClock() {
+    const now = new Date();
+
+    // Date
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+    const dateEl = document.getElementById('date');
+    if (dateEl) dateEl.innerText = dateStr;
+
+    // Time (12h format)
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? 'μ.μ.' : 'π.μ.';
+
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+
+    const minStr = minutes < 10 ? '0' + minutes : minutes;
+
+    const clockEl = document.getElementById('clock');
+    if (clockEl) {
+        clockEl.innerHTML = `${hours}:${minStr}<span style="font-size: 0.6em; margin-left: 5px;">${ampm}</span>`;
+    }
 }
 
 // Helper: Get Active Slides
@@ -112,6 +138,10 @@ window.onload = () => {
             }
         }
     });
+
+    // 3. Start Clock
+    setInterval(updateClock, 1000);
+    updateClock();
 
     // 2. Announcements Listener
     const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
