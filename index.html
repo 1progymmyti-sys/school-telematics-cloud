@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="el">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Σχολική Τηλεματική - Πύλη Εισόδου</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 2rem 3rem;
+            border-radius: 1rem;
+            text-decoration: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            min-width: 250px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-display {
+            border-color: #4ade80;
+        }
+
+        .btn-admin {
+            border-color: #f87171;
+        }
+
+        .icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Σχολική Τηλεματική</h1>
+
+    <div class="btn-container">
+        <a href="display.html" class="btn btn-display">
+            <span class="icon">📺</span>
+            ΟΘΟΝΗ ΠΡΟΒΟΛΗΣ
+            <br>
+            <span style="font-size: 0.9rem; font-weight: normal;">(Για την Τηλεόραση)</span>
+        </a>
+
+        <a href="admin.html" class="btn btn-admin">
+            <span class="icon">⚙️</span>
+            ΔΙΑΧΕΙΡΙΣΗ
+            <br>
+            <span style="font-size: 0.9rem; font-weight: normal;">(Για τον Υπολογιστή/Κινητό)</span>
+        </a>
+    </div>
+
+    <footer style="margin-top: 3rem; opacity: 0.7;">
+        &copy; 1ο Πρότυπο Γυμνασίου Μυτιλήνης
+    </footer>
+
+</body>
+
+</html>
