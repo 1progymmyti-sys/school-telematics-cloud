@@ -144,10 +144,76 @@ window.onload = () => {
     });
 };
 
+// Schedule Data
+const schoolSchedule = [
+    { name: "1η Ώρα", type: "lesson", start: "08:00", end: "08:45" },
+    { name: "1ο Διάλειμμα", type: "break", start: "08:45", end: "08:50" },
+    { name: "2η Ώρα", type: "lesson", start: "08:50", end: "09:35" },
+    { name: "2ο Διάλειμμα", type: "break", start: "09:35", end: "09:45" },
+    { name: "3η Ώρα", type: "lesson", start: "09:45", end: "10:30" },
+    { name: "3ο Διάλειμμα", type: "break", start: "10:30", end: "10:40" },
+    { name: "4η Ώρα", type: "lesson", start: "10:40", end: "11:25" },
+    { name: "4ο Διάλειμμα", type: "break", start: "11:25", end: "11:35" },
+    { name: "5η Ώρα", type: "lesson", start: "11:35", end: "12:20" },
+    { name: "5ο Διάλειμμα", type: "break", start: "12:20", end: "12:25" },
+    { name: "6η Ώρα", type: "lesson", start: "12:25", end: "13:10" },
+    { name: "6ο Διάλειμμα", type: "break", start: "13:10", end: "13:15" },
+    { name: "7η Ώρα", type: "lesson", start: "13:15", end: "13:55" }
+];
+
+function updateScheduleStatus() {
+    try {
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        const displayEl = document.getElementById('schoolScheduleStatus');
+
+        if (!displayEl) return;
+
+        let activeSlot = null;
+        let nextSlot = null;
+
+        for (let i = 0; i < schoolSchedule.length; i++) {
+            const slot = schoolSchedule[i];
+            const [sH, sM] = slot.start.split(':').map(Number);
+            const [eH, eM] = slot.end.split(':').map(Number);
+
+            // Convert to minutes
+            const startTotal = sH * 60 + sM;
+            const endTotal = eH * 60 + eM;
+
+            if (currentTime >= startTotal && currentTime < endTotal) {
+                activeSlot = { ...slot, endTotal };
+                nextSlot = schoolSchedule[i + 1];
+                break;
+            }
+        }
+
+        if (activeSlot) {
+            const remaining = activeSlot.endTotal - currentTime;
+            let text = `${activeSlot.name} (Λήξη σε ${remaining}')`;
+
+            if (nextSlot) {
+                text += ` -> Ακολουθεί: ${nextSlot.name}`;
+            } else {
+                text += ` -> Ακολουθεί: Λήξη Μαθημάτων`;
+            }
+
+            displayEl.textContent = text;
+            displayEl.style.display = 'block';
+        } else {
+            displayEl.style.display = 'none';
+        }
+
+    } catch (e) {
+        console.error("Schedule Error", e);
+    }
+}
+
 function updateClock() {
     const now = new Date();
     document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
     document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
+    updateScheduleStatus();
 }
 
 function applySettings(s) {
