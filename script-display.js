@@ -24,7 +24,7 @@ async function fetchRSS(url) {
         const data = await res.json();
 
         if (data.status === 'ok') {
-            const items = data.items.map(i => `<span style="margin-right: 150px; font-weight:800; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">📰 ${i.title}</span>`).join('');
+            const items = data.items.map(i => `<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${i.title}</span>`).join('');
             showTickerText(items);
         } else {
             console.warn("RSS Feed status error");
