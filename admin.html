@@ -10,7 +10,24 @@
 </head>
 
 <body>
-    <div class="container">
+    <!-- Login Screen -->
+    <div id="loginScreen"
+        style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
+        <h1 style="margin-bottom: 2rem;">🔐 Είσοδος Διαχειριστή</h1>
+        <div
+            style="background: var(--card-bg); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1);">
+            <p style="margin-bottom: 1rem; color: var(--text-secondary);">Πληκτρολογήστε το PIN για να συνεχίσετε</p>
+            <input type="password" id="pinInput" placeholder="PIN"
+                style="font-size: 1.5rem; text-align: center; letter-spacing: 5px; margin-bottom: 1rem; width: 200px;"
+                maxlength="6" autofocus>
+            <br>
+            <button id="loginBtn" class="btn" style="width: 100%; font-size: 1.2rem;">Είσοδος</button>
+            <p id="loginError" style="color: var(--alert-color); margin-top: 1rem; display: none;">Λάθος PIN</p>
+        </div>
+        <a href="index.html" style="margin-top: 2rem; color: var(--text-secondary);">← Πίσω στην Αρχική</a>
+    </div>
+
+    <div id="mainApp" class="container" style="display: none;">
         <header style="margin-bottom: 3rem; display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <h1>Διαχείριση Ανακοινώσεων (Cloud)</h1>
@@ -125,8 +142,10 @@
                 <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
                     Το θέμα θα εφαρμοστεί αυτόματα στην οθόνη προβολής.
                 </small>
+            </div>
 
-                <!-- Banner Settings -->
+            <!-- Banner Settings -->
+            <div class="card" style="margin-bottom: 2rem; grid-column: 1 / -1; margin-top: 0 !important;">
                 <h3 style="margin-top: 2rem; margin-bottom: 1rem;">🎄 Διακοσμητικό Banner</h3>
                 <form id="bannerForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
                     <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
@@ -151,7 +170,6 @@
                         alt="Banner Preview">
                     <button type="submit" class="btn">Αποθήκευση Banner</button>
                 </form>
-
             </div>
 
             <!-- Form Section -->

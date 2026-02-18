@@ -82,9 +82,27 @@ window.onload = async () => {
 
     initSettingsForm();
 
-    // Auth Check (Simple Pin from Settings)
-    // We wait for settings to load first? A bit tricky async.
-    // For now skipping strict blocking auth to ensure it works.
+    // Auth Handler
+    const checkPin = () => {
+        const input = document.getElementById('pinInput').value;
+        // Default PIN is 1234 if not set
+        const realPin = currentSettings.adminPin || "1234";
+
+        if (input === realPin) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            // Save temporary session if needed, but for now just unlock UI
+        } else {
+            document.getElementById('loginError').style.display = 'block';
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinInput').focus();
+        }
+    };
+
+    document.getElementById('loginBtn').addEventListener('click', checkPin);
+    document.getElementById('pinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkPin();
+    });
 };
 
 // --- UI UPDATERS ---
