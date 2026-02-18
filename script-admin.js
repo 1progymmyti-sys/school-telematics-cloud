@@ -249,22 +249,25 @@ function updateEmergencyUI(s) {
 }
 
 function renderList(list) {
-    const listContainer = document.getElementById('announcementList');
+    const listContainer = document.getElementById("announcementList");
     listContainer.innerHTML = list.map(item => `
-        <div class="announcement-item type-${item.type}" style="opacity: ${isActive(item) ? '1' : '0.5'}">
+        <div class="announcement-item type-${item.type}" style="opacity: ${isActive(item) ? "1" : "0.5"}">
             <div>
                 <div style="font-size: 0.8rem; opacity: 0.7; text-transform: uppercase;">
                     ${item.mediaType} | ${getStatusBadge(item)}
                 </div>
                 <h3>${item.title}</h3>
-                <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : ''}</div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, "").substring(0, 50) + "..." : ""}</div>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; align-items: start;">
+                 <button class="btn" style="background:${item.isPaused ? "#10b981" : "#f59e0b"}; padding:0.5rem; min-width: 40px;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Ξ£Ο…Ξ½Ξ­Ο‡ΞΉΟƒΞ·" : "Ξ Ξ±ΟΟƒΞ·"}">
+                    ${item.isPaused ? "β–¶" : "βΈ"}
+                </button>
                 <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">β</button>
                 <button class="btn btn-danger" style="padding:0.5rem;" onclick="window.deleteItem('${item.id}')">&times;</button>
             </div>
         </div>
-    `).join('');
+    `).join("");
 }
 
 // --- LOGIC FUNCTIONS ---
@@ -436,6 +439,18 @@ async function saveSettings(updates) {
 // Window Globals for HTML onclick
 window.setTheme = (name) => saveSettings({ theme: name });
 
+window.togglePause = async (id, currentStatus) => {
+    // currentStatus is the strictly boolean value of isPaused
+    const newStatus = !currentStatus;
+    try {
+        await updateDoc(doc(db, ANNOUNCEMENTS_COL, id), { isPaused: newStatus });
+        // UI updates automatically via onSnapshot
+    } catch (err) {
+        console.error("Error toggling pause:", err);
+        alert("Operation failed: " + err.message);
+    }
+};
+
 window.deleteItem = async (id) => {
     if (!confirm("Delete?")) return;
     await deleteDoc(doc(db, ANNOUNCEMENTS_COL, id));
@@ -487,6 +502,7 @@ function cancelEdit() {
 
 // Helpers
 function isActive(item) {
+    if (item.isPaused) return false;
     const now = new Date();
     const s = item.startDate ? new Date(item.startDate) : null;
     const e = item.endDate ? new Date(item.endDate) : null;
@@ -496,6 +512,7 @@ function isActive(item) {
 }
 
 function getStatusBadge(item) {
+    if (item.isPaused) return "(PAUSED)";
     if (!isActive(item)) return "(INACTIVE)";
     return "(ACTIVE)";
 }

@@ -82,6 +82,7 @@ function startTickerAnim(element) {
 const getActiveSlides = (list) => {
     const now = new Date();
     return list.filter(item => {
+        if (item.isPaused) return false; // Filter paused items
         const start = item.startDate ? new Date(item.startDate) : null;
         const end = item.endDate ? new Date(item.endDate) : null;
         if (start && now < start) return false;
