@@ -53,6 +53,7 @@ export default class ParticleEngine {
         if (this.theme === 'celebration') return width / 10; // Confetti
         if (this.theme === 'valentine') return width / 15; // Hearts
         if (this.theme === 'easter') return width / 10; // Glows
+        if (this.theme === 'exams') return width / 12; // Math formulas
         return 0;
     }
 
@@ -99,7 +100,17 @@ export default class ParticleEngine {
             p.vx = (Math.random() - 0.5) * 0.5;
             p.vy = (Math.random() - 0.5) * 0.5; // Float randomly
             p.size = Math.random() * 40 + 20; // Soft blur size
+            p.size = Math.random() * 40 + 20; // Soft blur size
             p.alpha = Math.random() * 0.3 + 0.1;
+        }
+        else if (this.theme === 'exams') {
+            const formulas = ['∑', '∫', 'π', '√', 'x²', 'E=mc²', 'sin(x)', 'limit', '∞', '%', '÷', '+', '-'];
+            p.text = formulas[Math.floor(Math.random() * formulas.length)];
+            p.color = `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`; // Faint white
+            p.vx = (Math.random() - 0.5) * 0.5;
+            p.vy = -(Math.random() * 1 + 0.5); // Rise up like ideas
+            p.size = Math.random() * 20 + 20; // 20-40px font size
+            p.font = 'monospace';
         }
 
         return p;
@@ -211,6 +222,11 @@ export default class ParticleEngine {
                     this.particles[i].y = Math.random() * h;
                 }
             }
+            else if (this.theme === 'exams') {
+                if (p.y < -50) this.particles[i] = this.createParticle(true); // Reset at bottom
+                // Slight wobble
+                p.x += Math.sin(this.time + i) * 0.2;
+            }
 
             // Draw
             this.ctx.globalAlpha = p.alpha;
@@ -241,6 +257,13 @@ export default class ParticleEngine {
                 this.ctx.beginPath();
                 this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                 this.ctx.fill();
+            }
+            else if (this.theme === 'exams') {
+                this.ctx.font = `${p.size}px ${p.font || 'sans-serif'}`;
+                this.ctx.fillStyle = p.color;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(p.text, p.x, p.y);
             }
         }
         this.ctx.globalAlpha = 1;
