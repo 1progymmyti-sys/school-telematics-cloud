@@ -586,6 +586,10 @@ body.theme-national {
     background: radial-gradient(circle at center, #1e3a5f 0%, #000000 100%);
 }
 
+body.theme-exams {
+    background-color: #1c1917;
+}
+
 
 /* --- ANIMATION KEYFRAMES --- */
 
