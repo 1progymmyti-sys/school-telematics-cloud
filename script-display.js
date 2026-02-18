@@ -146,7 +146,6 @@ window.onload = () => {
 
 // Schedule Data
 const schoolSchedule = [
-    { name: "ΔΟΚΙΜΑΣΤΙΚΗ ΩΡΑ", type: "lesson", start: "21:00", end: "22:00" },
     { name: "1η Ώρα", type: "lesson", start: "08:00", end: "08:45" },
     { name: "1ο Διάλειμμα", type: "break", start: "08:45", end: "08:50" },
     { name: "2η Ώρα", type: "lesson", start: "08:50", end: "09:35" },
@@ -223,9 +222,15 @@ function applySettings(s) {
 
     // Weather
     if (s.weatherCity) {
-        updateWeather(s.weatherCity);
+        updateWeather(s.weatherCity); // Initial Call
         if (weatherInterval) clearInterval(weatherInterval);
-        weatherInterval = setInterval(() => updateWeather(s.weatherCity), 1800000); // 30 mins
+        weatherInterval = setInterval(() => {
+            updateWeather(s.weatherCity).catch(err => {
+                console.error("Weather Interval Error:", err);
+                // Retry in 1 minute if failed
+                setTimeout(() => updateWeather(s.weatherCity), 60000);
+            });
+        }, 1800000); // 30 mins
     }
 
     // Ticker Logic (Text Priority, then RSS)
