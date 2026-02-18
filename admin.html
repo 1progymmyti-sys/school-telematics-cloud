@@ -16,13 +16,31 @@
         <h1 style="margin-bottom: 2rem;">🔐 Είσοδος Διαχειριστή</h1>
         <div
             style="background: var(--card-bg); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1);">
-            <p style="margin-bottom: 1rem; color: var(--text-secondary);">Πληκτρολογήστε το PIN για να συνεχίσετε</p>
-            <input type="password" id="pinInput" placeholder="PIN"
-                style="font-size: 1.5rem; text-align: center; letter-spacing: 5px; margin-bottom: 1rem; width: 200px;"
-                maxlength="6" autofocus>
+            <!-- Standard PIN Login -->
+            <div id="pinLoginGroup">
+                <p style="margin-bottom: 1rem; color: var(--text-secondary);">Πληκτρολογήστε το PIN για να συνεχίσετε
+                </p>
+                <input type="password" id="pinInput" placeholder="PIN"
+                    style="font-size: 1.5rem; text-align: center; letter-spacing: 5px; margin-bottom: 1rem; width: 200px;"
+                    maxlength="6" autofocus>
+            </div>
+
+            <!-- Maintainer Login -->
+            <div id="maintainerLoginGroup" style="display: none;">
+                <p style="margin-bottom: 1rem; color: var(--accent-color);">🛠️ Είσοδος Συντηρητή</p>
+                <input type="text" id="mUser" placeholder="Username"
+                    style="width: 100%; margin-bottom: 0.5rem; padding: 0.8rem;">
+                <input type="password" id="mPass" placeholder="Password"
+                    style="width: 100%; margin-bottom: 1rem; padding: 0.8rem;">
+            </div>
+
             <br>
             <button id="loginBtn" class="btn" style="width: 100%; font-size: 1.2rem;">Είσοδος</button>
-            <p id="loginError" style="color: var(--alert-color); margin-top: 1rem; display: none;">Λάθος PIN</p>
+            <p id="loginError" style="color: var(--alert-color); margin-top: 1rem; display: none;">Λάθος Στοιχεία</p>
+
+            <a href="#" id="toggleLoginMode"
+                style="display: block; margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary); text-decoration: underline;">Είσοδος
+                Συντηρητή</a>
         </div>
         <a href="index.html" style="margin-top: 2rem; color: var(--text-secondary);">← Πίσω στην Αρχική</a>
     </div>
@@ -74,6 +92,8 @@
                         <label for="adminPin">PIN Διαχειριστή</label>
                         <input type="password" id="adminPin" name="adminPin" placeholder="Default: 1234"
                             pattern="[0-9]*" maxlength="6">
+                        <small id="maintainerPinReveal"
+                            style="display: none; color: var(--accent-color); font-weight: bold; margin-top: 5px;"></small>
                     </div>
                     <div class="form-group" style="flex: 2; min-width: 300px; margin-bottom: 0;">
                         <label for="tickerMessage">Κυλιόμενο Μήνυμα (Ticker)</label>

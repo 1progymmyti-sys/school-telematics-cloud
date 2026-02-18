@@ -83,24 +83,116 @@ window.onload = async () => {
     initSettingsForm();
 
     // Auth Handler
-    const checkPin = () => {
-        const input = document.getElementById('pinInput').value;
-        // Default PIN is 1234 if not set
-        const realPin = currentSettings.adminPin || "1234";
+    // Auth Handler
+    let isMaintainerMode = false;
 
-        if (input === realPin) {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            // Save temporary session if needed, but for now just unlock UI
+    // Toggle Mode
+    const toggleLink = document.getElementById('toggleLoginMode');
+    toggleLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        isMaintainerMode = !isMaintainerMode;
+
+        const pinGroup = document.getElementById('pinLoginGroup');
+        const mainGroup = document.getElementById('maintainerLoginGroup');
+        const btn = document.getElementById('loginBtn');
+        const err = document.getElementById('loginError');
+
+        if (isMaintainerMode) {
+            pinGroup.style.display = 'none';
+            mainGroup.style.display = 'block';
+            toggleLink.textContent = 'Είσοδος με PIN';
+            btn.textContent = 'Είσοδος (Συντηρητής)';
+            err.style.display = 'none';
         } else {
-            document.getElementById('loginError').style.display = 'block';
-            document.getElementById('pinInput').value = '';
-            document.getElementById('pinInput').focus();
+            pinGroup.style.display = 'block';
+            mainGroup.style.display = 'none';
+            toggleLink.textContent = 'Είσοδος Συντηρητή';
+            btn.textContent = 'Είσοδος';
+            err.style.display = 'none';
+        }
+    });
+
+    const checkPin = async () => {
+        const err = document.getElementById('loginError');
+        err.style.display = 'none';
+
+        const login = (maintainer = false) => {
+            unlockApp(maintainer);
+        };
+
+        if (!isMaintainerMode) {
+            // Normal PIN Login
+            const input = document.getElementById('pinInput').value;
+            const realPin = currentSettings.adminPin || "1234";
+
+            if (input === realPin) {
+                login(false);
+            } else {
+                err.style.display = 'block';
+                document.getElementById('pinInput').value = '';
+                document.getElementById('pinInput').focus();
+            }
+        } else {
+            // Maintainer Login
+            const u = document.getElementById('mUser').value;
+            const p = document.getElementById('mPass').value;
+
+            // SHA-256 of "65NovM@y68"
+            // Note: This hash is calculated via Utility
+            const targetHash = "9ea5058c7fb26bbc0599d869ad5289d1249822852f2dcfdb6dd7f290629af32d";
+
+            if (u === "UX_SY") {
+                const hash = await sha256(p);
+                // Check against target hash from certutil or similar tool
+                // If the hash from browser differs slightly due to encoding, we might need to adjust.
+                if (hash === targetHash) {
+                    login(true);
+                    return;
+                }
+            }
+            err.style.display = 'block';
         }
     };
 
+    function unlockApp(isMaintainer = false) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+
+        if (isMaintainer) {
+            // Reveal PIN
+            const pinReveal = document.getElementById('maintainerPinReveal');
+            const realPin = currentSettings.adminPin || "1234";
+            pinReveal.textContent = `(Τρέχον PIN: ${realPin})`;
+            pinReveal.style.display = 'block';
+
+            // Also unmask the input for convenience
+            const pinInput = document.getElementById('adminPin');
+            if (pinInput) pinInput.type = 'text';
+
+            // alert("Καλωσήρθατε, Συντηρητή!");
+        }
+    }
+
+    // Hash Helper
+    async function sha256(message) {
+        // encode as UTF-8
+        const msgBuffer = new TextEncoder().encode(message);
+        // hash the message
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        // convert ArrayBuffer to Array
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        // convert bytes to hex string                  
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+    }
+
     document.getElementById('loginBtn').addEventListener('click', checkPin);
     document.getElementById('pinInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') checkPin();
+    });
+    // Add enter listener for maintainer password
+    const mPass = document.getElementById('mPass');
+    if (mPass) mPass.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkPin();
     });
 };
