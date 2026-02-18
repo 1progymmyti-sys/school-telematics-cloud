@@ -302,7 +302,8 @@ async function updateWeather(city) {
         const { latitude, longitude, name } = location;
 
         // 2. Weather: Get current weather
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
+        // Add timestamp to prevent caching
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&_t=${Date.now()}`;
         const weatherRes = await fetch(weatherUrl);
         const weatherData = await weatherRes.json();
 
