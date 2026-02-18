@@ -79,14 +79,14 @@ window.onload = async () => {
             if (isMaintainerMode) {
                 pinGroup.style.display = 'none';
                 mainGroup.style.display = 'block';
-                toggleLink.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚ ΞΌΞµ PIN';
-                btn.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚ (Ξ£Ο…Ξ½Ο„Ξ·ΟΞ·Ο„Ξ®Ο‚)';
+                toggleLink.textContent = 'Είσοδος με PIN';
+                btn.textContent = 'Είσοδος (Συντηρητής)';
                 err.style.display = 'none';
             } else {
                 pinGroup.style.display = 'block';
                 mainGroup.style.display = 'none';
-                toggleLink.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚ Ξ£Ο…Ξ½Ο„Ξ·ΟΞ·Ο„Ξ®';
-                btn.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚';
+                toggleLink.textContent = 'Είσοδος Συντηρητή';
+                btn.textContent = 'Είσοδος';
                 err.style.display = 'none';
             }
         });
@@ -136,12 +136,12 @@ window.onload = async () => {
             const pinReveal = document.getElementById('maintainerPinReveal');
             const realPin = currentSettings.adminPin || "1234";
             if (pinReveal) {
-                pinReveal.textContent = `(Ξ¤ΟΞ­Ο‡ΞΏΞ½ PIN: ${realPin})`;
+                pinReveal.textContent = `(Τρέχον PIN: ${realPin})`;
                 pinReveal.style.display = 'block';
             }
             const pinInput = document.getElementById('adminPin');
             if (pinInput) pinInput.type = 'text';
-            // alert("ΞΞ±Ξ»Ο‰ΟƒΞ®ΟΞΈΞ±Ο„Ξµ, Ξ£Ο…Ξ½Ο„Ξ·ΟΞ·Ο„Ξ®!");
+            // alert("Καλωσήρθατε, Συντηρητή!");
         }
     }
 
@@ -184,7 +184,7 @@ window.onload = async () => {
         refreshBtn.addEventListener('click', () => {
             // Re-fetch logic is automatic via onSnapshot, but we can log or trigger something if needed
             console.log("List is auto-updating via Firebase!");
-            alert("Ξ— Ξ»Ξ―ΟƒΟ„Ξ± ΞµΞ½Ξ·ΞΌΞµΟΟΞ½ΞµΟ„Ξ±ΞΉ Ξ±Ο…Ο„ΟΞΌΞ±Ο„Ξ±!");
+            alert("Η λίστα ενημερώνεται αυτόματα!");
         });
     }
 
@@ -232,14 +232,14 @@ function updateEmergencyUI(s) {
     if (s.emergency?.message) msgInput.value = s.emergency.message;
 
     if (isEnabled) {
-        btn.innerHTML = 'β›” Ξ‘Ξ Ξ•ΞΞ•Ξ΅Ξ“ΞΞ ΞΞ™Ξ—Ξ£Ξ— Ξ£Ξ¥ΞΞ‘Ξ“Ξ•Ξ΅ΞΞΞ¥';
+        btn.innerHTML = '⛔ ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ';
         btn.style.backgroundColor = '#ffffff';
         btn.style.color = '#dc2626';
         btn.style.border = '4px solid #dc2626';
         msgInput.disabled = true;
         btn.classList.add('loading');
     } else {
-        btn.innerHTML = 'π¨ Ξ•ΞΞ•Ξ΅Ξ“ΞΞ ΞΞ™Ξ—Ξ£Ξ— Ξ£Ξ¥ΞΞ‘Ξ“Ξ•Ξ΅ΞΞΞ¥';
+        btn.innerHTML = '🚨 ΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ';
         btn.style.backgroundColor = '#dc2626';
         btn.style.color = '#ffffff';
         btn.style.border = 'none';
@@ -260,10 +260,10 @@ function renderList(list) {
                 <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, "").substring(0, 50) + "..." : ""}</div>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: start;">
-                 <button class="btn" style="background:${item.isPaused ? "#10b981" : "#f59e0b"}; padding:0.5rem; min-width: 40px;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Ξ£Ο…Ξ½Ξ­Ο‡ΞΉΟƒΞ·" : "Ξ Ξ±ΟΟƒΞ·"}">
-                    ${item.isPaused ? "β–¶" : "βΈ"}
+                 <button class="btn" style="background:${item.isPaused ? "#10b981" : "#f59e0b"}; padding:0.5rem; min-width: 40px;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Συνέχιση" : "Παύση"}">
+                    ${item.isPaused ? "▶" : "⏸"}
                 </button>
-                <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">β</button>
+                <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">✎</button>
                 <button class="btn btn-danger" style="padding:0.5rem;" onclick="window.deleteItem('${item.id}')">&times;</button>
             </div>
         </div>
@@ -485,7 +485,7 @@ window.editItem = (id) => {
 
     // Change Button
     const btn = form.querySelector('button[type="submit"]');
-    btn.textContent = "π’Ύ Update";
+    btn.textContent = "💾 Ενημέρωση";
     btn.style.background = "orange";
 
     form.scrollIntoView();
@@ -496,7 +496,7 @@ function cancelEdit() {
     document.getElementById('announcementForm').reset();
     document.getElementById('contentEditor').innerHTML = '';
     const btn = document.querySelector('#announcementForm button[type="submit"]');
-    btn.textContent = "Ξ”Ξ·ΞΌΞΏΟƒΞ―ΞµΟ…ΟƒΞ·";
+    btn.textContent = "Δημοσίευση";
     btn.style.background = "";
 }
 
