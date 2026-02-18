@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - Οθόνη</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=POS_FIX">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -103,15 +103,17 @@
 
         #weather {
             position: fixed !important;
-            top: 45px !important;
-            right: 320px !important;
-            /* MOVED CLOSER TO CLOCK */
+            top: 85px !important;
+            right: 40px !important;
+            /* MOVED UNDER CLOCK */
             z-index: 20005 !important;
             color: #fff !important;
-            font-size: 1.5rem !important;
+            font-size: 1.2rem !important;
+            /* Slightly smaller */
             animation: none !important;
             display: flex !important;
             align-items: center !important;
+            justify-content: flex-end !important;
             width: auto !important;
             background: transparent !important;
         }
