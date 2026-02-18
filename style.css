@@ -391,7 +391,8 @@ select:focus {
     /* Detach from Header completely */
     top: 45px !important;
     /* Vertically aligned roughly with clock center */
-    right: 500px !important;
+    /* Vertically aligned roughly with clock center */
+    right: 300px !important;
     /* LARGE GAP to prevent overlap */
     display: flex;
     align-items: center;
