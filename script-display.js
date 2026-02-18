@@ -154,7 +154,11 @@ function applySettings(s) {
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
     // Weather
-    if (s.weatherCity) updateWeather(s.weatherCity);
+    if (s.weatherCity) {
+        updateWeather(s.weatherCity);
+        if (weatherInterval) clearInterval(weatherInterval);
+        weatherInterval = setInterval(() => updateWeather(s.weatherCity), 1800000); // 30 mins
+    }
 
     // Ticker Logic (Text Priority, then RSS)
     const tickerContainer = document.getElementById('tickerContainer');
@@ -199,11 +203,79 @@ function applySettings(s) {
     }
 }
 
-function updateWeather(city) {
-    // Mock weather for now to avoid complexity without API Key
-    // You can add OpenWeatherMap logic here later
+async function updateWeather(city) {
+    if (!city) return;
     const weatherEl = document.getElementById('weather');
-    weatherEl.innerHTML = `☁️ ${city} 18°C`;
+
+    // Check if we have cached coordinates to avoid excessive geocoding calls
+    // For simplicity in this version, we will fetch every time or rely on browser caching of the fetch request
+
+    try {
+        console.log(`Fetching weather for: ${city}`);
+
+        // 1. Geocoding: Get Lat/Lon for the city
+        // We add 'Greece' to context if possible, but searching by name usually works fine
+        const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=el&format=json`;
+        const geoRes = await fetch(geoUrl);
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+            console.warn("Weather: City not found");
+            weatherEl.innerHTML = `⚠️ ${city} ?`;
+            return;
+        }
+
+        const location = geoData.results[0];
+        const { latitude, longitude, name } = location;
+
+        // 2. Weather: Get current weather
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`;
+        const weatherRes = await fetch(weatherUrl);
+        const weatherData = await weatherRes.json();
+
+        if (weatherData.current_weather) {
+            const temp = Math.round(weatherData.current_weather.temperature);
+            const wmoCode = weatherData.current_weather.weathercode;
+            const weatherInfo = getWeatherDescription(wmoCode);
+
+            // Update UI
+            // Format: Icon | City | Temp | Description
+            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.6em; opacity:0.8; margin-left:5px;">(${weatherInfo.desc})</span>`;
+        }
+    } catch (error) {
+        console.error("Weather Error:", error);
+        weatherEl.innerHTML = `❌ ${city}`;
+    }
+}
+
+// Helper: Map WMO codes to Greek descriptions and Icons
+function getWeatherDescription(code) {
+    // WMO Weather interpretation codes (WW)
+    const codes = {
+        0: { desc: "Αίθριος", icon: "☀️" },
+        1: { desc: "Κυρίως Αίθριος", icon: "🌤️" },
+        2: { desc: "Λίγα Σύννεφα", icon: "⛅" },
+        3: { desc: "Συννεφιά", icon: "☁️" },
+        45: { desc: "Ομίχλη", icon: "🌫️" },
+        48: { desc: "Πάχνη", icon: "🌫️" },
+        51: { desc: "Ψιχάλες", icon: "🌦️" },
+        53: { desc: "Ψιχάλες", icon: "🌦️" },
+        55: { desc: "Ψιχάλες", icon: "🌦️" },
+        61: { desc: "Βροχή", icon: "🌧️" },
+        63: { desc: "Βροχή", icon: "🌧️" },
+        65: { desc: "Ισχυρή Βροχή", icon: "🌧️" },
+        71: { desc: "Χιόνι", icon: "🌨️" },
+        73: { desc: "Χιόνι", icon: "🌨️" },
+        75: { desc: "Ισχυρό Χιόνι", icon: "🌨️" },
+        80: { desc: "Μπόρες", icon: "🌦️" },
+        81: { desc: "Μπόρες", icon: "🌦️" },
+        82: { desc: "Ισχυρές Μπόρες", icon: "⛈️" },
+        95: { desc: "Καταιγίδα", icon: "⛈️" },
+        96: { desc: "Καταιγίδα με Χαλάζι", icon: "⛈️" },
+        99: { desc: "Καταιγίδα με Χαλάζι", icon: "⛈️" }
+    };
+
+    return codes[code] || { desc: "", icon: "🌡️" };
 }
 
 function activateEmergency(msg) {
