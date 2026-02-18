@@ -1,5 +1,5 @@
 import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
-import ParticleEngine from "./canvas-particles.js?v=exams";
+import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
 let slides = [];

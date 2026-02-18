@@ -106,9 +106,10 @@ export default class ParticleEngine {
         else if (this.theme === 'exams') {
             const formulas = ['∑', '∫', 'π', '√', 'x²', 'E=mc²', 'sin(x)', 'limit', '∞', '%', '÷', '+', '-'];
             p.text = formulas[Math.floor(Math.random() * formulas.length)];
-            p.color = `rgba(255, 255, 255, ${Math.random() * 0.3 + 0.1})`; // Faint white
+            // Changed color to light blue-ish white (#bfdbfe) with transparency
+            p.color = `rgba(191, 219, 254, ${Math.random() * 0.4 + 0.2})`;
             p.vx = (Math.random() - 0.5) * 0.5;
-            p.vy = -(Math.random() * 1 + 0.5); // Rise up like ideas
+            p.vy = -(Math.random() * 1 + 0.5); // Rise up
             p.size = Math.random() * 20 + 20; // 20-40px font size
             p.font = 'monospace';
         }
@@ -223,7 +224,10 @@ export default class ParticleEngine {
                 }
             }
             else if (this.theme === 'exams') {
-                if (p.y < -50) this.particles[i] = this.createParticle(true); // Reset at bottom
+                if (p.y < -50) {
+                    this.particles[i] = this.createParticle(true); // Respawn new one
+                    this.particles[i].y = h + 20; // Explicitly set to bottom
+                }
                 // Slight wobble
                 p.x += Math.sin(this.time + i) * 0.2;
             }
