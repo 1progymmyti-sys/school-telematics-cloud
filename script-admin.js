@@ -1,4 +1,4 @@
-import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc } from "./firebase-config.js";
+﻿import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc } from "./firebase-config.js";
 
 // Collection Consts
 const ANNOUNCEMENTS_COL = "announcements";
@@ -60,57 +60,37 @@ window.onload = async () => {
     });
 
     initForm();
-    // Dynamic Event Listeners for Themes (Module Fix)
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const theme = btn.dataset.theme;
-            console.log("Setting theme to:", theme);
-            saveSettings({ theme: theme });
-        });
-    });
-
-    // Refresh Button Fix
-    const refreshBtn = document.querySelector('button[onclick*="AdminApp"]');
-    if (refreshBtn) {
-        refreshBtn.onclick = null; // Remove old handler
-        refreshBtn.addEventListener('click', () => {
-            // Re-fetch logic is automatic via onSnapshot, but we can log or trigger something if needed
-            console.log("List is auto-updating via Firebase!");
-            alert("Η λίστα ενημερώνεται αυτόματα!");
-        });
-    }
-
-    initSettingsForm();
-
-    // Auth Handler
+    // --- AUTH LOGIC (PRIORITY) ---
     // Auth Handler
     let isMaintainerMode = false;
+    let maintainerHashTarget = "9ea5058c7fb26bbc0599d869ad5289d1249822852f2dcfdb6dd7f290629af32d";
 
-    // Toggle Mode
     const toggleLink = document.getElementById('toggleLoginMode');
-    toggleLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        isMaintainerMode = !isMaintainerMode;
+    if (toggleLink) {
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isMaintainerMode = !isMaintainerMode;
 
-        const pinGroup = document.getElementById('pinLoginGroup');
-        const mainGroup = document.getElementById('maintainerLoginGroup');
-        const btn = document.getElementById('loginBtn');
-        const err = document.getElementById('loginError');
+            const pinGroup = document.getElementById('pinLoginGroup');
+            const mainGroup = document.getElementById('maintainerLoginGroup');
+            const btn = document.getElementById('loginBtn');
+            const err = document.getElementById('loginError');
 
-        if (isMaintainerMode) {
-            pinGroup.style.display = 'none';
-            mainGroup.style.display = 'block';
-            toggleLink.textContent = 'Είσοδος με PIN';
-            btn.textContent = 'Είσοδος (Συντηρητής)';
-            err.style.display = 'none';
-        } else {
-            pinGroup.style.display = 'block';
-            mainGroup.style.display = 'none';
-            toggleLink.textContent = 'Είσοδος Συντηρητή';
-            btn.textContent = 'Είσοδος';
-            err.style.display = 'none';
-        }
-    });
+            if (isMaintainerMode) {
+                pinGroup.style.display = 'none';
+                mainGroup.style.display = 'block';
+                toggleLink.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚ ΞΌΞµ PIN';
+                btn.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚ (Ξ£Ο…Ξ½Ο„Ξ·ΟΞ·Ο„Ξ®Ο‚)';
+                err.style.display = 'none';
+            } else {
+                pinGroup.style.display = 'block';
+                mainGroup.style.display = 'none';
+                toggleLink.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚ Ξ£Ο…Ξ½Ο„Ξ·ΟΞ·Ο„Ξ®';
+                btn.textContent = 'Ξ•Ξ―ΟƒΞΏΞ΄ΞΏΟ‚';
+                err.style.display = 'none';
+            }
+        });
+    }
 
     const checkPin = async () => {
         const err = document.getElementById('loginError');
@@ -137,15 +117,9 @@ window.onload = async () => {
             const u = document.getElementById('mUser').value;
             const p = document.getElementById('mPass').value;
 
-            // SHA-256 of "65NovM@y68"
-            // Note: This hash is calculated via Utility
-            const targetHash = "9ea5058c7fb26bbc0599d869ad5289d1249822852f2dcfdb6dd7f290629af32d";
-
             if (u === "UX_SY") {
                 const hash = await sha256(p);
-                // Check against target hash from certutil or similar tool
-                // If the hash from browser differs slightly due to encoding, we might need to adjust.
-                if (hash === targetHash) {
+                if (hash === maintainerHashTarget) {
                     login(true);
                     return;
                 }
@@ -159,44 +133,64 @@ window.onload = async () => {
         document.getElementById('mainApp').style.display = 'block';
 
         if (isMaintainer) {
-            // Reveal PIN
             const pinReveal = document.getElementById('maintainerPinReveal');
             const realPin = currentSettings.adminPin || "1234";
-            pinReveal.textContent = `(Τρέχον PIN: ${realPin})`;
-            pinReveal.style.display = 'block';
-
-            // Also unmask the input for convenience
+            if (pinReveal) {
+                pinReveal.textContent = `(Ξ¤ΟΞ­Ο‡ΞΏΞ½ PIN: ${realPin})`;
+                pinReveal.style.display = 'block';
+            }
             const pinInput = document.getElementById('adminPin');
             if (pinInput) pinInput.type = 'text';
-
-            // alert("Καλωσήρθατε, Συντηρητή!");
+            // alert("ΞΞ±Ξ»Ο‰ΟƒΞ®ΟΞΈΞ±Ο„Ξµ, Ξ£Ο…Ξ½Ο„Ξ·ΟΞ·Ο„Ξ®!");
         }
     }
 
     // Hash Helper
     async function sha256(message) {
-        // encode as UTF-8
         const msgBuffer = new TextEncoder().encode(message);
-        // hash the message
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        // convert ArrayBuffer to Array
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        // convert bytes to hex string                  
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         return hashHex;
     }
 
-    document.getElementById('loginBtn').addEventListener('click', checkPin);
-    document.getElementById('pinInput').addEventListener('keypress', (e) => {
+    const loginBtn = document.getElementById('loginBtn');
+    if (loginBtn) loginBtn.addEventListener('click', checkPin);
+
+    const pinInput = document.getElementById('pinInput');
+    if (pinInput) pinInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkPin();
     });
-    // Add enter listener for maintainer password
+
     const mPass = document.getElementById('mPass');
     if (mPass) mPass.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkPin();
     });
-};
 
+    // --- END AUTH LOGIC ---
+    // Dynamic Event Listeners for Themes (Module Fix)
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const theme = btn.dataset.theme;
+            console.log("Setting theme to:", theme);
+            saveSettings({ theme: theme });
+        });
+    });
+
+    // Refresh Button Fix
+    const refreshBtn = document.querySelector('button[onclick*="AdminApp"]');
+    if (refreshBtn) {
+        refreshBtn.onclick = null; // Remove old handler
+        refreshBtn.addEventListener('click', () => {
+            // Re-fetch logic is automatic via onSnapshot, but we can log or trigger something if needed
+            console.log("List is auto-updating via Firebase!");
+            alert("Ξ— Ξ»Ξ―ΟƒΟ„Ξ± ΞµΞ½Ξ·ΞΌΞµΟΟΞ½ΞµΟ„Ξ±ΞΉ Ξ±Ο…Ο„ΟΞΌΞ±Ο„Ξ±!");
+        });
+    }
+
+    initSettingsForm();
+
+};
 // --- UI UPDATERS ---
 
 function updateSettingsUI(s) {
@@ -238,14 +232,14 @@ function updateEmergencyUI(s) {
     if (s.emergency?.message) msgInput.value = s.emergency.message;
 
     if (isEnabled) {
-        btn.innerHTML = '⛔ ΑΠΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ';
+        btn.innerHTML = 'β›” Ξ‘Ξ Ξ•ΞΞ•Ξ΅Ξ“ΞΞ ΞΞ™Ξ—Ξ£Ξ— Ξ£Ξ¥ΞΞ‘Ξ“Ξ•Ξ΅ΞΞΞ¥';
         btn.style.backgroundColor = '#ffffff';
         btn.style.color = '#dc2626';
         btn.style.border = '4px solid #dc2626';
         msgInput.disabled = true;
         btn.classList.add('loading');
     } else {
-        btn.innerHTML = '🚨 ΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ';
+        btn.innerHTML = 'π¨ Ξ•ΞΞ•Ξ΅Ξ“ΞΞ ΞΞ™Ξ—Ξ£Ξ— Ξ£Ξ¥ΞΞ‘Ξ“Ξ•Ξ΅ΞΞΞ¥';
         btn.style.backgroundColor = '#dc2626';
         btn.style.color = '#ffffff';
         btn.style.border = 'none';
@@ -266,7 +260,7 @@ function renderList(list) {
                 <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, '').substring(0, 50) + '...' : ''}</div>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">✎</button>
+                <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">β</button>
                 <button class="btn btn-danger" style="padding:0.5rem;" onclick="window.deleteItem('${item.id}')">&times;</button>
             </div>
         </div>
@@ -476,7 +470,7 @@ window.editItem = (id) => {
 
     // Change Button
     const btn = form.querySelector('button[type="submit"]');
-    btn.textContent = "💾 Update";
+    btn.textContent = "π’Ύ Update";
     btn.style.background = "orange";
 
     form.scrollIntoView();
@@ -487,7 +481,7 @@ function cancelEdit() {
     document.getElementById('announcementForm').reset();
     document.getElementById('contentEditor').innerHTML = '';
     const btn = document.querySelector('#announcementForm button[type="submit"]');
-    btn.textContent = "Δημοσίευση";
+    btn.textContent = "Ξ”Ξ·ΞΌΞΏΟƒΞ―ΞµΟ…ΟƒΞ·";
     btn.style.background = "";
 }
 
