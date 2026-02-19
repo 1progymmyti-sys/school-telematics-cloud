@@ -54,6 +54,7 @@ export default class ParticleEngine {
         if (this.theme === 'valentine') return width / 15; // Hearts
         if (this.theme === 'easter') return width / 10; // Glows
         if (this.theme === 'exams') return width / 12; // Math formulas
+        if (this.theme === 'carnival') return width / 8; // Dense carnival
         return 0;
     }
 
@@ -111,7 +112,32 @@ export default class ParticleEngine {
             p.vx = (Math.random() - 0.5) * 0.5;
             p.vy = -(Math.random() * 1 + 0.5); // Rise up
             p.size = Math.random() * 20 + 20; // 20-40px font size
+            p.size = Math.random() * 20 + 20; // 20-40px font size
             p.font = 'monospace';
+        }
+        else if (this.theme === 'carnival') {
+            const types = ['mask', 'ribbon', 'confetti', 'confetti', 'confetti'];
+            p.type = types[Math.floor(Math.random() * types.length)];
+
+            p.color = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'][Math.floor(Math.random() * 6)];
+            p.vx = (Math.random() - 0.5) * 3;
+            p.vy = Math.random() * 3 + 2;
+            p.rotation = Math.random() * 360;
+            p.rotationSpeed = (Math.random() - 0.5) * 5;
+
+            if (p.type === 'mask') {
+                const masks = ['🎭', '👺', '🎪', '🎺'];
+                p.text = masks[Math.floor(Math.random() * masks.length)];
+                p.size = Math.random() * 40 + 30; // Large masks
+            } else if (p.type === 'ribbon') {
+                p.size = Math.random() * 20 + 50; // Length
+                p.width = Math.random() * 5 + 2; // Width
+                p.oscillation = Math.random() * 0.1;
+                p.phase = Math.random() * Math.PI * 2;
+            } else {
+                // Confetti
+                p.size = Math.random() * 10 + 5;
+            }
         }
 
         return p;
@@ -231,6 +257,15 @@ export default class ParticleEngine {
                 // Slight wobble
                 p.x += Math.sin(this.time + i) * 0.2;
             }
+            else if (this.theme === 'carnival') {
+                if (p.y > h + 50) this.particles[i] = this.createParticle(true);
+                if (p.x > w + 50 || p.x < -50) p.x = (p.x + w) % w;
+
+                if (p.type === 'ribbon') {
+                    p.phase += 0.1;
+                    p.x += Math.sin(p.phase) * 2;
+                }
+            }
 
             // Draw
             this.ctx.globalAlpha = p.alpha;
@@ -268,6 +303,35 @@ export default class ParticleEngine {
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillText(p.text, p.x, p.y);
+            }
+            else if (this.theme === 'carnival') {
+                if (p.type === 'mask') {
+                    this.ctx.font = `${p.size}px sans-serif`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(p.text, p.x, p.y);
+                } else if (p.type === 'ribbon') {
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = p.color;
+                    this.ctx.lineWidth = p.width;
+                    this.ctx.moveTo(p.x, p.y);
+                    // Draw a squiggle
+                    for (let j = 0; j < p.size; j += 5) {
+                        this.ctx.lineTo(
+                            p.x + Math.sin((j + this.time * 10) * p.oscillation) * 10,
+                            p.y - j
+                        );
+                    }
+                    this.ctx.stroke();
+                } else {
+                    // Confetti
+                    this.ctx.save();
+                    this.ctx.translate(p.x, p.y);
+                    this.ctx.rotate(p.rotation * Math.PI / 180);
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                    this.ctx.restore();
+                }
             }
         }
         this.ctx.globalAlpha = 1;

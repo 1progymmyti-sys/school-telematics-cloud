@@ -523,6 +523,12 @@ body.theme-exams .display-header {
     border-bottom-color: #a8a29e;
 }
 
+body.theme-carnival .display-header {
+    background: linear-gradient(135deg, #4c1d95 0%, #312e81 50%, #be185d 100%);
+    box-shadow: 0 4px 20px rgba(219, 39, 119, 0.4);
+    border-bottom-color: #db2777;
+}
+
 /* Theme Tickers */
 body.theme-christmas .ticker-container {
     background: linear-gradient(90deg, #dc2626, #16a34a, #dc2626);
@@ -542,6 +548,12 @@ body.theme-national .ticker-container {
     text-shadow: 0 1px 2px black;
     background-size: 200% 100%;
     animation: shimmer 5s ease-in-out infinite;
+}
+
+body.theme-carnival .ticker-container {
+    background: linear-gradient(90deg, #7e22ce, #db2777, #eab308, #7e22ce);
+    background-size: 300% 100%;
+    animation: shimmer 3s linear infinite;
 }
 
 /* Shimmer Animation */
@@ -588,6 +600,10 @@ body.theme-national {
 
 body.theme-exams {
     background-color: #1c1917;
+}
+
+body.theme-carnival {
+    background-color: #2e1065;
 }
 
 
