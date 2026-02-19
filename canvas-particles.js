@@ -120,10 +120,15 @@ export default class ParticleEngine {
             p.type = types[Math.floor(Math.random() * types.length)];
 
             p.color = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'][Math.floor(Math.random() * 6)];
-            p.vx = (Math.random() - 0.5) * 3;
-            p.vy = Math.random() * 3 + 2;
+
+            // Slower speed
+            p.vx = (Math.random() - 0.5) * 1.5;
+            p.vy = Math.random() * 1.5 + 1;
             p.rotation = Math.random() * 360;
-            p.rotationSpeed = (Math.random() - 0.5) * 5;
+            p.rotationSpeed = (Math.random() - 0.5) * 2;
+
+            // Semi-transparent
+            p.alpha = 0.7;
 
             if (p.type === 'mask') {
                 const masks = ['🎭', '👺', '🎪', '🎺'];
