@@ -25,7 +25,7 @@ async function fetchRSS(url) {
 
         if (data.status === 'ok') {
             const items = data.items.map(i => `<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${i.title}</span>`).join('');
-            showTickerText(items);
+            showTickerText(items, "ΕΝΗΜΕΡΩΣΗ");
         } else {
             console.warn("RSS Feed status error");
             // Don't show URL to user on error, just hide or show generic
@@ -37,9 +37,15 @@ async function fetchRSS(url) {
 }
 
 
-function showTickerText(htmlContent) {
+function showTickerText(htmlContent, labelText) {
     const tickerContainer = document.getElementById('tickerContainer');
     const tickerContent = document.getElementById('tickerContent');
+
+    // Update label if provided
+    if (tickerContainer && labelText) {
+        const labelEl = tickerContainer.querySelector('.ticker-label');
+        if (labelEl) labelEl.innerText = labelText;
+    }
 
     // Check if changed to avoid reset
     if (lastTickerContent === htmlContent && tickerAnimId) return;
@@ -93,7 +99,7 @@ const getActiveSlides = (list) => {
 
 window.onload = () => {
     console.log("Display Cloud App Starting...");
-    showTickerText("⏳ Φόρτωση ενημερώσεων..."); // Initial debug text
+    showTickerText("⏳ Φόρτωση ενημερώσεων...", "ΕΝΗΜΕΡΩΣΗ"); // Initial debug text
 
     // 1. Settings Listener
     onSnapshot(doc(db, "settings", "schoolConfig"), (docSnap) => {
@@ -244,7 +250,7 @@ function applySettings(s) {
 
     if (s.tickerMessage && s.tickerMessage.trim() !== "") {
         // 1. Text Message (Highest Priority)
-        showTickerText(`<span>📢 ${s.tickerMessage}</span>`);
+        showTickerText(`<span>📢 ${s.tickerMessage}</span>`, "ΔΙΕΥΘΥΝΣΗ");
     }
     else if (s.rssUrl && s.rssUrl.trim() !== "") {
         // 2. RSS Feed (If text is empty)
