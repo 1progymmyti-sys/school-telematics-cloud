@@ -63,7 +63,7 @@ function startTickerAnim(element) {
     tickerOffset = window.innerWidth; // Reset start pos
 
     function loop() {
-        tickerOffset -= 1.2; // Slower Speed (was 2.5)
+        tickerOffset -= 1.8; // Faster Speed (requested slightly faster)
 
         // If fully off-screen left, reset to right
         if (tickerOffset < -element.offsetWidth) {
