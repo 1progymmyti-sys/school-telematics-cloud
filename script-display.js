@@ -15,28 +15,21 @@ let tickerAnimId = null;
 let tickerOffset = window.innerWidth;
 let lastTickerContent = '';
 
-// Helper: Fetch RSS Feed via Proxy and Parse XML manually
+// Helper: Fetch RSS Feed directly (now that CORS is enabled)
 async function fetchRSS(url) {
     if (!url) return;
     try {
-        // Use a generic CORS proxy since rss2json is often blocked by sch.gr (ΠΣΔ)
-        const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-        const res = await fetch(proxy);
+        const res = await fetch(url);
         const xmlText = await res.text();
-        
-        // Check if we received text and not an error JSON
-        if (!xmlText || xmlText.trim().startsWith('{')) {
-             console.warn("RSS Feed status error or blocked");
-             return;
-        }
 
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
         const items = xmlDoc.querySelectorAll("item");
-        
+
         if (items && items.length > 0) {
             let htmlItems = [];
-            items.forEach(item => {
+            items.forEach((item, index) => {
+                if (index >= 5) return; // Keep only the latest 5 to avoid enormous text
                 const title = item.querySelector("title")?.textContent;
                 if (title) {
                     htmlItems.push(`<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${title}</span>`);
