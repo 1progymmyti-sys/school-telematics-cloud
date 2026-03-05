@@ -15,21 +15,36 @@ let tickerAnimId = null;
 let tickerOffset = window.innerWidth;
 let lastTickerContent = '';
 
-// Helper: Fetch RSS Feed via Proxy
+// Helper: Fetch RSS Feed via Proxy and Parse XML manually
 async function fetchRSS(url) {
     if (!url) return;
     try {
-        const proxy = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(url);
+        // Use a generic CORS proxy since rss2json is often blocked by sch.gr (ΠΣΔ)
+        const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
         const res = await fetch(proxy);
-        const data = await res.json();
+        const xmlText = await res.text();
+        
+        // Check if we received text and not an error JSON
+        if (!xmlText || xmlText.trim().startsWith('{')) {
+             console.warn("RSS Feed status error or blocked");
+             return;
+        }
 
-        if (data.status === 'ok') {
-            const items = data.items.map(i => `<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${i.title}</span>`).join('');
-            showTickerText(items, "ΕΝΗΜΕΡΩΣΗ");
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+        const items = xmlDoc.querySelectorAll("item");
+        
+        if (items && items.length > 0) {
+            let htmlItems = [];
+            items.forEach(item => {
+                const title = item.querySelector("title")?.textContent;
+                if (title) {
+                    htmlItems.push(`<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${title}</span>`);
+                }
+            });
+            showTickerText(htmlItems.join(''), "ΕΝΗΜΕΡΩΣΗ");
         } else {
-            console.warn("RSS Feed status error");
-            // Don't show URL to user on error, just hide or show generic
-            // showTickerText("⚠️ Μη διαθέσιμες ειδήσεις");
+            console.warn("No items found in RSS feed");
         }
     } catch (e) {
         console.error("RSS Error:", e);
