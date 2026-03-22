@@ -276,8 +276,8 @@ function initForm() {
             examcal: document.getElementById('examCalendarGroup')
         };
 
-        // Reset all
-        Object.values(els).forEach(el => el.style.display = 'none');
+        // Reset all (null-safe)
+        Object.values(els).forEach(el => { if (el) el.style.display = 'none'; });
 
         // Show relevant
         if (['text', 'image', 'youtube', 'countdown', 'schedule'].includes(type)) els.content.style.display = 'block';
