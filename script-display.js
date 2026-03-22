@@ -610,11 +610,20 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         if (data.classes) data.classes.forEach(c => classMap[c.id] = c.name);
 
         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const currentHour = now.getHours();
+        const currentDayIndex = (now.getDay() || 7) - 1; // 0-indexed Mon-Sun
 
-        // Render exactly 5 days (Mon-Fri)
+        // Render exactly 5 slots (Mon-Fri)
         for (let i = 0; i < 5; i++) {
             const date = new Date(monday);
             date.setDate(monday.getDate() + i);
+            
+            // ROLLOVER LOGIC: If day 'i' has passed (today > i) 
+            // OR if today is day 'i' and it's 15:00 or later
+            if (currentDayIndex > i || (currentDayIndex === i && currentHour >= 15)) {
+                date.setDate(date.getDate() + 7);
+            }
+
             const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             const isToday = (isoDate === todayStr);
 
@@ -624,22 +633,26 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             let bg = isToday ? '#ebf8ff' : 'white';
             if (dailyLocks.length > 0) bg = '#fff5f5';
 
-            html += `<div style="background:${bg}; padding:1rem; display:flex; flex-direction:column; gap:0.6rem; min-height:60vh; border-right:1px solid #e2e8f0;">
-                <div style="font-size:2rem; font-weight:900; color:${isToday ? '#2b6cb0' : '#64748b'}; border-bottom:2px solid ${isToday ? '#bee3f8' : '#f1f5f9'}; padding-bottom:0.5rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
-                    <span>${date.getDate()}</span>
-                    ${isToday ? '<span style="font-size:0.9rem; background:#3182ce; color:white; padding:2px 8px; border-radius:10px;">ΣΗΜΕΡΑ</span>' : ''}
+            html += `<div style="background:${bg}; padding:0.8rem; display:flex; flex-direction:column; gap:0.5rem; min-height:60vh; border-right:1px solid #e2e8f0; overflow-y:auto;">
+                <div style="font-size:1.6rem; font-weight:900; color:${isToday ? '#2b6cb0' : '#64748b'}; border-bottom:2px solid ${isToday ? '#bee3f8' : '#f1f5f9'}; padding-bottom:0.4rem; margin-bottom:0.3rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="display:flex; flex-direction:column;">
+                        <span>${date.getDate()}</span>
+                        <small style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">${months[date.getMonth()]}</small>
+                    </span>
+                    ${isToday ? '<span style="font-size:0.8rem; background:#3182ce; color:white; padding:2px 6px; border-radius:10px;">ΣΗΜΕΡΑ</span>' : ''}
                 </div>`;
             
             dailyLocks.forEach(lp => {
-               html += `<div style="background:#fed7d7; color:#c53030; padding:0.8rem; border-radius:0.5rem; font-size:1.2rem; font-weight:bold; border:2px solid #feb2b2;">🔒 ${lp.reason}</div>`;
+               html += `<div style="background:#fed7d7; color:#c53030; padding:0.6rem; border-radius:0.4rem; font-size:1rem; font-weight:bold; border:1px solid #feb2b2; line-height:1.1;">🔒 ${lp.reason}</div>`;
             });
             
-            dailyExams.forEach(e => {
+            // Sort exams by time if possible (simple alphabetical sort based on 'time' string)
+            dailyExams.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(e => {
                const cName = classMap[e.classId] || 'Τμήμα';
-               html += `<div style="background:white; border-left:8px solid #3182ce; padding:1rem; border-radius:0.5rem; box-shadow:0 4px 6px rgba(0,0,0,0.05); border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
-                   <div style="font-weight:900; font-size:1.4rem; color:#1a202c; line-height:1.2;">${e.subject}</div>
-                   <div style="font-size:1.1rem; color:#4a5568; margin-top:0.4rem; font-weight:600;">${cName}</div>
-                   <div style="font-size:1.1rem; color:#718096; font-family:monospace; margin-top:0.2rem;">⏰ ${e.time}</div>
+               html += `<div style="background:white; border-left:6px solid #3182ce; padding:0.7rem; border-radius:0.4rem; box-shadow:0 2px 4px rgba(0,0,0,0.05); border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
+                   <div style="font-weight:900; font-size:1.1rem; color:#1a202c; line-height:1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${e.subject}</div>
+                   <div style="font-size:0.95rem; color:#4a5568; margin-top:0.3rem; font-weight:600;">${cName}</div>
+                   <div style="font-size:0.9rem; color:#718096; font-family:monospace; margin-top:0.1rem;">⏰ ${e.time}</div>
                </div>`;
             });
 
