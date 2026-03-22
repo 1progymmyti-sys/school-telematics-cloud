@@ -327,8 +327,7 @@
                                 value="1.0" style="width: 100%; margin-top: 0.5rem;"
                                 oninput="document.getElementById('scaleValue').textContent = Math.round(this.value * 100) + '%'">
                             <small style="color: var(--text-secondary); display: block; margin-top: 0.2rem;">
-                                Ρυθμίστε το αν η σελίδα φαίνεται πολύ μικρή ή κομμένη. (Λιγότερο από 100% =
-                                Σμίκρυνση/Χωράει περισσότερα).
+                                Ρυθμίστε το αν η σελίδα φαίνεται πολύ μικρή ή κομμένη.
                             </small>
                         </div>
                     </div>
@@ -337,16 +336,14 @@
                         <label for="liveImageUrl">Διεύθυνση Εικόνας (URL)</label>
                         <input type="url" id="liveImageUrl" name="liveImageUrl"
                             placeholder="π.χ. http://192.168.1.100/seismo.jpg">
-                        <small style="color: var(--text-secondary);">Η εικόνα θα ανανεώνεται αυτόματα. Βάλτε το πλήρες
-                            URL της εικόνας (π.χ. από σεισμογράφο, καιρό, κλπ).</small>
+                        <small style="color: var(--text-secondary);">Η εικόνα θα ανανεώνεται αυτόματα.</small>
                     </div>
 
                     <div id="youtubeGroup" class="form-group" style="display: none;">
                         <label for="youtubeUrl">YouTube Link</label>
                         <input type="url" id="youtubeUrl" name="youtubeUrl"
                             placeholder="π.χ. https://www.youtube.com/watch?v=dQw4w9WgXcQ">
-                        <small style="color: var(--text-secondary);">Το βίντεο θα παίζει αυτόματα (χωρίς ήχο για
-                            συμβατότητα).</small>
+                        <small style="color: var(--text-secondary);">Το βίντεο θα παίζει αυτόματα.</small>
                     </div>
 
                     <div id="countdownGroup" class="form-group" style="display: none;">
@@ -367,6 +364,13 @@
                             αυτές.</small>
                     </div>
 
+                    <div id="examCalendarGroup" class="form-group" style="display: none;">
+                        <label for="examCalendarUrl">URL του Exam Scheduler (Web App)</label>
+                        <input type="url" id="examCalendarUrl" name="examCalendarUrl"
+                            placeholder="π.χ. https://script.google.com/macros/s/.../exec">
+                        <small style="color: var(--text-secondary);">Βάλτε το link του Exam Scheduler Google Apps Script Web App.</small>
+                    </div>
+
                     <div id="formActions" style="display: flex; gap: 1rem;">
                         <button type="submit" class="btn" style="flex: 1;">Δημοσίευση</button>
                     </div>
@@ -377,9 +381,6 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h2>Ενεργές Ανακοινώσεις</h2>
-                    <button onclick="AdminApp.renderList(DataManager.getAll())" class="btn"
-                        style="background: transparent; border: 1px solid var(--text-secondary); padding: 0.5rem;">↻
-                        Ανανέωση</button>
                 </div>
                 <div id="announcementList" class="announcement-list">
                     <!-- Items will be injected here -->
