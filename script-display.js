@@ -1,4 +1,4 @@
-﻿import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
+import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
 import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
@@ -619,7 +619,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             let bg = isToday ? '#ebf8ff' : 'white';
             if (dailyLocks.length > 0) bg = '#fff5f5';
 
-            html += `<div style="background:${bg}; padding:0.5rem; display:flex; flex-direction:column; gap:0.4rem; overflow:hidden;">
+            html += `<div style="background:${bg}; padding:0.5rem; display:flex; flex-direction:column; gap:0.4rem; overflow-y:auto; overflow-x:hidden; min-height:100px; max-height:220px;">
                 <div style="font-size:1.6rem; font-weight:bold; color:${isToday ? '#2b6cb0' : '#4a5568'}; text-align:right;">${d}</div>`;
             
             dailyLocks.forEach(lp => {
