@@ -129,7 +129,7 @@ window.onload = () => {
     });
 
     // 2. Announcements Listener
-    const q = query(collection(db, "announcements"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "announcements"), orderBy("order", "asc"));
     onSnapshot(q, (snapshot) => {
         const all = [];
         snapshot.forEach(doc => {

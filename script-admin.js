@@ -31,7 +31,7 @@ const readFileAsText = (file) => {
 
 // --- INIT ---
 window.onload = async () => {
-    console.log("Admin Cloud App Starting...");
+    console.log("Admin Cloud App Starting with Drag-and-Drop Reordering...");
 
     // 1. Realtime Settings Listener
     onSnapshot(doc(db, SETTINGS_COL, SETTINGS_DOC_ID), (docSnap) => {
@@ -44,15 +44,33 @@ window.onload = async () => {
         }
     });
 
-    // 2. Realtime Announcements Listener
-    const q = query(collection(db, ANNOUNCEMENTS_COL), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snapshot) => {
-        allAnnouncements = [];
+    // 2. Announcements Listener
+    const q = query(collection(db, "announcements"), orderBy("order", "asc"));
+    onSnapshot(q, async (snapshot) => {
+        const items = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
             data.id = doc.id;
-            allAnnouncements.push(data);
+            items.push(data);
         });
+
+        // REORDERING MIGRATION: If no items have "order", it's likely they were 
+        // filtered out because they don't have the field. 
+        // Let's fallback to fetching ALL and assigning orders.
+        if (items.length === 0 && snapshot.size > 0) { // Only if there are docs but none with 'order'
+           const allSnap = await getDocs(collection(db, ANNOUNCEMENTS_COL));
+           if (allSnap.size > 0) {
+               console.log("Migrating items to use 'order' field...");
+               const batch = writeBatch(db);
+               allSnap.docs.forEach((d, index) => {
+                   batch.update(d.ref, { order: index * 10 });
+               });
+               await batch.commit();
+               return; // Snapshot will catch the update
+           }
+        }
+
+        allAnnouncements = items;
         renderList(allAnnouncements);
     });
 
@@ -236,13 +254,24 @@ function updateEmergencyUI(s) {
 
 function renderList(list) {
     const listContainer = document.getElementById("announcementList");
-    listContainer.innerHTML = list.map(item => `
-        <div class="announcement-item type-${item.type}" style="opacity: ${isActive(item) ? "1" : "0.5"}">
-            <div>
-                <div style="font-size: 0.8rem; opacity: 0.7; text-transform: uppercase;">
+    listContainer.innerHTML = list.map((item, index) => `
+        <div class="announcement-item type-${item.type}" 
+             draggable="true"
+             data-id="${item.id}"
+             data-index="${index}"
+             style="opacity: ${isActive(item) ? "1" : "0.5"}; cursor: move; transition: transform 0.2s, box-shadow: 0.2s; position: relative;"
+             ondragstart="window.handleDragStart(event)"
+             ondragover="window.handleDragOver(event)"
+             ondrop="window.handleDrop(event)"
+             ondragend="window.handleDragEnd(event)">
+            <div style="flex: 1; pointer-events: none;">
+                <div style="font-size: 0.7rem; opacity: 0.5; font-weight: bold;">
+                    ⋮⋮ DRAG TO REORDER | #${index + 1}
+                </div>
+                <div style="font-size: 0.8rem; opacity: 0.7; text-transform: uppercase; margin-top: 4px;">
                     ${item.mediaType} | ${getStatusBadge(item)}
                 </div>
-                <h3>${item.title}</h3>
+                <h3 style="margin-top: 4px;">${item.title}</h3>
                 <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, "").substring(0, 50) + "..." : ""}</div>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: start;">
@@ -255,6 +284,70 @@ function renderList(list) {
         </div>
     `).join("");
 }
+
+// --- Drag & Drop Handlers (Module scope to window) ---
+window.handleDragStart = (e) => {
+    draggedElement = e.target;
+    e.target.style.opacity = '0.4';
+    e.target.style.transform = 'scale(0.98)';
+    e.dataTransfer.setData('text/plain', e.target.dataset.index);
+    e.dataTransfer.effectAllowed = 'move';
+};
+
+window.handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = e.target.closest('.announcement-item')?.getBoundingClientRect();
+    if (rect) {
+        const offset = e.clientY - rect.top;
+        if (offset < rect.height / 2) {
+           e.target.closest('.announcement-item').style.borderTop = '4px solid var(--accent-color)';
+           e.target.closest('.announcement-item').style.borderBottom = 'none';
+        } else {
+           e.target.closest('.announcement-item').style.borderBottom = '4px solid var(--accent-color)';
+           e.target.closest('.announcement-item').style.borderTop = 'none';
+        }
+    }
+};
+
+window.handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    e.target.style.transform = 'none';
+    document.querySelectorAll('.announcement-item').forEach(el => {
+        el.style.borderTop = 'none';
+        el.style.borderBottom = 'none';
+    });
+};
+
+window.handleDrop = async (e) => {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    const targetItem = e.target.closest('.announcement-item');
+    if (!targetItem || isNaN(fromIndex)) return;
+    
+    const toIndex = parseInt(targetItem.dataset.index);
+    if (fromIndex === toIndex) return;
+
+    // Logic: move allAnnouncements[from] into the position of to
+    const workingList = [...allAnnouncements];
+    const [moved] = workingList.splice(fromIndex, 1);
+    workingList.splice(toIndex, 0, moved);
+
+    // Persist new orders
+    const batch = writeBatch(db);
+    workingList.forEach((item, idx) => {
+        const ref = doc(db, ANNOUNCEMENTS_COL, item.id);
+        batch.update(ref, { order: idx * 10 });
+    });
+
+    try {
+        await batch.commit();
+        console.log("Order updated successfully!");
+    } catch (err) {
+        console.error("Error updating order:", err);
+        alert("Αποτυχία ενημέρωσης σειράς.");
+    }
+};
 
 // --- LOGIC FUNCTIONS ---
 
@@ -297,6 +390,10 @@ function initForm() {
         e.preventDefault();
         const fd = new FormData(form);
         const type = fd.get('mediaType');
+        
+        // Find max order for newest item
+        const maxOrder = allAnnouncements.reduce((max, cur) => Math.max(max, cur.order || 0), -1);
+        const newOrder = maxOrder + 10;
 
         let mediaSource = fd.get('mediaSource') || ""; // Fallback
 
@@ -332,7 +429,8 @@ function initForm() {
             mediaSource: mediaSource,
             mediaScale: fd.get('iframeScale') || 1.0,
             extraData: type === 'poll' ? JSON.stringify(fd.get('pollOptions').split(',').map(s => s.trim())) : null,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            order: newOrder
         };
 
         try {
