@@ -624,12 +624,12 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             if (count > maxDailyItems) maxDailyItems = count;
         }
 
-        // 2. Define scaling factors (Baseline is ~7 items per day)
+        // 2. Define scaling factors (Baseline is ~5-6 items per day)
         let scale = 1.0;
-        if (maxDailyItems > 7) scale = 0.85;
-        if (maxDailyItems > 10) scale = 0.75;
-        if (maxDailyItems > 14) scale = 0.65;
-        if (maxDailyItems > 18) scale = 0.55;
+        if (maxDailyItems > 5) scale = 0.85;
+        if (maxDailyItems > 8) scale = 0.75;
+        if (maxDailyItems > 12) scale = 0.60;
+        if (maxDailyItems > 16) scale = 0.50;
 
         // Utility to scale values
         const s = (val, min = 0.5) => Math.max(min, val * scale).toFixed(2) + 'rem';
