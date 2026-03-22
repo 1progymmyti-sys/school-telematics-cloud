@@ -1,4 +1,4 @@
-﻿import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc } from "./firebase-config.js";
+import { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, setDoc } from "./firebase-config.js";
 
 // Collection Consts
 const ANNOUNCEMENTS_COL = "announcements";
@@ -286,7 +286,8 @@ function initForm() {
             live: document.getElementById('liveImageGroup'),
             youtube: document.getElementById('youtubeGroup'),
             countdown: document.getElementById('countdownGroup'),
-            poll: document.getElementById('pollGroup')
+            poll: document.getElementById('pollGroup'),
+            examcal: document.getElementById('examCalendarGroup')
         };
 
         // Reset all
@@ -299,6 +300,7 @@ function initForm() {
         if (type === 'live_image') els.live.style.display = 'block';
         if (type === 'youtube') els.youtube.style.display = 'block';
         if (type === 'countdown') els.countdown.style.display = 'block';
+        if (type === 'exam_calendar') els.examcal.style.display = 'block';
         if (type === 'poll') { els.poll.style.display = 'block'; els.content.style.display = 'none'; }
     };
     mediaTypeSelect.onchange = updateVisibility;
@@ -330,6 +332,7 @@ function initForm() {
         if (type === 'youtube') mediaSource = fd.get('youtubeUrl');
         if (type === 'countdown') mediaSource = fd.get('countdownDate');
         if (type === 'poll') mediaSource = fd.get('pollQuestionText');
+        if (type === 'exam_calendar') mediaSource = fd.get('examCalendarUrl');
 
         const docData = {
             title: fd.get('title'),
@@ -481,6 +484,7 @@ window.editItem = (id) => {
     if (item.mediaType === 'live_image') document.getElementById('liveImageUrl').value = item.mediaSource;
     if (item.mediaType === 'youtube') document.getElementById('youtubeUrl').value = item.mediaSource;
     if (item.mediaType === 'countdown') document.getElementById('countdownDate').value = item.mediaSource;
+    if (item.mediaType === 'exam_calendar') document.getElementById('examCalendarUrl').value = item.mediaSource;
     if (item.mediaType === 'poll') document.getElementById('pollQuestionText').value = item.mediaSource;
 
     // Change Button

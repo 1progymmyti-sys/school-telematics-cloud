@@ -183,6 +183,13 @@ function updateScheduleStatus() {
 
         if (!displayEl) return;
 
+        // Hide during weekends (0 = Sunday, 6 = Saturday)
+        const dayOfWeek = now.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            displayEl.style.display = 'none';
+            return;
+        }
+
         let activeSlot = null;
         let nextSlot = null;
 
@@ -484,6 +491,20 @@ function renderSlide(item) {
         // Start detailed ticker for this slide
         startCountdownTicker(item.id, target);
     }
+    else if (item.mediaType === 'exam_calendar') {
+        contentHtml = `
+            <div style="width:100%; height:80vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:1rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                <div style="background:var(--primary); padding:1rem 2rem; color:white; display:flex; justify-content:space-between; align-items:center;">
+                    <h1 style="margin:0; font-size:2rem; font-family:sans-serif;">📅 ${item.title || 'Ημερολόγιο Διαγωνισμάτων'}</h1>
+                    <div id="exam-month-${item.id}" style="font-size:1.8rem; font-weight:bold; text-transform:uppercase;"></div>
+                </div>
+                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; background:#ddd; overflow:hidden;">
+                    <div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem;">Φόρτωση Προγράμματος... ⏳</div>
+                </div>
+            </div>
+        `;
+        setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
+    }
     else {
         // Text / Default
         contentHtml = `
@@ -546,4 +567,80 @@ function startCountdownTicker(id, targetTime) {
 function getTypeLabel(type) {
     const labels = { 'info': 'ENHΜΕΡΩΣΗ', 'alert': 'ΠΡΟΣΟΧΗ', 'event': 'ΕΚΔΗΛΩΣΗ' };
     return labels[type] || 'ANAKOINΩΣΗ';
+}
+
+async function fetchAndRenderExamCalendar(slideId, apiUrl) {
+    const gridEl = document.getElementById(`exam-grid-${slideId}`);
+    const monthEl = document.getElementById(`exam-month-${slideId}`);
+    if (!gridEl || !apiUrl) return;
+
+    try {
+        const fetchUrl = apiUrl + (apiUrl.includes('?') ? '&api=true' : '?api=true');
+        const res = await fetch(fetchUrl);
+        const data = await res.json();
+        
+        if (!data || !data.exams) {
+            gridEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Σφάλμα Μορφής Δεδομένων</div>';
+            return;
+        }
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const months = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
+        const daysOfWeek = ['ΔΕΥ', 'ΤΡΙ', 'ΤΕΤ', 'ΠΕΜ', 'ΠΑΡ', 'ΣΑΒ', 'ΚΥΡ'];
+        
+        if (monthEl) monthEl.innerText = `${months[month]} ${year}`;
+
+        // Header row
+        let html = '';
+        daysOfWeek.forEach(d => {
+            html += `<div style="background:#f3f4f6; color:#374151; text-align:center; padding:1rem; font-weight:bold; font-size:1.3rem;">${d}</div>`;
+        });
+
+        const firstDay = new Date(year, month, 1).getDay() || 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        for (let i = 1; i < firstDay; i++) {
+            html += `<div style="background:white; opacity:0.3;"></div>`;
+        }
+
+        const classMap = {};
+        if (data.classes) data.classes.forEach(c => classMap[c.id] = c.name);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const isoDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const isToday = (isoDate === todayStr);
+
+            const dailyExams = data.exams.filter(e => e.date === isoDate);
+            const dailyLocks = (data.schoolSettings?.lockedPeriods || []).filter(lp => isoDate >= lp.start && isoDate <= lp.end);
+
+            let bg = isToday ? '#ebf8ff' : 'white';
+            if (dailyLocks.length > 0) bg = '#fff5f5';
+
+            html += `<div style="background:${bg}; padding:0.5rem; display:flex; flex-direction:column; gap:0.4rem; overflow:hidden;">
+                <div style="font-size:1.6rem; font-weight:bold; color:${isToday ? '#2b6cb0' : '#4a5568'}; text-align:right;">${d}</div>`;
+            
+            dailyLocks.forEach(lp => {
+               html += `<div style="background:#fed7d7; color:#c53030; padding:0.4rem; border-radius:0.3rem; font-size:1rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🔒 ${lp.reason}</div>`;
+            });
+            
+            dailyExams.forEach(e => {
+               const cName = classMap[e.classId] || 'Τμήμα';
+               html += `<div style="background:#edf2f7; border-left:4px solid #3182ce; padding:0.4rem; border-radius:0.2rem;">
+                   <div style="font-weight:bold; font-size:1.1rem; color:#2d3748; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${e.subject}</div>
+                   <div style="font-size:0.95rem; color:#718096; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cName} • ${e.time}</div>
+               </div>`;
+            });
+
+            html += `</div>`;
+        }
+        
+        gridEl.innerHTML = html;
+
+    } catch(err) {
+        console.error("Exam Calendar Error:", err);
+        gridEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Αποτυχία Απεικόνισης Δεδομένων 🤔</div>';
+    }
 }
