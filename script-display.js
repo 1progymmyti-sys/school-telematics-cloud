@@ -493,13 +493,13 @@ function renderSlide(item) {
     }
     else if (item.mediaType === 'exam_calendar') {
         contentHtml = `
-            <div style="width:100%; height:80vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:1rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                <div style="background:var(--primary); padding:1rem 2rem; color:white; display:flex; justify-content:space-between; align-items:center;">
-                    <h1 style="margin:0; font-size:2rem; font-family:sans-serif;">📅 ${item.title || 'Ημερολόγιο Διαγωνισμάτων'}</h1>
-                    <div id="exam-month-${item.id}" style="font-size:1.8rem; font-weight:bold; text-transform:uppercase;"></div>
+            <div style="width:100%; height:88vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                <div style="background:var(--primary); padding:0.5rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:center;">
+                    <h1 style="margin:0; font-size:1.4rem; font-family:sans-serif;">📅 ${item.title || 'Πρόγραμμα'}</h1>
+                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;"></div>
                 </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#ddd; overflow-y:auto;">
-                    <div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem;">Φόρτωση Προγράμματος... ⏳</div>
+                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;">
+                    <div style="grid-column:1/-1; text-align:center; padding:2rem; font-size:1.5rem;">Φόρτωση... ⏳</div>
                 </div>
             </div>
         `;
@@ -603,7 +603,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         // Header row
         let html = '';
         daysOfWeek.forEach(d => {
-            html += `<div style="background:#f3f4f6; color:#374151; text-align:center; padding:1rem 0.5rem; font-weight:bold; font-size:1.4rem; border-bottom:3px solid #cbd5e1;">${d}</div>`;
+            html += `<div style="background:#f1f5f9; color:#1e293b; text-align:center; padding:0.5rem 0.2rem; font-weight:900; font-size:1.2rem; border-bottom:2px solid #cbd5e1;">${d}</div>`;
         });
 
         const classMap = {};
@@ -668,10 +668,12 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             
             dailyExams.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(e => {
                const cName = classMap[e.classId] || 'Τμήμα';
-               html += `<div style="background:white; border-left:4px solid #3182ce; padding:${sp(0.45)}; border-radius:0.25rem; box-shadow:0 1px 2px rgba(0,0,0,0.03); border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
-                   <div style="font-weight:900; font-size:${s(0.84, 0.62)}; color:#1a202c; line-height:1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${e.subject}</div>
-                   <div style="font-size:${s(0.78, 0.58)}; color:#4a5568; margin-top:${sp(0.1)}; font-weight:600;">${cName}</div>
-                   <div style="font-size:${s(0.72, 0.52)}; color:#718096; font-family:monospace; margin-top:1px;">⏰ ${e.time}</div>
+               html += `<div style="background:white; border-left:3px solid #3182ce; padding:${sp(0.3)}; border-radius:0.2rem; box-shadow:0 1px 2px rgba(0,0,0,0.03); border-top:1px solid #f1f5f9; border-right:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; position:relative;">
+                   <div style="font-weight:900; font-size:${s(0.82, 0.6)}; color:#0f172a; line-height:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${e.subject}</div>
+                   <div style="display:flex; justify-content:space-between; margin-top:2px; font-weight:bold; border-top:1px solid #f1f5f9; padding-top:1px;">
+                       <span style="font-size:${s(0.72, 0.5)}; color:#334155;">${cName}</span>
+                       <span style="font-size:${s(0.7, 0.45)}; color:#64748b; font-family:monospace;">${e.time.replace('Ώρα', 'Ω')}</span>
+                   </div>
                </div>`;
             });
 
