@@ -142,10 +142,6 @@ window.onload = async () => {
     const loginBtn = document.getElementById('loginBtn');
     if (loginBtn) loginBtn.addEventListener('click', checkPin);
 
-    const pinInputEl = document.getElementById('pinInput');
-    if (pinInputEl) pinInputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkPin(); });
-
-
     const pinInput = document.getElementById('pinInput');
     if (pinInput) pinInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkPin();
@@ -155,6 +151,7 @@ window.onload = async () => {
     if (mPass) mPass.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') checkPin();
     });
+
 
     // --- END AUTH LOGIC ---
     // Dynamic Event Listeners for Themes (Module Fix)
