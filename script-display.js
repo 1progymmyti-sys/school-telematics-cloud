@@ -603,7 +603,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         // Header row
         let html = '';
         daysOfWeek.forEach(d => {
-            html += `<div style="background:#f3f4f6; color:#374151; text-align:center; padding:1.5rem 1rem; font-weight:bold; font-size:1.8rem; border-bottom:3px solid #cbd5e1;">${d}</div>`;
+            html += `<div style="background:#f3f4f6; color:#374151; text-align:center; padding:1rem 0.5rem; font-weight:bold; font-size:1.4rem; border-bottom:3px solid #cbd5e1;">${d}</div>`;
         });
 
         const classMap = {};
@@ -633,26 +633,26 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             let bg = isToday ? '#ebf8ff' : 'white';
             if (dailyLocks.length > 0) bg = '#fff5f5';
 
-            html += `<div style="background:${bg}; padding:0.8rem; display:flex; flex-direction:column; gap:0.5rem; min-height:60vh; border-right:1px solid #e2e8f0; overflow-y:auto;">
-                <div style="font-size:1.6rem; font-weight:900; color:${isToday ? '#2b6cb0' : '#64748b'}; border-bottom:2px solid ${isToday ? '#bee3f8' : '#f1f5f9'}; padding-bottom:0.4rem; margin-bottom:0.3rem; display:flex; justify-content:space-between; align-items:center;">
-                    <span style="display:flex; flex-direction:column;">
+            html += `<div style="background:${bg}; padding:0.6rem; display:flex; flex-direction:column; gap:0.4rem; min-height:60vh; border-right:1px solid #e2e8f0; overflow-y:auto;">
+                <div style="font-size:1.3rem; font-weight:900; color:${isToday ? '#2b6cb0' : '#64748b'}; border-bottom:2px solid ${isToday ? '#bee3f8' : '#f1f5f9'}; padding-bottom:0.3rem; margin-bottom:0.2rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="display:flex; flex-direction:column; line-height:1;">
                         <span>${date.getDate()}</span>
-                        <small style="font-size:0.7rem; color:#94a3b8; font-weight:normal;">${months[date.getMonth()]}</small>
+                        <small style="font-size:0.65rem; color:#94a3b8; font-weight:normal; margin-top:2px;">${months[date.getMonth()]}</small>
                     </span>
-                    ${isToday ? '<span style="font-size:0.8rem; background:#3182ce; color:white; padding:2px 6px; border-radius:10px;">ΣΗΜΕΡΑ</span>' : ''}
+                    ${isToday ? '<span style="font-size:0.7rem; background:#3182ce; color:white; padding:1px 5px; border-radius:8px;">ΣΗΜΕΡΑ</span>' : ''}
                 </div>`;
             
             dailyLocks.forEach(lp => {
-               html += `<div style="background:#fed7d7; color:#c53030; padding:0.6rem; border-radius:0.4rem; font-size:1rem; font-weight:bold; border:1px solid #feb2b2; line-height:1.1;">🔒 ${lp.reason}</div>`;
+               html += `<div style="background:#fed7d7; color:#c53030; padding:0.5rem; border-radius:0.3rem; font-size:0.9rem; font-weight:bold; border:1px solid #feb2b2; line-height:1.1;">🔒 ${lp.reason}</div>`;
             });
             
-            // Sort exams by time if possible (simple alphabetical sort based on 'time' string)
+            // Sort exams by time
             dailyExams.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(e => {
                const cName = classMap[e.classId] || 'Τμήμα';
-               html += `<div style="background:white; border-left:6px solid #3182ce; padding:0.7rem; border-radius:0.4rem; box-shadow:0 2px 4px rgba(0,0,0,0.05); border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
-                   <div style="font-weight:900; font-size:1.1rem; color:#1a202c; line-height:1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${e.subject}</div>
-                   <div style="font-size:0.95rem; color:#4a5568; margin-top:0.3rem; font-weight:600;">${cName}</div>
-                   <div style="font-size:0.9rem; color:#718096; font-family:monospace; margin-top:0.1rem;">⏰ ${e.time}</div>
+               html += `<div style="background:white; border-left:5px solid #3182ce; padding:0.55rem; border-radius:0.3rem; box-shadow:0 2px 3px rgba(0,0,0,0.04); border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
+                   <div style="font-weight:900; font-size:0.9rem; color:#1a202c; line-height:1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${e.subject}</div>
+                   <div style="font-size:0.85rem; color:#4a5568; margin-top:0.25rem; font-weight:600;">${cName}</div>
+                   <div style="font-size:0.8rem; color:#718096; font-family:monospace; margin-top:0.1rem;">⏰ ${e.time}</div>
                </div>`;
             });
 
