@@ -1,4 +1,4 @@
-import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
+﻿import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
 import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
@@ -498,7 +498,7 @@ function renderSlide(item) {
                     <h1 style="margin:0; font-size:2rem; font-family:sans-serif;">📅 ${item.title || 'Ημερολόγιο Διαγωνισμάτων'}</h1>
                     <div id="exam-month-${item.id}" style="font-size:1.8rem; font-weight:bold; text-transform:uppercase;"></div>
                 </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; background:#ddd; overflow:hidden;">
+                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; background:#ddd; overflow-y:auto;">
                     <div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem;">Φόρτωση Προγράμματος... ⏳</div>
                 </div>
             </div>
@@ -575,7 +575,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
     if (!gridEl || !apiUrl) return;
 
     try {
-        const fetchUrl = apiUrl + (apiUrl.includes('?') ? '&api=true' : '?api=true');
+        const fetchUrl = apiUrl + (apiUrl.includes('?') ? '&api=true' : '?api=true') + '&nocache=' + new Date().getTime();
         const res = await fetch(fetchUrl);
         const data = await res.json();
         
@@ -644,3 +644,6 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         gridEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Αποτυχία Απεικόνισης Δεδομένων 🤔</div>';
     }
 }
+
+
+
