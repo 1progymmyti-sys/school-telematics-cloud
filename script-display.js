@@ -498,7 +498,7 @@ function renderSlide(item) {
                     <h1 style="margin:0; font-size:2rem; font-family:sans-serif;">📅 ${item.title || 'Ημερολόγιο Διαγωνισμάτων'}</h1>
                     <div id="exam-month-${item.id}" style="font-size:1.8rem; font-weight:bold; text-transform:uppercase;"></div>
                 </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(7, 1fr); gap:1px; background:#ddd; overflow-y:auto;">
+                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#ddd; overflow-y:auto;">
                     <div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem;">Φόρτωση Προγράμματος... ⏳</div>
                 </div>
             </div>
@@ -585,32 +585,37 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         }
 
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        const months = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
-        const daysOfWeek = ['ΔΕΥ', 'ΤΡΙ', 'ΤΕΤ', 'ΠΕΜ', 'ΠΑΡ', 'ΣΑΒ', 'ΚΥΡ'];
+        const daysOfWeek = ['ΔΕΥ', 'ΤΡΙ', 'ΤΕΤ', 'ΠΕΜ', 'ΠΑΡ'];
         
-        if (monthEl) monthEl.innerText = `${months[month]} ${year}`;
+        // Find the Monday of the current week
+        const currentDay = now.getDay() || 7; // 1-7
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (currentDay - 1));
+        
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const months = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
+        if (monthEl) {
+            monthEl.innerText = `Εβδομάδα: ${monday.getDate()} - ${sunday.getDate()} ${months[sunday.getMonth()]} ${sunday.getFullYear()}`;
+        }
 
         // Header row
         let html = '';
         daysOfWeek.forEach(d => {
-            html += `<div style="background:#f3f4f6; color:#374151; text-align:center; padding:1rem; font-weight:bold; font-size:1.3rem;">${d}</div>`;
+            html += `<div style="background:#f3f4f6; color:#374151; text-align:center; padding:1.5rem 1rem; font-weight:bold; font-size:1.8rem; border-bottom:3px solid #cbd5e1;">${d}</div>`;
         });
-
-        const firstDay = new Date(year, month, 1).getDay() || 7;
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const todayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-        for (let i = 1; i < firstDay; i++) {
-            html += `<div style="background:white; opacity:0.3;"></div>`;
-        }
 
         const classMap = {};
         if (data.classes) data.classes.forEach(c => classMap[c.id] = c.name);
 
-        for (let d = 1; d <= daysInMonth; d++) {
-            const isoDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // Render exactly 5 days (Mon-Fri)
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             const isToday = (isoDate === todayStr);
 
             const dailyExams = data.exams.filter(e => e.date === isoDate);
@@ -619,18 +624,22 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             let bg = isToday ? '#ebf8ff' : 'white';
             if (dailyLocks.length > 0) bg = '#fff5f5';
 
-            html += `<div style="background:${bg}; padding:0.5rem; display:flex; flex-direction:column; gap:0.4rem; overflow-y:auto; overflow-x:hidden; min-height:100px; max-height:220px;">
-                <div style="font-size:1.6rem; font-weight:bold; color:${isToday ? '#2b6cb0' : '#4a5568'}; text-align:right;">${d}</div>`;
+            html += `<div style="background:${bg}; padding:1rem; display:flex; flex-direction:column; gap:0.6rem; min-height:60vh; border-right:1px solid #e2e8f0;">
+                <div style="font-size:2rem; font-weight:900; color:${isToday ? '#2b6cb0' : '#64748b'}; border-bottom:2px solid ${isToday ? '#bee3f8' : '#f1f5f9'}; padding-bottom:0.5rem; margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${date.getDate()}</span>
+                    ${isToday ? '<span style="font-size:0.9rem; background:#3182ce; color:white; padding:2px 8px; border-radius:10px;">ΣΗΜΕΡΑ</span>' : ''}
+                </div>`;
             
             dailyLocks.forEach(lp => {
-               html += `<div style="background:#fed7d7; color:#c53030; padding:0.4rem; border-radius:0.3rem; font-size:1rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🔒 ${lp.reason}</div>`;
+               html += `<div style="background:#fed7d7; color:#c53030; padding:0.8rem; border-radius:0.5rem; font-size:1.2rem; font-weight:bold; border:2px solid #feb2b2;">🔒 ${lp.reason}</div>`;
             });
             
             dailyExams.forEach(e => {
                const cName = classMap[e.classId] || 'Τμήμα';
-               html += `<div style="background:#edf2f7; border-left:4px solid #3182ce; padding:0.4rem; border-radius:0.2rem;">
-                   <div style="font-weight:bold; font-size:1.1rem; color:#2d3748; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${e.subject}</div>
-                   <div style="font-size:0.95rem; color:#718096; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${cName} • ${e.time}</div>
+               html += `<div style="background:white; border-left:8px solid #3182ce; padding:1rem; border-radius:0.5rem; box-shadow:0 4px 6px rgba(0,0,0,0.05); border-top:1px solid #e2e8f0; border-right:1px solid #e2e8f0; border-bottom:1px solid #e2e8f0;">
+                   <div style="font-weight:900; font-size:1.4rem; color:#1a202c; line-height:1.2;">${e.subject}</div>
+                   <div style="font-size:1.1rem; color:#4a5568; margin-top:0.4rem; font-weight:600;">${cName}</div>
+                   <div style="font-size:1.1rem; color:#718096; font-family:monospace; margin-top:0.2rem;">⏰ ${e.time}</div>
                </div>`;
             });
 
@@ -641,7 +650,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 
     } catch(err) {
         console.error("Exam Calendar Error:", err);
-        gridEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Αποτυχία Απεικόνισης Δεδομένων 🤔</div>';
+        gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Αποτυχία Απεικόνισης Δεδομένων 🤔<br><small>${err.message}</small></div>`;
     }
 }
 
