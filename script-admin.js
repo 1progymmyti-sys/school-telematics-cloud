@@ -44,36 +44,41 @@ window.onload = async () => {
         }
     });
 
-    // 2. Announcements Listener
-    const q = query(collection(db, "announcements"), orderBy("order", "asc"));
-    onSnapshot(q, async (snapshot) => {
-        const items = [];
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            data.id = doc.id;
-            items.push(data);
-        });
-
-        // REORDERING MIGRATION: If no items have "order", it's likely they were 
-        // filtered out because they don't have the field. 
-        // Let's fallback to fetching ALL and assigning orders.
-        if (items.length === 0 && snapshot.size > 0) { // Only if there are docs but none with 'order'
-           const allSnap = await getDocs(collection(db, ANNOUNCEMENTS_COL));
-           if (allSnap.size > 0) {
-               console.log("Migrating items to use 'order' field...");
-               const batch = writeBatch(db);
-               allSnap.docs.forEach((d, index) => {
-                   batch.update(d.ref, { order: index * 10 });
-               });
-               await batch.commit();
-               return; // Snapshot will catch the update
-           }
+    // 2. Realtime Announcements Listener (Ordered by sequence)
+    const setupAnnouncements = async () => {
+        // Initial Fix: Check if any items are missing the 'order' field
+        const allSnap = await getDocs(collection(db, ANNOUNCEMENTS_COL));
+        const missing = allSnap.docs.filter(d => d.data().order === undefined);
+        
+        if (missing.length > 0) {
+            console.log(`Fixing ${missing.length} items missing 'order' field...`);
+            const batch = writeBatch(db);
+            // Sort by createdAt desc to match old behavior
+            const sorted = allSnap.docs.sort((a, b) => {
+                const da = new Date(a.data().createdAt || 0);
+                const db = new Date(b.data().createdAt || 0);
+                return db - da;
+            });
+            sorted.forEach((d, index) => {
+                batch.update(d.ref, { order: index * 10 });
+            });
+            await batch.commit();
         }
 
-        allAnnouncements = items;
-        renderList(allAnnouncements);
-    });
+        const q = query(collection(db, ANNOUNCEMENTS_COL), orderBy("order", "asc"));
+        onSnapshot(q, (snapshot) => {
+            const items = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                data.id = doc.id;
+                items.push(data);
+            });
+            allAnnouncements = items;
+            renderList(allAnnouncements);
+        });
+    };
 
+    setupAnnouncements();
     initForm();
 
     // --- AUTH LOGIC ---
