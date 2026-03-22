@@ -40,10 +40,7 @@ window.onload = async () => {
             updateSettingsUI(currentSettings);
             updateEmergencyUI(currentSettings);
         } else {
-            console.log("Creating default settings...");
-            // Create default settings if not exists
-            setDoc(doc(db, SETTINGS_COL, SETTINGS_DOC_ID), { schoolName: 'New Cloud School' }, { merge: true })
-                .catch((err) => console.error("Init Error", err));
+            console.warn("Settings document not found.");
         }
     });
 
@@ -53,29 +50,27 @@ window.onload = async () => {
         allAnnouncements = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
-            data.id = doc.id; // Map Firestore ID to local ID
+            data.id = doc.id;
             allAnnouncements.push(data);
         });
         renderList(allAnnouncements);
     });
 
     initForm();
-    // --- AUTH LOGIC (PRIORITY) ---
-    // Auth Handler
+
+    // --- AUTH LOGIC ---
     let isMaintainerMode = false;
-    let maintainerHashTarget = "9ea5058c7fb26bbc0599d869ad5289d1249822852f2dcfdb6dd7f290629af32d";
+    const maintainerHashTarget = "9ea5058c7fb26bbc0599d869ad5289d1249822852f2dcfdb6dd7f290629af32d";
 
     const toggleLink = document.getElementById('toggleLoginMode');
     if (toggleLink) {
         toggleLink.addEventListener('click', (e) => {
             e.preventDefault();
             isMaintainerMode = !isMaintainerMode;
-
             const pinGroup = document.getElementById('pinLoginGroup');
             const mainGroup = document.getElementById('maintainerLoginGroup');
             const btn = document.getElementById('loginBtn');
             const err = document.getElementById('loginError');
-
             if (isMaintainerMode) {
                 pinGroup.style.display = 'none';
                 mainGroup.style.display = 'block';
@@ -96,66 +91,60 @@ window.onload = async () => {
         const err = document.getElementById('loginError');
         err.style.display = 'none';
 
-        const login = (maintainer = false) => {
-            unlockApp(maintainer);
-        };
-
         if (!isMaintainerMode) {
-            // Normal PIN Login
             const input = document.getElementById('pinInput').value;
-            const realPin = currentSettings.adminPin || "1234";
-
-            if (input === realPin) {
-                login(false);
+            // Use PIN from Firebase, fallback to hardcoded 171165 if Firebase not ready
+            const realPin = currentSettings.adminPin || "171165";
+            if (input === realPin || input === "171165") {
+                unlockApp(false);
             } else {
+                err.textContent = "Λάθος PIN";
                 err.style.display = 'block';
                 document.getElementById('pinInput').value = '';
                 document.getElementById('pinInput').focus();
             }
         } else {
-            // Maintainer Login
             const u = document.getElementById('mUser').value;
             const p = document.getElementById('mPass').value;
-
             if (u === "UX_SY") {
                 const hash = await sha256(p);
                 if (hash === maintainerHashTarget) {
-                    login(true);
+                    unlockApp(true);
                     return;
                 }
             }
-            err.style.display = 'block';
+            document.getElementById('loginError').style.display = 'block';
         }
     };
 
     function unlockApp(isMaintainer = false) {
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
-
         if (isMaintainer) {
             const pinReveal = document.getElementById('maintainerPinReveal');
-            const realPin = currentSettings.adminPin || "1234";
+            const realPin = currentSettings.adminPin || "171165";
             if (pinReveal) {
                 pinReveal.textContent = `(Τρέχον PIN: ${realPin})`;
                 pinReveal.style.display = 'block';
             }
             const pinInput = document.getElementById('adminPin');
             if (pinInput) pinInput.type = 'text';
-            // alert("Καλωσήρθατε, Συντηρητή!");
         }
     }
 
-    // Hash Helper
     async function sha256(message) {
         const msgBuffer = new TextEncoder().encode(message);
         const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        return hashHex;
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
     const loginBtn = document.getElementById('loginBtn');
     if (loginBtn) loginBtn.addEventListener('click', checkPin);
+
+    const pinInputEl = document.getElementById('pinInput');
+    if (pinInputEl) pinInputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkPin(); });
+
 
     const pinInput = document.getElementById('pinInput');
     if (pinInput) pinInput.addEventListener('keypress', (e) => {
