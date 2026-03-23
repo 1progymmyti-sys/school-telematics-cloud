@@ -370,12 +370,17 @@
                         <label for="googleSlidesUrl">Google Slides Link</label>
                         <input type="url" id="googleSlidesUrl" name="googleSlidesUrl"
                             placeholder="π.χ. https://docs.google.com/presentation/d/.../edit">
-                        <small style="color: var(--text-secondary);">Paste the regular link ή embed link από το Google Slides (File → Share → Publish to web).</small>
+                        <small style="color: var(--text-secondary);">Paste το link από τη γραμμή διευθύνσεων ή File → Share → Publish to web.</small>
 
                         <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <div class="form-group" style="flex:1; min-width:130px; margin-bottom:0;">
+                                <label for="slidesCount">Αριθμός Διαφανειών</label>
+                                <input type="number" id="slidesCount" name="slidesCount" min="1" value="10"
+                                    oninput="window.calcSlidesDuration()">
+                            </div>
                             <div class="form-group" style="flex:1; min-width:150px; margin-bottom:0;">
-                                <label for="slidesDelay">Χρόνος / Διαφάνεια (δευτ.)</label>
-                                <select id="slidesDelay" name="slidesDelay">
+                                <label for="slidesDelay">Χρόνος / Διαφάνεια</label>
+                                <select id="slidesDelay" name="slidesDelay" onchange="window.calcSlidesDuration()">
                                     <option value="3000">3 δευτερόλεπτα</option>
                                     <option value="5000" selected>5 δευτερόλεπτα</option>
                                     <option value="7000">7 δευτερόλεπτα</option>
@@ -390,7 +395,18 @@
                                 </label>
                             </div>
                         </div>
+
+                        <!-- Auto-calculated duration hint -->
+                        <div id="slidesDurationHint" style="
+                            margin-top: 0.75rem; padding: 0.75rem 1rem;
+                            background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3);
+                            border-radius: 0.5rem; font-size: 0.9rem; color: var(--accent-color);
+                        ">
+                            ⏱ Συνολική διάρκεια: <strong id="slidesDurationText">50 δευτ.</strong>
+                            — το πεδίο «Διάρκεια» ενημερώθηκε αυτόματα.
+                        </div>
                     </div>
+
 
                     <div id="examCalendarGroup" class="form-group" style="display: none;">
                         <label for="examCalendarUrl">URL του Exam Scheduler (Web App)</label>

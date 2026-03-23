@@ -381,6 +381,16 @@ function initForm() {
             }
         }
 
+        let extraData = null;
+        if (type === 'poll') extraData = JSON.stringify(fd.get('pollOptions').split(',').map(s => s.trim()));
+        if (type === 'google_slides') {
+            extraData = JSON.stringify({
+                slidesCount: parseInt(fd.get('slidesCount')) || 1,
+                slidesDelay: parseInt(fd.get('slidesDelay')) || 5000,
+                slidesLoop: document.getElementById('slidesLoop')?.checked || false
+            });
+        }
+
         const docData = {
             title: fd.get('title'),
             type: fd.get('type'),
@@ -392,7 +402,7 @@ function initForm() {
             content: document.getElementById('contentEditor').innerHTML,
             mediaSource: mediaSource,
             mediaScale: fd.get('iframeScale') || 1.0,
-            extraData: type === 'poll' ? JSON.stringify(fd.get('pollOptions').split(',').map(s => s.trim())) : null,
+            extraData: extraData,
             createdAt: new Date().toISOString(),
             order: editId ? (allAnnouncements.find(i => i.id === editId)?.order ?? allAnnouncements.length) : allAnnouncements.length
         };
@@ -490,6 +500,19 @@ async function saveSettings(updates) {
 // Window Globals for HTML onclick
 window.setTheme = (name) => saveSettings({ theme: name });
 
+window.calcSlidesDuration = () => {
+    const count = parseInt(document.getElementById('slidesCount').value) || 1;
+    const delay = parseInt(document.getElementById('slidesDelay').value) || 5000;
+    const totalSecs = Math.ceil((count * delay) / 1000);
+    
+    // Update main duration field
+    document.getElementById('duration').value = totalSecs;
+    
+    // Update hint text
+    const hintText = document.getElementById('slidesDurationText');
+    if (hintText) hintText.textContent = totalSecs + ' δευτ.';
+};
+
 window.togglePause = async (id, currentStatus) => {
     // currentStatus is the strictly boolean value of isPaused
     const newStatus = !currentStatus;
@@ -545,6 +568,10 @@ window.previewAnnouncement = async () => {
     const countdownDt= document.getElementById('countdownDate')?.value || '';
     const pollQ      = document.getElementById('pollQuestionText')?.value || '';
     const pollOpts   = document.getElementById('pollOptions')?.value || '';
+    const slidesUrl  = document.getElementById('googleSlidesUrl')?.value || '';
+    const slidesCnt  = document.getElementById('slidesCount')?.value || '1';
+    const slidesDly  = document.getElementById('slidesDelay')?.value || '5000';
+    const slidesLp   = document.getElementById('slidesLoop')?.checked ? 'true' : 'false';
     const fileInput  = document.getElementById('file');
 
     // Type badge colors
@@ -562,7 +589,7 @@ window.previewAnnouncement = async () => {
             <div style="font-size:1.2rem;color:#94a3b8;max-width:80%;">${content}</div>`;
 
     } else if (mediaType === 'image' || mediaType === 'pdf') {
-        // Try to read from file input
+        // ... (existing image/pdf logic)
         if (fileInput?.files?.[0]) {
             const dataUrl = await readFileAsBase64(fileInput.files[0]);
             if (mediaType === 'image') {
@@ -586,6 +613,13 @@ window.previewAnnouncement = async () => {
         contentHtml = vidId
             ? `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=0&controls=1" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>`
             : `<div style="color:#94a3b8;font-size:1.5rem;">▶ Δεν έχει δοθεί URL YouTube</div>`;
+
+    } else if (mediaType === 'google_slides') {
+        const match = slidesUrl.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+        const embedUrl = match ? `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=${slidesLp}&delayms=${slidesDly}` : null;
+        contentHtml = embedUrl
+            ? `<iframe src="${embedUrl}" style="width:100%;height:100%;border:none;background:#000;" allowfullscreen></iframe>`
+            : `<div style="color:#94a3b8;font-size:1.5rem;">📤 Δεν έχει δοθεί έγκυρο Google Slides URL</div>`;
 
     } else if (mediaType === 'website') {
         contentHtml = url
@@ -666,7 +700,19 @@ window.editItem = (id) => {
     if (item.mediaType === 'countdown') document.getElementById('countdownDate').value = item.mediaSource;
     if (item.mediaType === 'exam_calendar') document.getElementById('examCalendarUrl').value = item.mediaSource;
     if (item.mediaType === 'poll') document.getElementById('pollQuestionText').value = item.mediaSource;
-    if (item.mediaType === 'google_slides') document.getElementById('googleSlidesUrl').value = item.mediaSource;
+    if (item.mediaType === 'google_slides') {
+        document.getElementById('googleSlidesUrl').value = item.mediaSource;
+        if (item.extraData) {
+            try {
+                const extra = JSON.parse(item.extraData);
+                if (extra.slidesCount) document.getElementById('slidesCount').value = extra.slidesCount;
+                if (extra.slidesDelay) document.getElementById('slidesDelay').value = extra.slidesDelay;
+                if (extra.slidesLoop !== undefined) document.getElementById('slidesLoop').checked = extra.slidesLoop;
+                // Refresh hint
+                window.calcSlidesDuration();
+            } catch(e) { console.warn("Failed to parse extraData for slides"); }
+        }
+    }
 
     // Change Button
     const btn = form.querySelector('button[type="submit"]');
