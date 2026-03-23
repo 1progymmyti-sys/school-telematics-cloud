@@ -607,26 +607,17 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         }
 
         const now = new Date();
-        const daysOfWeek = ['ΔΕΥ', 'ΤΡΙ', 'ΤΕΤ', 'ΠΕΜ', 'ΠΑΡ'];
-        
+
         // Find the Monday of the current week
         const currentDay = now.getDay() || 7; // 1-7
         const monday = new Date(now);
         monday.setDate(now.getDate() - (currentDay - 1));
-        
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
 
         const months = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
-        if (monthEl) {
-            monthEl.innerText = `Εβδομάδα: ${monday.getDate()} - ${sunday.getDate()} ${months[sunday.getMonth()]} ${sunday.getFullYear()}`;
-        }
 
-        // Header row
+        // Build ordered day slots: future/today first, then past days (with +7) at the end
         let html = '';
-        daysOfWeek.forEach(d => {
-            html += `<div style="background:#f1f5f9; color:#1e293b; text-align:center; padding:0.5rem 0.2rem; font-weight:900; font-size:1.2rem; border-bottom:2px solid #cbd5e1;">${d}</div>`;
-        });
+        const daysOfWeekShort = ['ΔΕΥ', 'ΤΡΙ', 'ΤΕΤ', 'ΠΕΜ', 'ΠΑΡ'];
 
         const classMap = {};
         if (data.classes) data.classes.forEach(c => classMap[c.id] = c.name);
@@ -635,36 +626,56 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         const currentHour = now.getHours();
         const currentDayIndex = (now.getDay() || 7) - 1; // 0-indexed Mon-Sun
 
-        // 1. Calculate Max Exams to determine scaling
-        let maxDailyItems = 0;
+        const futureDays = [], pastDays = [];
         for (let i = 0; i < 5; i++) {
-            const d = new Date(monday);
-            d.setDate(monday.getDate() + i);
-            if (currentDayIndex > i || (currentDayIndex === i && currentHour >= 15)) d.setDate(d.getDate() + 7);
-            const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            const count = data.exams.filter(e => e.date === iso).length + (data.schoolSettings?.lockedPeriods || []).filter(lp => iso >= lp.start && iso <= lp.end).length;
-            if (count > maxDailyItems) maxDailyItems = count;
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            const isPast = currentDayIndex > i || (currentDayIndex === i && currentHour >= 15);
+            if (isPast) {
+                date.setDate(date.getDate() + 7);
+                pastDays.push({ dayIndex: i, date });
+            } else {
+                futureDays.push({ dayIndex: i, date });
+            }
+        }
+        const orderedSlots = [...futureDays, ...pastDays];
+
+        // Dynamic header row matching column order
+        orderedSlots.forEach(slot => {
+            html += `<div style="background:#f1f5f9; color:#1e293b; text-align:center; padding:0.5rem 0.2rem; font-weight:900; font-size:1.2rem; border-bottom:2px solid #cbd5e1;">${daysOfWeekShort[slot.dayIndex]}</div>`;
+        });
+
+        // Update date-range label to reflect actual displayed dates
+        const firstDate = orderedSlots[0]?.date;
+        const lastDate  = orderedSlots[orderedSlots.length - 1]?.date;
+        if (monthEl && firstDate && lastDate) {
+            const sameMonth = firstDate.getMonth() === lastDate.getMonth();
+            monthEl.innerText = sameMonth
+                ? `Εβδομάδα: ${firstDate.getDate()} - ${lastDate.getDate()} ${months[lastDate.getMonth()]} ${lastDate.getFullYear()}`
+                : `Εβδομάδα: ${firstDate.getDate()} ${months[firstDate.getMonth()]} - ${lastDate.getDate()} ${months[lastDate.getMonth()]} ${lastDate.getFullYear()}`;
         }
 
-        // 2. Define scaling factors (Baseline is ~5-6 items per day)
+        // 1. Calculate Max Exams across displayed dates
+        let maxDailyItems = 0;
+        orderedSlots.forEach(slot => {
+            const iso = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`;
+            const count = data.exams.filter(e => e.date === iso).length + (data.schoolSettings?.lockedPeriods || []).filter(lp => iso >= lp.start && iso <= lp.end).length;
+            if (count > maxDailyItems) maxDailyItems = count;
+        });
+
+        // 2. Define scaling factors
         let scale = 1.0;
         if (maxDailyItems > 5) scale = 0.82;
         if (maxDailyItems > 8) scale = 0.68;
         if (maxDailyItems > 12) scale = 0.52;
         if (maxDailyItems > 16) scale = 0.42;
 
-        // Utility to scale values - Minimal Footprint
         const s = (val, min = 0.45) => Math.max(min, val * scale).toFixed(2) + 'rem';
-        const sp = (val) => (val * scale).toFixed(2) + 'rem'; // spacing
+        const sp = (val) => (val * scale).toFixed(2) + 'rem';
 
-        // Render exactly 5 slots (Mon-Fri)
-        for (let i = 0; i < 5; i++) {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + i);
-            
-            if (currentDayIndex > i || (currentDayIndex === i && currentHour >= 15)) {
-                date.setDate(date.getDate() + 7);
-            }
+        // Render columns in new order
+        for (const slot of orderedSlots) {
+            const date = slot.date;
 
             const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             const isToday = (isoDate === todayStr);
