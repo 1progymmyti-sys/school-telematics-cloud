@@ -518,6 +518,18 @@ function renderSlide(item) {
         `;
         setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
     }
+    else if (item.mediaType === 'google_slides') {
+        contentHtml = `
+            <iframe
+                src="${item.mediaSource}"
+                frameborder="0"
+                allowfullscreen="true"
+                mozallowfullscreen="true"
+                webkitallowfullscreen="true"
+                style="width:100%; height:100%; border:none; display:block; background:#000;"
+            ></iframe>
+        `;
+    }
     else if (item.mediaType === 'pdf') {
         contentHtml = `
             <embed

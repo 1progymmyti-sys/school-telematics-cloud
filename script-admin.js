@@ -314,7 +314,8 @@ function initForm() {
             youtube: document.getElementById('youtubeGroup'),
             countdown: document.getElementById('countdownGroup'),
             poll: document.getElementById('pollGroup'),
-            examcal: document.getElementById('examCalendarGroup')
+            examcal: document.getElementById('examCalendarGroup'),
+            googleSlides: document.getElementById('googleSlidesGroup')
         };
 
         // Reset all (null-safe)
@@ -328,6 +329,7 @@ function initForm() {
         if (type === 'youtube') els.youtube.style.display = 'block';
         if (type === 'countdown') els.countdown.style.display = 'block';
         if (type === 'exam_calendar') els.examcal.style.display = 'block';
+        if (type === 'google_slides') els.googleSlides.style.display = 'block';
         if (type === 'poll') { els.poll.style.display = 'block'; els.content.style.display = 'none'; }
     };
     mediaTypeSelect.onchange = updateVisibility;
@@ -365,6 +367,19 @@ function initForm() {
         if (type === 'countdown') mediaSource = fd.get('countdownDate');
         if (type === 'poll') mediaSource = fd.get('pollQuestionText');
         if (type === 'exam_calendar') mediaSource = fd.get('examCalendarUrl');
+        if (type === 'google_slides') {
+            // Convert any Google Slides URL to embed format
+            const rawUrl = fd.get('googleSlidesUrl') || '';
+            const delay  = fd.get('slidesDelay') || '5000';
+            const loop   = document.getElementById('slidesLoop')?.checked ? 'true' : 'false';
+            const match  = rawUrl.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+            if (match) {
+                mediaSource = `https://docs.google.com/presentation/d/${match[1]}/embed?start=true&loop=${loop}&delayms=${delay}`;
+            } else {
+                alert('Αδύνατο εύρεμα ID από το URL. Βεβαιωθείτε ότι το link είναι από Google Slides.');
+                return;
+            }
+        }
 
         const docData = {
             title: fd.get('title'),
@@ -651,6 +666,7 @@ window.editItem = (id) => {
     if (item.mediaType === 'countdown') document.getElementById('countdownDate').value = item.mediaSource;
     if (item.mediaType === 'exam_calendar') document.getElementById('examCalendarUrl').value = item.mediaSource;
     if (item.mediaType === 'poll') document.getElementById('pollQuestionText').value = item.mediaSource;
+    if (item.mediaType === 'google_slides') document.getElementById('googleSlidesUrl').value = item.mediaSource;
 
     // Change Button
     const btn = form.querySelector('button[type="submit"]');
