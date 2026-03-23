@@ -262,6 +262,7 @@ function renderList(list) {
                  <button class="btn" style="background:${item.isPaused ? "#10b981" : "#f59e0b"}; padding:0.5rem; min-width: 40px;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Συνέχιση" : "Παύση"}">
                     ${item.isPaused ? "▶" : "⏸"}
                 </button>
+                <button class="btn" style="background:#6366f1; padding:0.5rem;" onclick="window.duplicateItem('${item.id}')" title="Αντιγραφή">📋</button>
                 <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">✎</button>
                 <button class="btn btn-danger" style="padding:0.5rem;" onclick="window.deleteItem('${item.id}')">&times;</button>
             </div>
@@ -483,6 +484,28 @@ window.togglePause = async (id, currentStatus) => {
     } catch (err) {
         console.error("Error toggling pause:", err);
         alert("Operation failed: " + err.message);
+    }
+};
+
+window.duplicateItem = async (id) => {
+    const original = allAnnouncements.find(i => i.id === id);
+    if (!original) return;
+
+    // Build a clean copy without the original id
+    const copy = { ...original };
+    delete copy.id;
+    copy.title = 'Αντίγραφο: ' + copy.title;
+    copy.createdAt = new Date().toISOString();
+    copy.order = allAnnouncements.length; // Place at end
+    copy.isPaused = true; // Start paused so it doesn't show immediately
+
+    try {
+        await addDoc(collection(db, ANNOUNCEMENTS_COL), copy);
+        // Small visual feedback
+        const btn = document.querySelector(`[data-id="${id}"] button[title="Αντιγραφή"]`);
+        if (btn) { btn.textContent = '✅'; setTimeout(() => btn.textContent = '📋', 1000); }
+    } catch (err) {
+        alert('Σφάλμα αντιγραφής: ' + err.message);
     }
 };
 
