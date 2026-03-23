@@ -942,21 +942,3 @@ body.fullscreen-mode .display-header {
     outline: none;
     border-color: var(--accent-color) !important;
 }
-
-#aiBtn {
-    background: #7c3aed !important;
-    border-color: #8b5cf6 !important;
-    color: white !important;
-    padding: 0 1rem !important;
-    gap: 0.4rem;
-}
-
-#aiBtn:hover {
-    background: #6d28d9 !important;
-    transform: scale(1.02);
-}
-
-#aiBtn .ai-btn-text {
-    font-size: 0.8rem;
-    font-weight: 700;
-}

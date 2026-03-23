@@ -196,7 +196,6 @@ function updateSettingsUI(s) {
     if (document.getElementById('rssUrl')) document.getElementById('rssUrl').value = s.rssUrl || '';
     if (document.getElementById('weatherCity')) document.getElementById('weatherCity').value = s.weatherCity || '';
     if (document.getElementById('weatherUrl')) document.getElementById('weatherUrl').value = s.weatherUrl || '';
-    if (document.getElementById('geminiApiKey')) document.getElementById('geminiApiKey').value = s.geminiApiKey || '';
     if (document.getElementById('adminPin')) document.getElementById('adminPin').value = s.adminPin || '';
 
     if (s.logo) {
@@ -449,7 +448,6 @@ function initSettingsForm() {
             rssUrl: fd.get('rssUrl'),
             weatherCity: fd.get('weatherCity'),
             weatherUrl: fd.get('weatherUrl'),
-            geminiApiKey: fd.get('geminiApiKey'),
             logo: logo
         };
 
@@ -512,60 +510,7 @@ async function saveSettings(updates) {
     }
 }
 
-// Window Globals for HTML onclick
 window.setTheme = (name) => saveSettings({ theme: name });
-
-window.improveWithAI = async () => {
-    const editor = document.getElementById('contentEditor');
-    const text = editor.innerText.trim();
-    const apiKey = currentSettings.geminiApiKey;
-
-    if (!text) { alert("Γράψτε πρώτα ένα κείμενο για βελτίωση."); return; }
-    if (!apiKey) { alert("Παρακαλώ εισάγετε το Gemini API Key στις ρυθμίσεις πρώτα."); return; }
-
-    const btn = document.getElementById('aiBtn');
-    const btnText = btn.querySelector('.ai-btn-text');
-    const originalContent = btn.innerHTML;
-    
-    try {
-        btn.disabled = true;
-        btn.style.opacity = '0.7';
-        btnText.innerText = "Επεξεργασία...";
-
-        const prompt = `Είσαι ένας επαγγελματίας κειμενογράφος για σχολικές ανακοινώσεις. 
-        Βελτίωσε το παρακάτω κείμενο ώστε να είναι επίσημο, σωστό γραμματικά και σύντομο (για προβολή σε τηλεόραση). 
-        Δώσε ΜΟΝΟ το βελτιωμένο κείμενο, χωρίς επεξηγήσεις ή εισαγωγές.
-        Κείμενο: "${text}"`;
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.error("AI API Error:", data);
-            throw new Error(data.error?.message || "Αποτυχία σύνδεσης με την Google");
-        }
-
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-            const improvedText = data.candidates[0].content.parts[0].text.trim();
-            editor.innerHTML = improvedText.replace(/\n/g, '<br>');
-        } else {
-            throw new Error("Δεν επιστράφηκε κείμενο από το AI.");
-        }
-    } catch (err) {
-        console.error("AI Assistant Error:", err);
-        alert(`❌ Σφάλμα AI: ${err.message}`);
-    } finally {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.innerHTML = originalContent;
-    }
-};
 
 window.calcSlidesDuration = () => {
     const count = parseInt(document.getElementById('slidesCount').value) || 1;

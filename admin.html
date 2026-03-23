@@ -143,15 +143,6 @@
                         </div>
                     </div>
 
-                    <div class="form-group" style="margin: 0;">
-                        <label for="geminiApiKey">🔮 Gemini AI API Key</label>
-                        <div style="position: relative; display: flex; align-items: center;">
-                            <input type="password" id="geminiApiKey" name="geminiApiKey" placeholder="Επικολλήστε το κλειδί εδώ..." style="letter-spacing: 2px;">
-                            <span style="position: absolute; right: 1rem; pointer-events: none; opacity: 0.5;">🤖</span>
-                        </div>
-                        <small style="color: var(--text-secondary);">Για την "Αυτόματη Βελτίωση" των ανακοινώσεων</small>
-                    </div>
-
                     <div style="display: flex; justify-content: flex-end; padding-top: 0.5rem;">
                         <button type="submit" class="btn" style="padding: 1rem 3rem; background: var(--accent-color); font-weight: 700; letter-spacing: 1px;">
                             ✅ ΑΠΟΘΗΚΕΥΣΗ ΡΥΘΜΙΣΕΩΝ
@@ -345,11 +336,6 @@
                                 title="Αρίθμηση">1.</button>
                             <button type="button" onclick="document.execCommand('insertUnorderedList', false, null)"
                                 title="Λίστα">•</button>
-                            <span class="separator">|</span>
-                            <button type="button" onclick="window.improveWithAI()" id="aiBtn">
-                                <span>🪄</span>
-                                <span class="ai-btn-text">Βελτίωση με AI</span>
-                            </button>
                             <span class="separator">|</span>
                             <button type="button" onclick="document.execCommand('removeFormat', false, null)"
                                 title="Καθαρισμός Μορφοποίησης">✕</button>
