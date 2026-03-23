@@ -518,6 +518,15 @@ function renderSlide(item) {
         `;
         setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
     }
+    else if (item.mediaType === 'pdf') {
+        contentHtml = `
+            <embed
+                src="${item.mediaSource}"
+                type="application/pdf"
+                style="width:100%; height:100%; border:none; display:block;"
+            >
+        `;
+    }
     else {
         // Text / Default
         contentHtml = `

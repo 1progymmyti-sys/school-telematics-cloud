@@ -343,6 +343,11 @@ function initForm() {
         // Handle Files (Base64)
         const file = fd.get('file');
         if (file && file.size > 0) {
+            // Warn if PDF is too large for Firestore (limit ~700KB raw = ~950KB base64)
+            if (type === 'pdf' && file.size > 700000) {
+                alert(`⚠️ Το PDF είναι πολύ μεγάλο (${(file.size / 1024).toFixed(0)} KB).\n\nΤο Firestore επιτρέπει max ~700 KB ανά αρχείο.\n\nΣυμπιέστε το PDF ή χρησιμοποιήστε έναν εξωτερικό σύνδεσμο (Τύπος: Ιστοσελίδα) από Google Drive.`);
+                return;
+            }
             try {
                 mediaSource = await readFileAsBase64(file);
             } catch (err) { alert("Error reading file"); return; }
