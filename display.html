@@ -154,6 +154,75 @@
         setInterval(updateClockDisplay, 1000); // Check every second
         updateClockDisplay();
     </script>
+
+    <!-- FullScreen Overlay (Large Screen Only) -->
+    <div id="fullscreenOverlay" style="
+        display: none;
+        position: fixed; inset: 0; z-index: 99999;
+        background: rgba(0,0,0,0.85);
+        backdrop-filter: blur(6px);
+        flex-direction: column;
+        align-items: center; justify-content: center;
+        cursor: pointer;
+        animation: fadeInOverlay 0.5s ease;
+    " onclick="enterFullscreen()">
+        <div style="font-size: 5rem; margin-bottom: 1rem;">📺</div>
+        <div style="
+            color: white; font-family: 'Inter', sans-serif;
+            font-size: 2rem; font-weight: 700; text-align: center;
+            margin-bottom: 0.5rem;
+        ">Κλικ για Πλήρη Οθόνη</div>
+        <div style="color: rgba(255,255,255,0.6); font-size: 1.1rem; font-family: sans-serif;">
+            Ανιχνεύθηκε μεγάλη οθόνη
+        </div>
+        <div style="
+            margin-top: 2rem;
+            background: #3b82f6; color: white;
+            padding: 0.8rem 2.5rem; border-radius: 2rem;
+            font-size: 1.2rem; font-weight: 600;
+            box-shadow: 0 0 30px rgba(59,130,246,0.5);
+            animation: pulse 1.5s ease-in-out infinite;
+        ">▶ Έναρξη</div>
+    </div>
+
+    <style>
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+    </style>
+
+    <script>
+        function enterFullscreen() {
+            const el = document.documentElement;
+            if (el.requestFullscreen)           el.requestFullscreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
+            else if (el.msRequestFullscreen)     el.msRequestFullscreen();
+            document.getElementById('fullscreenOverlay').style.display = 'none';
+        }
+
+        function showFullscreenOverlay() {
+            document.getElementById('fullscreenOverlay').style.display = 'flex';
+        }
+
+        // Show overlay only on large screens (likely a TV / projector)
+        if (window.screen.width >= 1200 || window.innerWidth >= 1200) {
+            // Small delay so the page loads first
+            setTimeout(showFullscreenOverlay, 800);
+        }
+
+        // Re-show overlay if user presses ESC (exits fullscreen)
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                // Only if large screen
+                if (window.innerWidth >= 1200) {
+                    setTimeout(showFullscreenOverlay, 500);
+                }
+            }
+        });
+    </script>
+
     <div
         style="position: fixed; bottom: 5px; right: 10px; z-index: 50000; font-size: 0.85rem; color: rgba(255,255,255,0.8); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); pointer-events: none; font-weight: bold;">
         ΚΑΤΑΣΚΕΥΗ: Ε. ΒΑΛΑΚΟΣ with Antigravity
