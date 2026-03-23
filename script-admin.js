@@ -545,15 +545,21 @@ window.improveWithAI = async () => {
         });
 
         const data = await response.json();
+        
+        if (!response.ok) {
+            console.error("AI API Error:", data);
+            throw new Error(data.error?.message || "Αποτυχία σύνδεσης με την Google");
+        }
+
         if (data.candidates && data.candidates[0].content.parts[0].text) {
             const improvedText = data.candidates[0].content.parts[0].text.trim();
             editor.innerHTML = improvedText.replace(/\n/g, '<br>');
         } else {
-            throw new Error("Invalid AI response");
+            throw new Error("Δεν επιστράφηκε κείμενο από το AI.");
         }
     } catch (err) {
-        console.error(err);
-        alert("Σφάλμα σύνδεσης με AI. Ελέγξτε το API Key σας.");
+        console.error("AI Assistant Error:", err);
+        alert(`❌ Σφάλμα AI: ${err.message}`);
     } finally {
         btn.disabled = false;
         btn.style.opacity = '1';
