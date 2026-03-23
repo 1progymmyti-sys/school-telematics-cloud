@@ -129,7 +129,7 @@ window.onload = () => {
     });
 
     // 2. Announcements Listener
-    const q = query(collection(db, "announcements"), orderBy("order", "asc"));
+    const q = query(collection(db, "announcements"));
     onSnapshot(q, (snapshot) => {
         const all = [];
         snapshot.forEach(doc => {
@@ -137,6 +137,19 @@ window.onload = () => {
             d.id = doc.id;
             all.push(d);
         });
+
+        // Sort client-side: items with an 'order' value first (ascending),
+        // then items without it (legacy) sorted by createdAt descending
+        all.sort((a, b) => {
+            const aHasOrder = a.order !== undefined && a.order !== null;
+            const bHasOrder = b.order !== undefined && b.order !== null;
+            if (aHasOrder && bHasOrder) return a.order - b.order;
+            if (aHasOrder) return -1;
+            if (bHasOrder) return 1;
+            // Both legacy: sort newest first
+            return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1;
+        });
+
         slides = getActiveSlides(all);
 
         if (!emergencyActive && slides.length > 0) {

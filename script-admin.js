@@ -45,7 +45,7 @@ window.onload = async () => {
     });
 
     // 2. Realtime Announcements Listener
-    const q = query(collection(db, ANNOUNCEMENTS_COL), orderBy("order", "asc"));
+    const q = query(collection(db, ANNOUNCEMENTS_COL));
     onSnapshot(q, (snapshot) => {
         allAnnouncements = [];
         snapshot.forEach((doc) => {
