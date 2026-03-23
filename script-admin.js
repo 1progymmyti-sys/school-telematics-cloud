@@ -514,6 +514,116 @@ window.deleteItem = async (id) => {
     await deleteDoc(doc(db, ANNOUNCEMENTS_COL, id));
 };
 
+window.previewAnnouncement = async () => {
+    const modal = document.getElementById('previewModal');
+    const slide = document.getElementById('previewSlide');
+    if (!modal || !slide) return;
+
+    // Read current form values
+    const title      = document.getElementById('title')?.value || '(Χωρίς τίτλο)';
+    const type       = document.getElementById('type')?.value || 'info';
+    const mediaType  = document.getElementById('mediaType')?.value || 'text';
+    const content    = document.getElementById('contentEditor')?.innerHTML || '';
+    const youtubeUrl = document.getElementById('youtubeUrl')?.value || '';
+    const url        = document.getElementById('url')?.value || '';
+    const liveImgUrl = document.getElementById('liveImageUrl')?.value || '';
+    const countdownDt= document.getElementById('countdownDate')?.value || '';
+    const pollQ      = document.getElementById('pollQuestionText')?.value || '';
+    const pollOpts   = document.getElementById('pollOptions')?.value || '';
+    const fileInput  = document.getElementById('file');
+
+    // Type badge colors
+    const typeColors = { info: '#3b82f6', alert: '#ef4444', event: '#22c55e' };
+    const typeLabels = { info: 'ΕΝΗΜΕΡΩΣΗ', alert: 'ΠΡΟΣΟΧΗ', event: 'ΕΚΔΗΛΩΣΗ' };
+    const badgeColor = typeColors[type] || '#3b82f6';
+    const badgeLabel = typeLabels[type] || type.toUpperCase();
+
+    let contentHtml = '';
+
+    if (mediaType === 'text') {
+        contentHtml = `
+            <div style="position:absolute;top:1.5rem;left:1.5rem;background:${badgeColor};color:white;padding:0.3rem 1rem;border-radius:2rem;font-size:0.8rem;font-weight:700;letter-spacing:1px;">${badgeLabel}</div>
+            <h1 style="font-size:2.5rem;font-weight:700;background:linear-gradient(to right,#fff,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1rem;">${title}</h1>
+            <div style="font-size:1.2rem;color:#94a3b8;max-width:80%;">${content}</div>`;
+
+    } else if (mediaType === 'image' || mediaType === 'pdf') {
+        // Try to read from file input
+        if (fileInput?.files?.[0]) {
+            const dataUrl = await readFileAsBase64(fileInput.files[0]);
+            if (mediaType === 'image') {
+                contentHtml = `<img src="${dataUrl}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:0.5rem;">`;
+            } else {
+                contentHtml = `<embed src="${dataUrl}" type="application/pdf" style="width:100%;height:100%;border:none;">`;
+            }
+        } else if (editId) {
+            const old = allAnnouncements.find(i => i.id === editId);
+            if (old?.mediaSource) {
+                contentHtml = mediaType === 'image'
+                    ? `<img src="${old.mediaSource}" style="max-width:100%;max-height:100%;object-fit:contain;">`
+                    : `<embed src="${old.mediaSource}" type="application/pdf" style="width:100%;height:100%;border:none;">`;
+            }
+        } else {
+            contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
+        }
+
+    } else if (mediaType === 'youtube') {
+        const vidId = youtubeUrl.split('v=')[1]?.split('&')[0] || youtubeUrl.split('/').pop();
+        contentHtml = vidId
+            ? `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=0&controls=1" style="width:100%;height:100%;border:none;" allowfullscreen></iframe>`
+            : `<div style="color:#94a3b8;font-size:1.5rem;">▶ Δεν έχει δοθεί URL YouTube</div>`;
+
+    } else if (mediaType === 'website') {
+        contentHtml = url
+            ? `<div style="color:#94a3b8;font-size:1.1rem;">🌐 Ιστοσελίδα:<br><a href="${url}" style="color:#3b82f6;" target="_blank">${url}</a><br><small style="opacity:0.5;margin-top:0.5rem;display:block;">(Τα iframes δεν εμφανίζονται στην προεπισκόπηση λόγω ασφάλειας)</small></div>`
+            : `<div style="color:#94a3b8;">🌐 Δεν έχει δοθεί URL</div>`;
+
+    } else if (mediaType === 'live_image') {
+        contentHtml = liveImgUrl
+            ? `<img src="${liveImgUrl}?t=${Date.now()}" style="max-width:100%;max-height:100%;object-fit:contain;" onerror="this.outerHTML='<div style=\'color:#ef4444\'>❌ Αδυναμία φόρτωσης εικόνας</div>'">`
+            : `<div style="color:#94a3b8;">📷 Δεν έχει δοθεί URL εικόνας</div>`;
+
+    } else if (mediaType === 'countdown') {
+        const target = countdownDt ? new Date(countdownDt) : null;
+        const diff = target ? Math.floor((target - new Date()) / 1000) : null;
+        const days  = diff ? Math.floor(diff / 86400) : '-';
+        const hrs   = diff ? Math.floor((diff % 86400) / 3600) : '-';
+        const mins  = diff ? Math.floor((diff % 3600) / 60) : '-';
+        const secs  = diff ? Math.floor(diff % 60) : '-';
+        contentHtml = `
+            <div style="position:absolute;top:1.5rem;left:1.5rem;background:${badgeColor};color:white;padding:0.3rem 1rem;border-radius:2rem;font-size:0.8rem;font-weight:700;">${badgeLabel}</div>
+            <h1 style="font-size:2.2rem;font-weight:700;color:white;margin-bottom:1.5rem;">${title}</h1>
+            <div style="display:flex;gap:1.5rem;">
+                ${[['Μέρες',days],['Ώρες',hrs],['Λεπτά',mins],['Δευτ.',secs]].map(([l,v])=>`
+                    <div style="text-align:center;">
+                        <div style="font-size:3.5rem;font-weight:900;color:#3b82f6;font-family:monospace;">${String(v).padStart(2,'0')}</div>
+                        <div style="font-size:0.8rem;color:#94a3b8;margin-top:0.3rem;">${l}</div>
+                    </div>`).join('')}
+            </div>`;
+
+    } else if (mediaType === 'poll') {
+        const options = pollOpts.split(',').map(s => s.trim()).filter(Boolean);
+        contentHtml = `
+            <div style="position:absolute;top:1.5rem;left:1.5rem;background:#8b5cf6;color:white;padding:0.3rem 1rem;border-radius:2rem;font-size:0.8rem;font-weight:700;">ΨΗΦΟΦΟΡΙΑ</div>
+            <h2 style="font-size:2rem;font-weight:700;color:white;margin-bottom:1.5rem;">${pollQ || 'Χωρίς ερώτηση'}</h2>
+            <div style="display:flex;flex-direction:column;gap:0.75rem;width:100%;max-width:500px;">
+                ${options.map(o => `<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);padding:0.8rem 1.2rem;border-radius:0.5rem;color:white;text-align:left;">${o}</div>`).join('')}
+            </div>`;
+
+    } else {
+        contentHtml = `
+            <div style="position:absolute;top:1.5rem;left:1.5rem;background:${badgeColor};color:white;padding:0.3rem 1rem;border-radius:2rem;font-size:0.8rem;font-weight:700;">${badgeLabel}</div>
+            <h1 style="font-size:2.5rem;font-weight:700;color:white;margin-bottom:1rem;">${title}</h1>
+            <div style="font-size:1.2rem;color:#94a3b8;">${content}</div>`;
+    }
+
+    slide.innerHTML = contentHtml;
+    modal.style.display = 'flex';
+
+    // Close on Escape
+    const onEsc = (e) => { if (e.key === 'Escape') { modal.style.display = 'none'; document.removeEventListener('keydown', onEsc); } };
+    document.addEventListener('keydown', onEsc);
+};
+
 window.editItem = (id) => {
     const item = allAnnouncements.find(i => i.id === id);
     if (!item) return;
