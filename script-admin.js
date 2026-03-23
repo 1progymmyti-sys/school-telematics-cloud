@@ -45,18 +45,28 @@ window.onload = async () => {
     });
 
     // 2. Realtime Announcements Listener
-    const q = query(collection(db, ANNOUNCEMENTS_COL), orderBy("createdAt", "desc"));
+    const q = query(collection(db, ANNOUNCEMENTS_COL), orderBy("order", "asc"));
     onSnapshot(q, (snapshot) => {
         allAnnouncements = [];
         snapshot.forEach((doc) => {
             const data = doc.data();
             data.id = doc.id;
+            // Handle missing order temporarily
+            if (data.order === undefined) {
+                console.warn(`Item ${data.id} has no order, using createdAt...`);
+                data.order = data.createdAt ? new Date(data.createdAt).getTime() : 99999;
+            }
             allAnnouncements.push(data);
         });
+        
+        // Sort if some were calculated from createdAt
+        allAnnouncements.sort((a, b) => a.order - b.order);
+        
         renderList(allAnnouncements);
     });
 
     initForm();
+    initSortable();
 
     // --- AUTH LOGIC ---
     let isMaintainerMode = false;
@@ -237,13 +247,16 @@ function updateEmergencyUI(s) {
 function renderList(list) {
     const listContainer = document.getElementById("announcementList");
     listContainer.innerHTML = list.map(item => `
-        <div class="announcement-item type-${item.type}" style="opacity: ${isActive(item) ? "1" : "0.5"}">
-            <div>
-                <div style="font-size: 0.8rem; opacity: 0.7; text-transform: uppercase;">
-                    ${item.mediaType} | ${getStatusBadge(item)}
+        <div class="announcement-item type-${item.type}" data-id="${item.id}" style="opacity: ${isActive(item) ? "1" : "0.5"}; cursor: grab;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="drag-handle" style="cursor: grab; color: var(--text-secondary); font-size: 1.2rem;">☰</div>
+                <div>
+                    <div style="font-size: 0.8rem; opacity: 0.7; text-transform: uppercase;">
+                        ${item.mediaType} | ${getStatusBadge(item)}
+                    </div>
+                    <h3>${item.title}</h3>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, "").substring(0, 50) + "..." : ""}</div>
                 </div>
-                <h3>${item.title}</h3>
-                <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, "").substring(0, 50) + "..." : ""}</div>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: start;">
                  <button class="btn" style="background:${item.isPaused ? "#10b981" : "#f59e0b"}; padding:0.5rem; min-width: 40px;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Συνέχιση" : "Παύση"}">
@@ -254,6 +267,33 @@ function renderList(list) {
             </div>
         </div>
     `).join("");
+}
+
+function initSortable() {
+    const listContainer = document.getElementById("announcementList");
+    if (!listContainer) return;
+
+    new Sortable(listContainer, {
+        animation: 150,
+        handle: '.drag-handle',
+        onEnd: async () => {
+            const items = listContainer.querySelectorAll('.announcement-item');
+            const updates = [];
+            
+            items.forEach((itemEl, index) => {
+                const id = itemEl.dataset.id;
+                updates.push(updateDoc(doc(db, ANNOUNCEMENTS_COL, id), { order: index }));
+            });
+
+            try {
+                await Promise.all(updates);
+                console.log("Order saved successfully!");
+            } catch (err) {
+                console.error("Order save failed!", err);
+                alert("Σφάλμα στην αποθήκευση της σειράς.");
+            }
+        }
+    });
 }
 
 // --- LOGIC FUNCTIONS ---
@@ -332,7 +372,8 @@ function initForm() {
             mediaSource: mediaSource,
             mediaScale: fd.get('iframeScale') || 1.0,
             extraData: type === 'poll' ? JSON.stringify(fd.get('pollOptions').split(',').map(s => s.trim())) : null,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            order: editId ? (allAnnouncements.find(i => i.id === editId)?.order ?? allAnnouncements.length) : allAnnouncements.length
         };
 
         try {
