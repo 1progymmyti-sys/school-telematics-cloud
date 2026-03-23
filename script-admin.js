@@ -456,6 +456,17 @@ function initSettingsForm() {
         saveSettings(updates);
     };
 
+    // Real-time preview for logo
+    const logoInput = document.getElementById('logoFile');
+    if (logoInput) {
+        logoInput.onchange = async (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const base64 = await readFileAsBase64(e.target.files[0]);
+                document.getElementById('logoPreview').src = base64;
+            }
+        };
+    }
+
     // Emergency
     document.getElementById('emergencyForm').onsubmit = async (e) => {
         e.preventDefault();
