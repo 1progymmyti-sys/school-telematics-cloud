@@ -398,6 +398,8 @@ function initForm() {
             duration: parseInt(fd.get('duration')) || 10,
             startDate: fd.get('startDate') || null,
             endDate: fd.get('endDate') || null,
+            startTime: fd.get('startTime') || null,
+            endTime: fd.get('endTime') || null,
             mediaType: type,
             content: document.getElementById('contentEditor').innerHTML,
             mediaSource: mediaSource,
@@ -687,6 +689,8 @@ window.editItem = (id) => {
     document.getElementById('duration').value = item.duration;
     document.getElementById('startDate').value = item.startDate || '';
     document.getElementById('endDate').value = item.endDate || '';
+    document.getElementById('startTime').value = item.startTime || '';
+    document.getElementById('endTime').value = item.endTime || '';
     document.getElementById('mediaType').value = item.mediaType;
     document.getElementById('contentEditor').innerHTML = item.content || '';
 

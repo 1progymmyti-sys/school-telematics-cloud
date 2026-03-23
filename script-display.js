@@ -2,6 +2,7 @@ import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-conf
 import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
+let allAnnouncements = [];
 let slides = [];
 let currentIndex = 0;
 let timer = null;
@@ -101,6 +102,14 @@ const getActiveSlides = (list) => {
         const end = item.endDate ? new Date(item.endDate) : null;
         if (start && now < start) return false;
         if (end && now > end) return false;
+
+        // Daily Time Check (Advanced Scheduling)
+        if (item.startTime || item.endTime) {
+            const currentHHMM = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            if (item.startTime && currentHHMM < item.startTime) return false;
+            if (item.endTime && currentHHMM > item.endTime) return false;
+        }
+
         return true;
     });
 };
@@ -131,16 +140,15 @@ window.onload = () => {
     // 2. Announcements Listener
     const q = query(collection(db, "announcements"));
     onSnapshot(q, (snapshot) => {
-        const all = [];
+        allAnnouncements = [];
         snapshot.forEach(doc => {
             const d = doc.data();
             d.id = doc.id;
-            all.push(d);
+            allAnnouncements.push(d);
         });
 
-        // Sort client-side: items with an 'order' value first (ascending),
-        // then items without it (legacy) sorted by createdAt descending
-        all.sort((a, b) => {
+        // Sort client-side
+        allAnnouncements.sort((a, b) => {
             const aHasOrder = a.order !== undefined && a.order !== null;
             const bHasOrder = b.order !== undefined && b.order !== null;
             if (aHasOrder && bHasOrder) return a.order - b.order;
@@ -150,7 +158,7 @@ window.onload = () => {
             return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1;
         });
 
-        slides = getActiveSlides(all);
+        slides = getActiveSlides(allAnnouncements);
 
         if (!emergencyActive && slides.length > 0) {
             // Restart rotation if list changed
@@ -425,6 +433,9 @@ function playSirenLoop() {
 function startRotation() {
     if (emergencyActive) return;
     if (timer) clearTimeout(timer); // Clear previous
+
+    // Re-filter slides in case time-based constraints changed
+    slides = getActiveSlides(allAnnouncements);
 
     if (slides.length === 0) return;
     if (currentIndex >= slides.length) currentIndex = 0;

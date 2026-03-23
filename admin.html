@@ -223,14 +223,27 @@
 
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1;">
-                            <label for="startDate">Έναρξη Προβολής (Προαιρετικό)</label>
+                            <label for="startDate">Έναρξη Προβολής (Ημερομηνία)</label>
                             <input type="datetime-local" id="startDate" name="startDate">
                             <small style="color: var(--text-secondary);">Αφήστε κενό για άμεση έναρξη</small>
                         </div>
                         <div class="form-group" style="flex: 1;">
-                            <label for="endDate">Λήξη Προβολής (Προαιρετικό)</label>
+                            <label for="endDate">Λήξη Προβολής (Ημερομηνία)</label>
                             <input type="datetime-local" id="endDate" name="endDate">
                             <small style="color: var(--text-secondary);">Αφήστε κενό για να μην λήξει ποτέ</small>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="startTime">Από Ώρα (Καθημερινά)</label>
+                            <input type="time" id="startTime" name="startTime">
+                            <small style="color: var(--text-secondary);">Π.χ. 08:00</small>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="endTime">Έως Ώρα (Καθημερινά)</label>
+                            <input type="time" id="endTime" name="endTime">
+                            <small style="color: var(--text-secondary);">Π.χ. 14:00</small>
                         </div>
                     </div>
 
