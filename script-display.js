@@ -1,4 +1,4 @@
-import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
+import { db, doc, onSnapshot, collection, query, orderBy, where } from "./firebase-config.js";
 import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
@@ -15,6 +15,7 @@ let rssInterval = null;
 let tickerAnimId = null;
 let tickerOffset = window.innerWidth;
 let lastTickerContent = '';
+let currentPollListener = null;
 
 // Helper: Fetch RSS Feed directly (now that CORS is enabled)
 async function fetchRSS(url) {
@@ -550,6 +551,40 @@ function renderSlide(item) {
             >
         `;
     }
+    else if (item.mediaType === 'poll') {
+        const pollId = item.id;
+        const question = item.mediaSource;
+        const options = JSON.parse(item.extraData || '[]');
+        
+        // Use HOST URL from settings for the QR
+        const base = currentSettings.hostUrl || window.location.origin;
+        const voteUrl = `${base}/vote.html?id=${pollId}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(voteUrl)}`;
+
+        contentHtml = `
+            <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:3rem; width:100%; height:100%; padding:2rem; align-items:center;">
+                <!-- Results Side -->
+                <div style="text-align:left;">
+                    <div style="background:#8b5cf6; color:white; display:inline-block; padding:0.4rem 1.2rem; border-radius:2rem; font-size:0.9rem; font-weight:700; margin-bottom:1.5rem; letter-spacing:1px;">ΨΗΦΟΦΟΡΙΑ LIVE</div>
+                    <h1 style="font-size:3.5rem; font-weight:800; color:white; margin-bottom:2rem; line-height:1.2;">${question}</h1>
+                    <div id="poll-bars-${pollId}" style="display:flex; flex-direction:column; gap:1.2rem;">
+                        <!-- Bars injected by listener -->
+                        <div style="font-size:1.5rem; opacity:0.5;">Φόρτωση αποτελεσμάτων...</div>
+                    </div>
+                </div>
+                
+                <!-- QR Side -->
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); padding:3rem; border-radius:2rem; border:1px solid rgba(255,255,255,0.1);">
+                    <img src="${qrUrl}" style="width:250px; height:250px; border-radius:1rem; border:10px solid white; margin-bottom:1.5rem;">
+                    <div style="font-size:1.8rem; font-weight:800; color:white;">ΣΚΑΝΑΡΕ ΓΙΑ ΨΗΦΟ</div>
+                    <div style="font-size:1rem; color:#94a3b8; margin-top:0.5rem; opacity:0.8;">Χρησιμοποίησε την κάμερα του κινητού σου</div>
+                </div>
+            </div>
+        `;
+        
+        // Start listening to votes
+        setTimeout(() => startPollListener(pollId, options), 50);
+    }
     else {
         // Text / Default
         contentHtml = `
@@ -607,6 +642,53 @@ function startCountdownTicker(id, targetTime) {
         requestAnimationFrame(update);
     };
     update();
+}
+
+function startPollListener(pollId, options) {
+    if (currentPollListener) currentPollListener(); // Unsubscribe previous
+
+    try {
+        const q = query(collection(db, "votes"), where("pollId", "==", pollId));
+        currentPollListener = onSnapshot(q, (snapshot) => {
+            const votes = [];
+            snapshot.forEach(doc => votes.push(doc.data()));
+
+            // Calculate Counts
+            const counts = options.map((_, idx) => votes.filter(v => v.optionIndex === idx).length);
+            const total = votes.length;
+
+            renderPollBars(pollId, options, counts, total);
+        });
+    } catch(e) { console.error("Poll Listener Error:", e); }
+}
+
+function renderPollBars(pollId, options, counts, total) {
+    const container = document.getElementById(`poll-bars-${pollId}`);
+    if (!container) return;
+
+    let html = '';
+    options.forEach((opt, idx) => {
+        const count = counts[idx];
+        const pct = total === 0 ? 0 : Math.round((count / total) * 100);
+        
+        // Distinct Colors for Bars
+        const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+        const color = colors[idx % colors.length];
+
+        html += `
+            <div style="width:100%;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem; font-size:1.4rem; font-weight:600;">
+                    <span>${opt}</span>
+                    <span>${pct}% <small style="font-weight:400; opacity:0.6; font-size:0.8em;">(${count})</small></span>
+                </div>
+                <div style="height:25px; background:rgba(255,255,255,0.1); border-radius:12px; overflow:hidden;">
+                    <div style="width:${pct}%; height:100%; background:${color}; box-shadow:0 0 15px ${color}88; transition:width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
 }
 
 function getTypeLabel(type) {
