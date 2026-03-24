@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, setDoc, writeBatch, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, setDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // Your web app's Firebase configuration
@@ -19,4 +19,4 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 // Export useful functions
-export { db, storage, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, ref, uploadString, getDownloadURL, setDoc, writeBatch, where };
+export { db, storage, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, ref, uploadString, getDownloadURL, setDoc, writeBatch };

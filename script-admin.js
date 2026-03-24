@@ -313,7 +313,6 @@ function initForm() {
             live: document.getElementById('liveImageGroup'),
             youtube: document.getElementById('youtubeGroup'),
             countdown: document.getElementById('countdownGroup'),
-            poll: document.getElementById('pollGroup'),
             examcal: document.getElementById('examCalendarGroup'),
             googleSlides: document.getElementById('googleSlidesGroup')
         };
@@ -330,7 +329,6 @@ function initForm() {
         if (type === 'countdown') els.countdown.style.display = 'block';
         if (type === 'exam_calendar') els.examcal.style.display = 'block';
         if (type === 'google_slides') els.googleSlides.style.display = 'block';
-        if (type === 'poll') { els.poll.style.display = 'block'; els.content.style.display = 'none'; }
     };
     mediaTypeSelect.onchange = updateVisibility;
     updateVisibility();
@@ -365,7 +363,6 @@ function initForm() {
         if (type === 'live_image') mediaSource = fd.get('liveImageUrl');
         if (type === 'youtube') mediaSource = fd.get('youtubeUrl');
         if (type === 'countdown') mediaSource = fd.get('countdownDate');
-        if (type === 'poll') mediaSource = fd.get('pollQuestionText');
         if (type === 'exam_calendar') mediaSource = fd.get('examCalendarUrl');
         if (type === 'google_slides') {
             // Convert any Google Slides URL to embed format
@@ -382,7 +379,6 @@ function initForm() {
         }
 
         let extraData = null;
-        if (type === 'poll') extraData = JSON.stringify(fd.get('pollOptions').split(',').map(s => s.trim()));
         if (type === 'google_slides') {
             extraData = JSON.stringify({
                 slidesCount: parseInt(fd.get('slidesCount')) || 1,
@@ -578,8 +574,6 @@ window.previewAnnouncement = async () => {
     const url        = document.getElementById('url')?.value || '';
     const liveImgUrl = document.getElementById('liveImageUrl')?.value || '';
     const countdownDt= document.getElementById('countdownDate')?.value || '';
-    const pollQ      = document.getElementById('pollQuestionText')?.value || '';
-    const pollOpts   = document.getElementById('pollOptions')?.value || '';
     const slidesUrl  = document.getElementById('googleSlidesUrl')?.value || '';
     const slidesCnt  = document.getElementById('slidesCount')?.value || '1';
     const slidesDly  = document.getElementById('slidesDelay')?.value || '5000';
@@ -661,15 +655,6 @@ window.previewAnnouncement = async () => {
                     </div>`).join('')}
             </div>`;
 
-    } else if (mediaType === 'poll') {
-        const options = pollOpts.split(',').map(s => s.trim()).filter(Boolean);
-        contentHtml = `
-            <div style="position:absolute;top:1.5rem;left:1.5rem;background:#8b5cf6;color:white;padding:0.3rem 1rem;border-radius:2rem;font-size:0.8rem;font-weight:700;">ΨΗΦΟΦΟΡΙΑ</div>
-            <h2 style="font-size:2rem;font-weight:700;color:white;margin-bottom:1.5rem;">${pollQ || 'Χωρίς ερώτηση'}</h2>
-            <div style="display:flex;flex-direction:column;gap:0.75rem;width:100%;max-width:500px;">
-                ${options.map(o => `<div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);padding:0.8rem 1.2rem;border-radius:0.5rem;color:white;text-align:left;">${o}</div>`).join('')}
-            </div>`;
-
     } else {
         contentHtml = `
             <div style="position:absolute;top:1.5rem;left:1.5rem;background:${badgeColor};color:white;padding:0.3rem 1rem;border-radius:2rem;font-size:0.8rem;font-weight:700;">${badgeLabel}</div>
@@ -713,7 +698,6 @@ window.editItem = (id) => {
     if (item.mediaType === 'youtube') document.getElementById('youtubeUrl').value = item.mediaSource;
     if (item.mediaType === 'countdown') document.getElementById('countdownDate').value = item.mediaSource;
     if (item.mediaType === 'exam_calendar') document.getElementById('examCalendarUrl').value = item.mediaSource;
-    if (item.mediaType === 'poll') document.getElementById('pollQuestionText').value = item.mediaSource;
     if (item.mediaType === 'google_slides') {
         document.getElementById('googleSlidesUrl').value = item.mediaSource;
         if (item.extraData) {
