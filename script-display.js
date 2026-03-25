@@ -531,13 +531,41 @@ function renderSlide(item) {
         const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
         
         if (isDashboard) {
-            contentHtml = `
-                ${dashboardTitleHtml}
-                <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; overflow:hidden;">
-                    <img src="${url}" class="slide-image" style="width: auto; max-width: 95%; height: auto; max-height: 55vh; margin: 0 auto; border-radius:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
-                    ${item.content ? `<div style="margin-top: 0.8rem; color:#94a3b8; font-size:1.2rem; text-align:center; max-width:90%; line-height:1.3; overflow:hidden; max-height:10vh;">${item.content}</div>` : ''}
-                </div>
-            `;
+            const layout = item.layout || 'center';
+            if (layout === 'split-left') {
+                contentHtml = `
+                    ${dashboardTitleHtml}
+                    <div style="display:flex; flex:1; width:100%; gap:2rem; align-items:center;">
+                        <div style="flex:1.3; display:flex; justify-content:center;">
+                            <img src="${url}" class="slide-image" style="width:100%; height:auto; max-height:65vh; border-radius:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+                        </div>
+                        <div style="flex:1; font-size:1.6rem; color:#cbd5e1; text-align:left; line-height:1.4;">
+                            ${item.content || ''}
+                        </div>
+                    </div>
+                `;
+            } else if (layout === 'split-right') {
+                contentHtml = `
+                    ${dashboardTitleHtml}
+                    <div style="display:flex; flex:1; width:100%; gap:2rem; align-items:center;">
+                        <div style="flex:1; font-size:1.6rem; color:#cbd5e1; text-align:right; line-height:1.4;">
+                            ${item.content || ''}
+                        </div>
+                        <div style="flex:1.3; display:flex; justify-content:center;">
+                            <img src="${url}" class="slide-image" style="width:100%; height:auto; max-height:65vh; border-radius:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Centered / Full Default (Dashboard)
+                contentHtml = `
+                    ${dashboardTitleHtml}
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; overflow:hidden;">
+                        <img src="${url}" class="slide-image" style="width: auto; max-width: 95%; height: auto; max-height: 55vh; margin: 0 auto; border-radius:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+                        ${item.content ? `<div style="margin-top: 0.8rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:90%; line-height:1.3;">${item.content}</div>` : ''}
+                    </div>
+                `;
+            }
         } else {
             contentHtml = `<img src="${url}" class="slide-image">`;
             if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
