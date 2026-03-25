@@ -508,6 +508,7 @@ function renderSlide(item) {
 
 
     const isDashboard = document.body.classList.contains('dashboard-mode');
+    const dashboardTitleHtml = isDashboard && item.title ? `<h1 class="slide-title" style="margin-top:0; margin-bottom:0.3rem; line-height:1.1;">${item.title}</h1>` : '';
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
@@ -515,9 +516,9 @@ function renderSlide(item) {
         
         if (isDashboard) {
             contentHtml = `
-                <h1 class="slide-title" style="text-align:center;">${item.title}</h1>
-                <img src="${url}" class="slide-image" style="width: auto; max-width: 90%; height: auto; max-height: 55vh; margin: 0 auto;">
-                ${item.content ? `<div style="margin-top: 1.5rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:80%; line-height:1.4;">${item.content}</div>` : ''}
+                ${dashboardTitleHtml}
+                <img src="${url}" class="slide-image" style="width: auto; max-width: 95%; height: auto; max-height: 58vh; margin: 0 auto;">
+                ${item.content ? `<div style="margin-top: 1rem; color:#94a3b8; font-size:1.3rem; text-align:center; max-width:90%; line-height:1.3;">${item.content}</div>` : ''}
             `;
         } else {
             contentHtml = `<img src="${url}" class="slide-image">`;
@@ -526,7 +527,16 @@ function renderSlide(item) {
     }
     else if (item.mediaType === 'youtube') {
         const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
-        contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
+        if (isDashboard) {
+            contentHtml = `
+                ${dashboardTitleHtml}
+                <div style="flex:1; width:100%; border-radius:1rem; overflow:hidden;">
+                    <iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>
+                </div>
+            `;
+        } else {
+            contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
+        }
     }
     else if (item.mediaType === 'website') {
         const scale = parseFloat(item.mediaScale) || 1.0;
@@ -543,14 +553,23 @@ function renderSlide(item) {
         }
 
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
-        // Add style attribute to iframe if zoomed
-        contentHtml = `
+        
+        if (isDashboard) {
+            contentHtml = `
+                ${dashboardTitleHtml}
+                <div style="flex:1; width:100%; border-radius:1rem; overflow:hidden; position:relative;">
+                    <iframe src="${item.mediaSource}" class="slide-iframe" style="${scale !== 1.0 ? `transform: scale(${scale}); transform-origin: 0 0; width: ${100 / scale}%; height: ${100 / scale}%;` : ''}" frameborder="0"></iframe>
+                </div>
+            `;
+        } else {
+            contentHtml = `
             <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
             <div class="qr-box">
                 <img src="${qrUrl}" alt="Scan QR">
                 <div class="qr-label">SCAN ME</div>
             </div>
         `;
+        }
     }
     else if (item.mediaType === 'countdown') {
         // Countdown Logic
