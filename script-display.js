@@ -268,8 +268,9 @@ function updateClock() {
         document.getElementById('clock').innerHTML = `${hStr}:${m}<span style="font-size:0.4em; margin-left:10px; opacity:0.8; vertical-align:middle; text-transform:uppercase;">${ampm}</span>`;
         
         // Full Date: Monday, September 9, 2024
-        const opts = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-        document.getElementById('date').innerText = now.toLocaleDateString('en-US', opts);
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateText = now.toLocaleDateString('el-GR', opts);
+        document.getElementById('date').innerText = dateText;
     } else {
         // Legacy format (24h)
         document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
@@ -844,9 +845,6 @@ function renderEventsToSidebar(items, container) {
                 </div>
                 <div class="event-details">
                     <div class="event-title">${item.title}</div>
-                    <div class="event-meta">
-                        ${timeText ? `<span style="display:flex; align-items:center; gap:3px; font-size:0.8rem;">🕒 ${timeText}</span>` : ''}
-                    </div>
                 </div>
             </div>
         `;
@@ -854,6 +852,6 @@ function renderEventsToSidebar(items, container) {
 }
 
 function getMonthShort(m) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months[m] || 'EVT';
+    const months = ['ΙΑΝ', 'ΦΕΒ', 'ΜΑΡ', 'ΑΠΡ', 'ΜΑΪ', 'ΙΟΥΝ', 'ΙΟΥΛ', 'ΑΥΓ', 'ΣΕΠ', 'ΟΚΤ', 'ΝΟΕ', 'ΔΕΚ'];
+    return months[m] || 'ΕΚΔ';
 }

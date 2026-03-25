@@ -1067,11 +1067,11 @@ body.fullscreen-mode .display-header {
 
 .dashboard-mode .event-item {
     display: flex;
-    gap: 1.2rem;
-    margin-bottom: 1rem;
-    padding: 0.2rem 0.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05); /* Separator */
-    padding-bottom: 1.2rem;
+    gap: 0.8rem;
+    margin-bottom: 0.5rem;
+    padding: 0.1rem 0.2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 0.6rem;
 }
 
 .dashboard-mode .event-item:last-child {
@@ -1083,17 +1083,15 @@ body.fullscreen-mode .display-header {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 65px;
-    height: 75px;
-    padding: 0.5rem;
-    border-left: 4px solid var(--accent-color);
+    min-width: 48px;
+    height: 50px;
+    padding: 0.2rem;
+    border-left: 3px solid var(--accent-color);
     background: rgba(255,255,255,0.03);
     border-radius: 0 0.8rem 0.8rem 0;
 }
 
 .dashboard-mode .event-date-box .month {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
     text-transform: uppercase;
     font-weight: 700;
 }
