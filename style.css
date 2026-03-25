@@ -1174,4 +1174,14 @@ body.fullscreen-mode .display-header {
     border-radius: 1.5rem !important;
     box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important;
 }
+
+/* Iframe override for Dashboard */
+.dashboard-mode .slide-iframe {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 1rem !important;
+}
 

@@ -558,17 +558,18 @@ function renderSlide(item) {
             contentHtml = `
                 ${dashboardTitleHtml}
                 <div style="flex:1; width:100%; border-radius:1rem; overflow:hidden; position:relative;">
-                    <iframe src="${item.mediaSource}" class="slide-iframe" style="${scale !== 1.0 ? `transform: scale(${scale}); transform-origin: 0 0; width: ${100 / scale}%; height: ${100 / scale}%;` : ''}" frameborder="0"></iframe>
+                    <iframe src="${item.mediaSource}" class="slide-iframe" style="${scale !== 1.0 ? `transform: scale(${scale}); transform-origin: 0 0; width: ${100 / scale}%; height: ${100 / scale}%;` : 'width:100%; height:100%;'}" frameborder="0"></iframe>
                 </div>
             `;
         } else {
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
             contentHtml = `
-            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
-            <div class="qr-box">
-                <img src="${qrUrl}" alt="Scan QR">
-                <div class="qr-label">SCAN ME</div>
-            </div>
-        `;
+                <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
+                <div class="qr-box">
+                    <img src="${qrUrl}" alt="Scan QR">
+                    <div class="qr-label">SCAN ME</div>
+                </div>
+            `;
         }
     }
     else if (item.mediaType === 'countdown') {
