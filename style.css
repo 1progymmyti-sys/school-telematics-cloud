@@ -1025,20 +1025,11 @@ body.fullscreen-mode .display-header {
     letter-spacing: 2px;
 }
 
-/* Weather Card */
 .dashboard-mode .weather-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-around;
-}
-
-.dashboard-mode #weather {
-    position: static !important; /* Override fixed */
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 1rem !important;
-    font-size: 2.5rem !important;
+    justify-content: center;
 }
 
 /* Status Card */

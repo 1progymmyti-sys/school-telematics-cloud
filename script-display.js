@@ -379,13 +379,14 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI - NEW 2-ROW Layout
+            // Update UI - NEW 2-ROW Layout (STACKED)
+            weatherEl.style.width = '100%';
             weatherEl.innerHTML = `
-                <div style="display:flex; align-items:center; gap:1.2rem; margin-bottom:0.5rem;">
-                    <div style="font-size:4.5rem; line-height:1;">${weatherInfo.icon}</div>
-                    <div style="font-size:4.5rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:1rem; margin-bottom:0.8rem;">
+                    <div style="font-size:4rem; line-height:1;">${weatherInfo.icon}</div>
+                    <div style="font-size:4rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
                 </div>
-                <div style="font-size:0.9rem; color:#94a3b8; font-weight:700; width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.5rem; display:flex; gap:1.5rem; justify-content:center;">
+                <div style="font-size:0.85rem; color:#94a3b8; font-weight:800; width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.6rem; display:flex; justify-content:space-around; text-transform:uppercase;">
                     <span>📍 ${name || city}</span>
                     <span>💨 10km/h</span>
                     <span>💧 65%</span>
