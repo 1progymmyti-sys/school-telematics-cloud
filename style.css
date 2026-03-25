@@ -1160,12 +1160,12 @@ body.fullscreen-mode .display-header {
 }
 
 .dashboard-mode .slide-title {
-    font-size: clamp(2rem, 5.5vw, 4rem) !important; /* Slightly smaller maximum */
-    font-weight: 900 !important;
+    font-size: clamp(1.6rem, 2.5vw, 2.5rem) !important; /* Proper size for dashboard */
+    font-weight: 800 !important;
     color: #fbbf24 !important;
-    text-transform: none !important; /* Preserve user casing */
-    letter-spacing: -1.5px !important;
-    margin-bottom: 1.2rem !important; /* Reduced margin */
+    text-transform: none !important; 
+    letter-spacing: -1px !important;
+    margin-bottom: 0.4rem !important; /* Minimal margin */
     line-height: 1.1;
     text-align: center;
 }
