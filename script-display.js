@@ -159,6 +159,7 @@ window.onload = () => {
         });
 
         slides = getActiveSlides(allAnnouncements);
+        updateSidebarUpcoming(allAnnouncements); // NEW: Update the sidebar list
 
         if (!emergencyActive && slides.length > 0) {
             // Restart rotation if list changed
@@ -253,8 +254,28 @@ function updateScheduleStatus() {
 
 function updateClock() {
     const now = new Date();
-    document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const isDashboard = document.body.classList.contains('dashboard-mode');
+
+    if (isDashboard) {
+        // Dashboard Format (09:45 AM)
+        let h = now.getHours();
+        const m = now.getMinutes().toString().padStart(2, '0');
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        h = h ? h : 12; // 0 should be 12
+        const hStr = h.toString().padStart(2, '0');
+        
+        document.getElementById('clock').innerHTML = `${hStr}:${m}<span style="font-size:0.4em; margin-left:10px; opacity:0.8; vertical-align:middle; text-transform:uppercase;">${ampm}</span>`;
+        
+        // Full Date: Monday, September 9, 2024
+        const opts = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+        document.getElementById('date').innerText = now.toLocaleDateString('en-US', opts);
+    } else {
+        // Legacy format (24h)
+        document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    
     updateScheduleStatus();
 }
 
@@ -354,9 +375,21 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI
-            // Format: Icon | City | Temp | Description
-            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.6em; opacity:0.8; margin-left:5px;">(${weatherInfo.desc})</span>`;
+            // Update UI to match reference image
+            weatherEl.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:space-around; width:100%;">
+                    <div style="font-size:3.5rem;">${weatherInfo.icon}</div>
+                    <div style="text-align:right;">
+                        <div style="font-size:1.1rem; color:var(--text-secondary); text-transform:capitalize;">${weatherInfo.desc}</div>
+                        <div style="font-size:3.4rem; font-weight:800; color:white;">${temp}°C</div>
+                    </div>
+                </div>
+                <div style="width:100%; font-size:0.9rem; color:#94a3b8; display:flex; gap:0.5rem; justify-content:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem; margin-top:1rem;">
+                    <span style="border-right:1px solid #475569; padding-right:0.5rem;">${name || city}</span>
+                    <span style="border-right:1px solid #475569; padding-right:0.5rem;">Wind: 10 km/h</span>
+                    <span>Humid: 65%</span>
+                </div>
+            `;
         }
     } catch (error) {
         console.error("Weather Error:", error);
@@ -457,8 +490,8 @@ function renderSlide(item) {
     let contentHtml = '';
     const layoutClass = `layout-${item.layout || 'fullscreen'}`;
 
-    // Layout Checks for Auto-Fullscreen (Hide Header)
-    // NOTE: Removed 'website' so header stays visible for sites!
+    // Layout Checks (Disabled in Dashboard Mode to keep sidebar visible)
+    /*
     const isFullMedia = (item.layout === 'fullscreen' || !item.layout) &&
         ['image', 'live_image', 'youtube'].includes(item.mediaType);
 
@@ -467,12 +500,26 @@ function renderSlide(item) {
     } else {
         document.body.classList.remove('fullscreen-mode');
     }
+    */
+
+
+    const isDashboard = document.body.classList.contains('dashboard-mode');
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
         const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
-        contentHtml = `<img src="${url}" class="slide-image">`;
-        if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
+        
+        if (isDashboard) {
+            contentHtml = `
+                <h1 class="slide-title" style="text-align:center;">${item.title}</h1>
+                <img src="${url}" class="slide-image" style="width: auto; max-width: 90%; height: auto; max-height: 55vh; margin: 0 auto;">
+                ${item.content ? `<div style="margin-top: 1.5rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:80%;">${item.content}</div>` : ''}
+                <div style="margin-top: 1rem; color: var(--accent-color); font-weight:700; font-size:1.1rem; opacity:0.8;">#SchoolName #Updated</div>
+            `;
+        } else {
+            contentHtml = `<img src="${url}" class="slide-image">`;
+            if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
+        }
     }
     else if (item.mediaType === 'youtube') {
         const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
@@ -485,7 +532,7 @@ function renderSlide(item) {
         // Apply Zoom (Scale) Logic
         if (scale !== 1.0) {
             const w = 100 / scale;
-            const h = `calc((100vh - 190px) / ${scale})`;
+            const h = `calc((100vh - 120px) / ${scale})`; // Adjusted for dashboard height roughly
             scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
         } else {
             // Default (Fit container) - handled by CSS class .framed-web
@@ -747,3 +794,56 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 
 
 
+function updateSidebarUpcoming(list) {
+    const upcomingEl = document.getElementById('upcomingEvents');
+    if (!upcomingEl) return;
+
+    const now = new Date();
+    // Filter items that are future events or active events with specific dates
+    const upcoming = list
+        .filter(item => {
+            const end = item.endDate ? new Date(item.endDate) : null;
+            return item.type === 'event' && (!end || end > now);
+        })
+        .sort((a,b) => (a.startDate || '') > (b.startDate || '') ? 1 : -1)
+        .slice(0, 4); // Top 4
+
+    if (upcoming.length === 0) {
+        upcomingEl.innerHTML = '<div style="color: var(--text-secondary); padding: 1rem; text-align: center; font-size: 0.9rem;">Δεν υπάρχουν επερχόμενες εκδηλώσεις</div>';
+        return;
+    }
+
+    upcomingEl.innerHTML = upcoming.map(item => {
+        let day = '??';
+        let month = 'EVT';
+        let timeText = 'All Day';
+
+        if (item.startDate) {
+            const d = new Date(item.startDate);
+            day = d.getDate();
+            month = getMonthShort(d.getMonth());
+            timeText = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        return `
+            <div class="event-item">
+                <div class="event-date-box">
+                    <span class="month">${month}</span>
+                    <span class="day">${day}</span>
+                </div>
+                <div class="event-details">
+                    <div class="event-title">${item.title}</div>
+                    <div class="event-meta">
+                        <span style="display:flex; align-items:center; gap:3px;">📍 Auditorium</span>
+                        <span style="display:flex; align-items:center; gap:3px;">🕒 ${timeText}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function getMonthShort(m) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[m] || 'EVT';
+}
