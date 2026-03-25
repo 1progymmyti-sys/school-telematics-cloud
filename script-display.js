@@ -380,12 +380,9 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI - WITH Clear Header
+            // Update UI - Dynamic Data ONLY (Header is in HTML now)
             weatherEl.style.width = '100%';
             weatherEl.innerHTML = `
-                <div style="font-size:0.8rem; color:var(--accent-color); font-weight:900; letter-spacing:1px; margin-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:3px;">
-                    🏠 ΜΕΤΕΩΡΟΛΟΓΙΚΟΣ ΣΤΑΘΜΟΣ
-                </div>
                 <div style="display:flex; align-items:center; justify-content:center; gap:1.2rem; margin-bottom:0.8rem;">
                     <div style="font-size:3.5rem; line-height:1;">${weatherInfo.icon}</div>
                     <div style="font-size:3.5rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
@@ -595,12 +592,15 @@ function renderSlide(item) {
         `;
     }
     else if (item.mediaType === 'pdf') {
+        const titleHtml = isDashboard ? `<h1 class="slide-title" style="margin-top:0; margin-bottom:0.5rem;">${item.title}</h1>` : '';
         contentHtml = `
-            <embed
-                src="${item.mediaSource}#view=FitH"
-                type="application/pdf"
-                style="width:100%; height:100%; border:none; display:block;"
-            >
+            ${titleHtml}
+            <div style="flex:1; width:100%; height:100%; border-radius:1rem; overflow:hidden;">
+                <iframe
+                    src="${item.mediaSource}#view=FitH"
+                    style="width:100%; height:100%; border:none; display:block; background:white;"
+                ></iframe>
+            </div>
         `;
     }
     else {
