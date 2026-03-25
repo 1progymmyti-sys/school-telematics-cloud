@@ -515,11 +515,41 @@ function renderSlide(item) {
         const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
         
         if (isDashboard) {
-            contentHtml = `
-                ${dashboardTitleHtml}
-                <img src="${url}" class="slide-image" style="width: auto; max-width: 95%; height: auto; max-height: 58vh; margin: 0 auto;">
-                ${item.content ? `<div style="margin-top: 1rem; color:#94a3b8; font-size:1.3rem; text-align:center; max-width:90%; line-height:1.3;">${item.content}</div>` : ''}
-            `;
+            const layout = item.layout || 'center';
+            if (layout === 'split-left') {
+                contentHtml = `
+                    ${dashboardTitleHtml}
+                    <div style="display:flex; gap:1.8rem; width:100%; flex:1; align-items:center; padding:0 1rem;">
+                        <div style="flex:1.2; display:flex; justify-content:center;">
+                            <img src="${url}" class="slide-image" style="width:100%; height:auto; max-height:60vh; object-fit:cover;">
+                        </div>
+                        <div style="flex:1; font-size:1.6rem; color:#cbd5e1; text-align:left; line-height:1.4;">
+                            ${item.content || ''}
+                        </div>
+                    </div>
+                `;
+            } else if (layout === 'split-right') {
+                contentHtml = `
+                    ${dashboardTitleHtml}
+                    <div style="display:flex; gap:1.8rem; width:100%; flex:1; align-items:center; padding:0 1rem;">
+                        <div style="flex:1; font-size:1.6rem; color:#cbd5e1; text-align:right; line-height:1.4;">
+                            ${item.content || ''}
+                        </div>
+                        <div style="flex:1.2; display:flex; justify-content:center;">
+                            <img src="${url}" class="slide-image" style="width:100%; height:auto; max-height:60vh; object-fit:cover;">
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Fullscreen / Center Default
+                contentHtml = `
+                    ${dashboardTitleHtml}
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; width:100%;">
+                        <img src="${url}" class="slide-image" style="width: auto; max-width: 95%; height: auto; max-height: 55vh; margin: 0 auto;">
+                        ${item.content ? `<div style="margin-top: 1.2rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:90%; line-height:1.4; align-self:center;">${item.content}</div>` : ''}
+                    </div>
+                `;
+            }
         } else {
             contentHtml = `<img src="${url}" class="slide-image">`;
             if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
