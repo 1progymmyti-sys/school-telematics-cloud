@@ -1142,7 +1142,8 @@ body.fullscreen-mode .display-header {
 
 .dashboard-mode .ticker-content span {
     color: white !important;
-    font-size: 1.1rem !important;
+    font-size: 1.35rem !important; /* Slightly larger for easier reading */
+    font-weight: 600;
 }
 
 /* Slide Specific Overrides for Dashboard stage */
@@ -1155,7 +1156,7 @@ body.fullscreen-mode .display-header {
     font-size: clamp(2rem, 5.5vw, 4rem) !important; /* Slightly smaller maximum */
     font-weight: 900 !important;
     color: #fbbf24 !important;
-    text-transform: uppercase !important;
+    text-transform: none !important; /* Preserve user casing */
     letter-spacing: -1.5px !important;
     margin-bottom: 1.2rem !important; /* Reduced margin */
     line-height: 1.1;
