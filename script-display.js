@@ -476,8 +476,9 @@ function startRotation() {
     if (slides.length === 0) return;
     if (currentIndex >= slides.length) currentIndex = 0;
 
-    const item = slides[currentIndex];
+    const item = allAnnouncements[currentIndex];
     renderSlide(item);
+    updateSidebarNext(allAnnouncements, currentIndex);
 
     let duration = (item.duration || 10) * 1000;
     if (item.type === 'alert') duration *= 2; // Double for alert
@@ -796,55 +797,42 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 
 
 
-function updateSidebarUpcoming(list) {
+function updateSidebarNext(list, currentIdx) {
     const upcomingEl = document.getElementById('upcomingEvents');
-    if (!upcomingEl) return;
-
-    const now = new Date();
-    // Filter items that are future events or active events with specific dates
-    const upcoming = list
-        .filter(item => {
-            const end = item.endDate ? new Date(item.endDate) : null;
-            return item.type === 'event' && (!end || end > now);
-        })
-        .sort((a,b) => (a.startDate || '') > (b.startDate || '') ? 1 : -1)
-        .slice(0, 4); // Top 4
-
-    if (upcoming.length === 0) {
-        // FALLBACK: If no explicit 'events' tagged, show the latest 3 regular announcements
-        const latest = list.slice(0, 3);
-        if (latest.length === 0) {
-            upcomingEl.innerHTML = '<div style="color: var(--text-secondary); padding: 1rem; text-align: center; font-size: 0.9rem;">Δεν υπάρχουν νέες ανακοινώσεις</div>';
-            return;
-        }
-        renderEventsToSidebar(latest, upcomingEl);
+    if (!upcomingEl || list.length <= 1) {
+        if (upcomingEl) upcomingEl.innerHTML = '<div style="color:var(--text-secondary); font-size:0.9rem; text-align:center;">Μόνο μία ανακοίνωση διαθέσιμη</div>';
         return;
     }
 
-    renderEventsToSidebar(upcoming, upcomingEl);
-}
+    const nextItems = [];
+    const count = Math.min(list.length - 1, 3); // 3 next items, unless list is smaller
+    for (let i = 1; i <= count; i++) {
+        nextItems.push(list[(currentIdx + i) % list.length]);
+    }
 
-function renderEventsToSidebar(items, container) {
-    container.innerHTML = items.map(item => {
+    upcomingEl.innerHTML = nextItems.map((item, idx) => {
         let day = '??';
-        let month = 'EVT';
-        let timeText = 'All Day';
+        let month = 'ΑΝΑΚ';
+        let iconMarkup = '<span style="opacity:0.6;">📢</span>';
 
         if (item.startDate || item.createdAt) {
             const d = new Date(item.startDate || item.createdAt);
             day = d.getDate();
             month = getMonthShort(d.getMonth());
-            timeText = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            if (item.type === 'event') iconMarkup = '📅';
         }
 
+        const badgeText = idx === 0 ? "ΕΠΟΜΕΝH" : "ΑΚΟΛΟΥΘΕΙ";
+        const badgeColor = idx === 0 ? "#fbbf24" : "rgba(255,255,255,0.4)";
+
         return `
-            <div class="event-item">
-                <div class="event-date-box">
-                    <span class="month">${month}</span>
-                    <span class="day">${day}</span>
-                </div>
-                <div class="event-details">
-                    <div class="event-title">${item.title}</div>
+            <div class="event-item" style="border-left: 2px solid ${badgeColor}; padding-left: 0.8rem; margin-bottom: 0.8rem;">
+                <div class="event-details" style="flex:1;">
+                    <div style="font-size:0.7rem; color:${badgeColor}; font-weight:900; letter-spacing:1px; margin-bottom:2px;">${badgeText}</div>
+                    <div class="event-title" style="font-size:1.15rem; font-weight:700; color:white; line-height:1.2;">${item.title}</div>
+                    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:3px; display:flex; align-items:center; gap:5px;">
+                        ${iconMarkup} <span>${day} ${month}</span>
+                    </div>
                 </div>
             </div>
         `;
