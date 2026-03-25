@@ -953,11 +953,11 @@ body.fullscreen-mode .display-header {
 
 .dashboard-mode .dashboard-wrapper {
     display: grid;
-    grid-template-columns: 1fr 400px;
-    grid-template-rows: 1fr 70px;
+    grid-template-columns: 1fr 360px; /* Narrower sidebar */
+    grid-template-rows: 1fr 50px; /* Thinner ticker */
     height: 100vh;
-    gap: 1rem;
-    padding: 1rem;
+    gap: 0.8rem;
+    padding: 0.8rem;
     background: radial-gradient(circle at top right, #1e293b, #020617);
 }
 
@@ -985,9 +985,9 @@ body.fullscreen-mode .display-header {
     grid-row: 1;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem; /* Larger gap */
-    overflow-y: auto;
-    padding: 0.5rem; /* Extra padding for floating room */
+    gap: 0.8rem; /* Reduced gap to fit all */
+    overflow-y: hidden; /* Try to fit without scroll */
+    padding: 0.2rem;
 }
 
 /* Base floating applied to ALL top-level items in sidebar */
@@ -999,22 +999,22 @@ body.fullscreen-mode .display-header {
 .dashboard-mode .side-card {
     background: var(--sidebar-bg);
     border: 1px solid var(--glass-border);
-    padding: 1.5rem;
+    padding: 0.8rem; /* Shrunk padding */
     backdrop-filter: blur(10px);
 }
 
 /* Clock Card */
 .dashboard-mode .clock-card {
     text-align: center;
-    padding: 1.5rem 1rem;
+    padding: 1rem 0.5rem;
 }
 
 .dashboard-mode #clock {
-    position: static !important; /* Override fixed */
-    font-size: 4rem !important;
+    position: static !important;
+    font-size: 3.2rem !important; /* Smaller */
     font-weight: 800 !important;
     color: var(--accent-color) !important;
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.2rem !important;
     width: auto !important;
     text-align: center !important;
 }
@@ -1048,14 +1048,14 @@ body.fullscreen-mode .display-header {
 }
 
 .dashboard-mode .card-header {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    font-weight: 800;
+    margin-bottom: 0.6rem;
     display: flex;
     justify-content: space-between;
     color: var(--accent-color);
     border-bottom: 1px solid var(--glass-border);
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -1144,17 +1144,17 @@ body.fullscreen-mode .display-header {
 .dashboard-mode #tickerContainer {
     grid-column: 1 / span 2;
     position: static !important;
-    border-radius: 1rem 1rem 0 0;
-    height: 70px !important;
+    border-radius: 1.2rem 1.2rem 0 0;
+    height: 55px !important; /* Thinner */
     margin-top: auto;
-    background: linear-gradient(to right, rgba(15, 23, 42, 0.8), rgba(2, 6, 23, 0.95)) !important;
-    border-top: 1px solid rgba(255,255,255,0.15) !important;
-    backdrop-filter: blur(5px) !important;
+    background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.98)) !important;
+    border-top: 1px solid rgba(255,255,255,0.2) !important;
+    backdrop-filter: blur(8px) !important;
 }
 
 .dashboard-mode .ticker-content span {
     color: white !important;
-    font-size: 1.3rem !important;
+    font-size: 1.1rem !important;
 }
 
 /* Slide Specific Overrides for Dashboard stage */
@@ -1164,12 +1164,14 @@ body.fullscreen-mode .display-header {
 }
 
 .dashboard-mode .slide-title {
-    font-size: 5rem !important;
+    font-size: clamp(2rem, 5.5vw, 4rem) !important; /* Slightly smaller maximum */
     font-weight: 900 !important;
-    color: #fbbf24 !important; /* GOLD-ish like the image */
+    color: #fbbf24 !important;
     text-transform: uppercase !important;
-    letter-spacing: -2px !important;
-    margin-bottom: 2rem !important;
+    letter-spacing: -1.5px !important;
+    margin-bottom: 1.2rem !important; /* Reduced margin */
+    line-height: 1.1;
+    text-align: center;
 }
 
 .dashboard-mode .slide-body {

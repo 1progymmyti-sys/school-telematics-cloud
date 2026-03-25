@@ -809,17 +809,27 @@ function updateSidebarUpcoming(list) {
         .slice(0, 4); // Top 4
 
     if (upcoming.length === 0) {
-        upcomingEl.innerHTML = '<div style="color: var(--text-secondary); padding: 1rem; text-align: center; font-size: 0.9rem;">Δεν υπάρχουν επερχόμενες εκδηλώσεις</div>';
+        // FALLBACK: If no explicit 'events' tagged, show the latest 3 regular announcements
+        const latest = list.slice(0, 3);
+        if (latest.length === 0) {
+            upcomingEl.innerHTML = '<div style="color: var(--text-secondary); padding: 1rem; text-align: center; font-size: 0.9rem;">Δεν υπάρχουν νέες ανακοινώσεις</div>';
+            return;
+        }
+        renderEventsToSidebar(latest, upcomingEl);
         return;
     }
 
-    upcomingEl.innerHTML = upcoming.map(item => {
+    renderEventsToSidebar(upcoming, upcomingEl);
+}
+
+function renderEventsToSidebar(items, container) {
+    container.innerHTML = items.map(item => {
         let day = '??';
         let month = 'EVT';
         let timeText = 'All Day';
 
-        if (item.startDate) {
-            const d = new Date(item.startDate);
+        if (item.startDate || item.createdAt) {
+            const d = new Date(item.startDate || item.createdAt);
             day = d.getDate();
             month = getMonthShort(d.getMonth());
             timeText = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -834,8 +844,8 @@ function updateSidebarUpcoming(list) {
                 <div class="event-details">
                     <div class="event-title">${item.title}</div>
                     <div class="event-meta">
-                        <span style="display:flex; align-items:center; gap:3px;">📍 Auditorium</span>
-                        <span style="display:flex; align-items:center; gap:3px;">🕒 ${timeText}</span>
+                        <span style="display:flex; align-items:center; gap:3px; font-size:0.8rem;">📍 Campus</span>
+                        <span style="display:flex; align-items:center; gap:3px; font-size:0.8rem;">🕒 ${timeText}</span>
                     </div>
                 </div>
             </div>
