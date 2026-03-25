@@ -509,19 +509,22 @@ function renderSlide(item) {
 
     const isDashboard = document.body.classList.contains('dashboard-mode');
     
-    // FORCING Styles via JS to bypass caching issues
+    // NEW: Robust Title logic using DIV + Fixed PX to bypass browser/cache issues
     const dashboardTitleHtml = isDashboard && item.title ? `
-        <h1 class="slide-title" style="
+        <div style="
             color: #fbbf24 !important; 
-            font-size: 1.6rem !important; 
+            font-size: 28px !important; 
             font-weight: 800 !important; 
-            margin-top: 0 !important; 
-            margin-bottom: 0.3rem !important; 
+            margin: 0 !important; 
+            padding: 8px 0 5px 0 !important; 
             text-transform: none !important; 
-            letter-spacing: -1px !important;
-            text-align: center;
-            width: 100%;
-        ">${item.title}</h1>` : '';
+            text-align: center !important;
+            width: 100% !important;
+            line-height: 1.2 !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-family: 'Inter', sans-serif;
+            display: block !important;
+        ">${item.title}</div>` : '';
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
