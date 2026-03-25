@@ -584,90 +584,43 @@ function renderSlide(item) {
             contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
         }
     }
-    else if (item.mediaType === 'website') {
-        const scale = parseFloat(item.mediaScale) || 1.0;
-        let scaleStyle = '';
-
-        // Apply Zoom (Scale) Logic
-        if (scale !== 1.0) {
-            const w = 100 / scale;
-            const h = `calc((100vh - 120px) / ${scale})`; // Adjusted for dashboard height roughly
-            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
-        } else {
-            // Default (Fit container) - handled by CSS class .framed-web
-            // CSS: width: 100%, height: calc(100vh - 190px)
-        }
-
+    else if (item.mediaType === 'website' || item.mediaType === 'pdf') {
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
         
         if (isDashboard) {
+            const isPdf = item.mediaType === 'pdf';
+            const pdfParams = isPdf ? '#view=FitH' : '';
+            
             contentHtml = `
                 ${dashboardTitleHtml}
-                <div style="flex:1; width:100%; border-radius:1rem; overflow:hidden; position:relative;">
-                    <iframe src="${item.mediaSource}" class="slide-iframe" style="${scale !== 1.0 ? `transform: scale(${scale}); transform-origin: 0 0; width: ${100 / scale}%; height: ${100 / scale}%;` : 'width:100%; height:100%;'}" frameborder="0"></iframe>
+                <div style="flex:1; width:100%; height:100%; border-radius:0.8rem; overflow:hidden; position:relative; background:white;">
+                    <iframe src="${item.mediaSource}${pdfParams}" class="slide-iframe" 
+                        style="width:100%; height:100%; border:none; display:block;" frameborder="0"></iframe>
+                    
+                    <!-- Restore QR Code for Dashboard -->
+                    <div style="position:absolute; bottom:15px; right:15px; background:white; padding:8px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:100; display:flex; flex-direction:column; align-items:center;">
+                        <img src="${qrUrl}" style="width:80px; height:80px;" alt="QR">
+                        <div style="font-size:10px; color:#1e293b; font-weight:900; margin-top:2px;">SCAN ME</div>
+                    </div>
                 </div>
             `;
         } else {
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+            const scale = parseFloat(item.mediaScale) || 1.0;
+            let scaleStyle = '';
+            if (scale !== 1.0) {
+                const w = 100 / scale;
+                const h = `calc((100vh - 120px) / ${scale})`;
+                scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
+            }
+
             contentHtml = `
-                <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
+                <iframe src="${item.mediaSource}${item.mediaType === 'pdf' ? '#view=FitH' : ''}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
                 <div class="qr-box">
                     <img src="${qrUrl}" alt="Scan QR">
                     <div class="qr-label">SCAN ME</div>
                 </div>
             `;
         }
-    }
-    else if (item.mediaType === 'countdown') {
-        // Countdown Logic
-        const target = new Date(item.mediaSource).getTime();
-        contentHtml = `
-            <div style="text-align:center;">
-                <h1>${item.title}</h1>
-                <div id="countdown-${item.id}" style="font-size:5rem; font-weight:bold; font-family:monospace;">Loading...</div>
-                <div style="font-size:2rem;">${item.content || ''}</div>
-            </div>
-        `;
-        // Start detailed ticker for this slide
-        startCountdownTicker(item.id, target);
-    }
-    else if (item.mediaType === 'exam_calendar') {
-        contentHtml = `
-            <div style="width:100%; height:88vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                <div style="background:var(--primary); padding:0.5rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:center;">
-                    <h1 style="margin:0; font-size:1.4rem; font-family:sans-serif;">📅 ${item.title || 'Πρόγραμμα'}</h1>
-                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;"></div>
-                </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;">
-                    <div style="grid-column:1/-1; text-align:center; padding:2rem; font-size:1.5rem;">Φόρτωση... ⏳</div>
-                </div>
-            </div>
-        `;
-        setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
-    }
-    else if (item.mediaType === 'google_slides') {
-        contentHtml = `
-            <iframe
-                src="${item.mediaSource}"
-                frameborder="0"
-                allowfullscreen="true"
-                mozallowfullscreen="true"
-                webkitallowfullscreen="true"
-                style="width:100%; height:100%; border:none; display:block; background:#000;"
-            ></iframe>
-        `;
-    }
-    else if (item.mediaType === 'pdf') {
-        const titleHtml = isDashboard ? `<h1 class="slide-title" style="margin-top:0; margin-bottom:0.5rem;">${item.title}</h1>` : '';
-        contentHtml = `
-            ${titleHtml}
-            <div style="flex:1; width:100%; height:100%; border-radius:1rem; overflow:hidden;">
-                <iframe
-                    src="${item.mediaSource}#view=FitH"
-                    style="width:100%; height:100%; border:none; display:block; background:white;"
-                ></iframe>
-            </div>
-        `;
     }
     else {
         // Text / Default
