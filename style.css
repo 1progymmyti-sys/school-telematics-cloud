@@ -764,14 +764,13 @@ body.fullscreen-mode .display-header {
 
 
 .qr-box {
-    position: fixed;
-    bottom: 90px;
-    /* Above Ticker (70px height) */
-    right: 30px;
+    position: absolute;
+    bottom: 0.8rem;
+    right: 0.8rem;
     background: white;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    padding: 0.8rem;
+    border-radius: 0.8rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
     z-index: 20002;
     /* Above Ticker Label */
     display: flex;
@@ -781,8 +780,8 @@ body.fullscreen-mode .display-header {
 }
 
 .qr-box img {
-    width: 120px;
-    height: 120px;
+    width: 75px;
+    height: 75px;
     display: block;
 }
 
@@ -968,7 +967,7 @@ body.fullscreen-mode .display-header {
     background: rgba(15, 23, 42, 0.5);
     border-radius: 1.5rem;
     border: 1px solid var(--glass-border);
-    position: relative;
+    position: relative; /* REQUIRED for absolute QR */
     overflow: hidden;
     display: flex;
     flex-direction: column;

@@ -375,19 +375,19 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI to match reference image
+            // Update UI - Premium Card Style
             weatherEl.innerHTML = `
-                <div style="display:flex; align-items:center; justify-content:space-around; width:100%;">
-                    <div style="font-size:3.5rem;">${weatherInfo.icon}</div>
-                    <div style="text-align:right;">
-                        <div style="font-size:1.1rem; color:var(--text-secondary); text-transform:capitalize;">${weatherInfo.desc}</div>
-                        <div style="font-size:3.4rem; font-weight:800; color:white;">${temp}°C</div>
+                <div style="display:flex; align-items:flex-end; gap:0.5rem; margin-bottom:0.5rem;">
+                    <span style="font-size:4.5rem; line-height:0.8; margin-right:5px;">${weatherInfo.icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:0.85rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">${weatherInfo.desc}</div>
+                        <div style="font-size:4rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
                     </div>
                 </div>
-                <div style="width:100%; font-size:0.9rem; color:#94a3b8; display:flex; gap:0.5rem; justify-content:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem; margin-top:1rem;">
-                    <span style="border-right:1px solid #475569; padding-right:0.5rem;">${name || city}</span>
-                    <span style="border-right:1px solid #475569; padding-right:0.5rem;">Wind: 10 km/h</span>
-                    <span>Humid: 65%</span>
+                <div style="width:100%; font-size:0.75rem; color:#64748b; font-weight:800; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.08); padding-top:0.6rem; text-transform:uppercase; letter-spacing:1px;">
+                    <span>📍 ${name || city}</span>
+                    <span>💨 10km/h</span>
+                    <span>💧 65%</span>
                 </div>
             `;
         }
@@ -513,8 +513,7 @@ function renderSlide(item) {
             contentHtml = `
                 <h1 class="slide-title" style="text-align:center;">${item.title}</h1>
                 <img src="${url}" class="slide-image" style="width: auto; max-width: 90%; height: auto; max-height: 55vh; margin: 0 auto;">
-                ${item.content ? `<div style="margin-top: 1.5rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:80%;">${item.content}</div>` : ''}
-                <div style="margin-top: 1rem; color: var(--accent-color); font-weight:700; font-size:1.1rem; opacity:0.8;">#SchoolName #Updated</div>
+                ${item.content ? `<div style="margin-top: 1.5rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:80%; line-height:1.4;">${item.content}</div>` : ''}
             `;
         } else {
             contentHtml = `<img src="${url}" class="slide-image">`;
