@@ -280,7 +280,11 @@ function updateClock() {
 }
 
 function applySettings(s) {
-    if (s.schoolName) document.getElementById('schoolNameDisplay').innerText = s.schoolName;
+    if (s.schoolName) {
+        // Handle 1o subscript/superscript
+        const formattedName = s.schoolName.replace(/1ο/g, '1<sup>ο</sup>');
+        document.getElementById('schoolNameDisplay').innerHTML = formattedName;
+    }
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
     // Weather
@@ -375,16 +379,13 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI - Premium Card Style
+            // Update UI - NEW 2-ROW Layout
             weatherEl.innerHTML = `
-                <div style="display:flex; align-items:flex-end; gap:0.5rem; margin-bottom:0.5rem;">
-                    <span style="font-size:4.5rem; line-height:0.8; margin-right:5px;">${weatherInfo.icon}</span>
-                    <div style="flex:1;">
-                        <div style="font-size:0.85rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">${weatherInfo.desc}</div>
-                        <div style="font-size:4rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
-                    </div>
+                <div style="display:flex; align-items:center; gap:1.2rem; margin-bottom:0.5rem;">
+                    <div style="font-size:4.5rem; line-height:1;">${weatherInfo.icon}</div>
+                    <div style="font-size:4.5rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
                 </div>
-                <div style="width:100%; font-size:0.75rem; color:#64748b; font-weight:800; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.08); padding-top:0.6rem; text-transform:uppercase; letter-spacing:1px;">
+                <div style="font-size:0.9rem; color:#94a3b8; font-weight:700; width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:0.5rem; display:flex; gap:1.5rem; justify-content:center;">
                     <span>📍 ${name || city}</span>
                     <span>💨 10km/h</span>
                     <span>💧 65%</span>
@@ -590,7 +591,7 @@ function renderSlide(item) {
     else if (item.mediaType === 'pdf') {
         contentHtml = `
             <embed
-                src="${item.mediaSource}"
+                src="${item.mediaSource}#view=FitH"
                 type="application/pdf"
                 style="width:100%; height:100%; border:none; display:block;"
             >
@@ -843,8 +844,7 @@ function renderEventsToSidebar(items, container) {
                 <div class="event-details">
                     <div class="event-title">${item.title}</div>
                     <div class="event-meta">
-                        <span style="display:flex; align-items:center; gap:3px; font-size:0.8rem;">📍 Campus</span>
-                        <span style="display:flex; align-items:center; gap:3px; font-size:0.8rem;">🕒 ${timeText}</span>
+                        ${timeText ? `<span style="display:flex; align-items:center; gap:3px; font-size:0.8rem;">🕒 ${timeText}</span>` : ''}
                     </div>
                 </div>
             </div>
