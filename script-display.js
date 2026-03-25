@@ -159,7 +159,7 @@ window.onload = () => {
         });
 
         slides = getActiveSlides(allAnnouncements);
-        updateSidebarUpcoming(allAnnouncements); // NEW: Update the sidebar list
+        updateSidebarNext(slides, currentIndex); 
 
         if (!emergencyActive && slides.length > 0) {
             // Restart rotation if list changed
@@ -476,9 +476,9 @@ function startRotation() {
     if (slides.length === 0) return;
     if (currentIndex >= slides.length) currentIndex = 0;
 
-    const item = allAnnouncements[currentIndex];
+    const item = slides[currentIndex];
     renderSlide(item);
-    updateSidebarNext(allAnnouncements, currentIndex);
+    updateSidebarNext(slides, currentIndex);
 
     let duration = (item.duration || 10) * 1000;
     if (item.type === 'alert') duration *= 2; // Double for alert
