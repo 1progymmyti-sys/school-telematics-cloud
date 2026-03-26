@@ -341,6 +341,14 @@ select:focus {
     -webkit-text-fill-color: initial;
 }
 
+.ticker-text {
+    display: inline-block;
+    white-space: nowrap;
+    will-change: transform;
+    line-height: 1;
+    /* No animation here, handled by JS */
+}
+
 @keyframes alertBadgePulse {
     from {
         transform: scale(1);
@@ -454,9 +462,12 @@ select:focus {
     flex: 1;
     overflow: hidden;
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.8rem; /* Slightly larger text */
     white-space: nowrap;
     font-weight: 600;
+    display: flex;
+    align-items: center; /* Center horizontally/vertically */
+    height: 100%;
 }
 
 /* Theme Buttons */

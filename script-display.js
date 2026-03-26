@@ -85,8 +85,8 @@ function startTickerAnim(element) {
             tickerOffset = window.innerWidth;
         }
 
-        // Apply transform (maintain Y centering)
-        element.style.transform = `translate3d(${tickerOffset}px, -50%, 0)`;
+        // Apply transform (0 for Y so flex centering from CSS takes over)
+        element.style.transform = `translate3d(${tickerOffset}px, 0, 0)`;
 
         tickerAnimId = requestAnimationFrame(loop);
     }
