@@ -258,7 +258,8 @@ select:focus {
 .slide.media-image,
 .slide.media-live_image,
 .slide.media-website,
-.slide.media-pdf {
+.slide.media-pdf,
+.slide.media-google_slides {
     padding: 0 !important;
     background: #000;
     overflow: hidden;
@@ -710,15 +711,15 @@ body.theme-carnival {
 }
 
 /* 2. Web Iframe starts EXACTLY after Header */
-.framed-web, .slide.media-pdf iframe, .slide.media-pdf embed {
+.framed-web, .slide.media-pdf iframe, .slide.media-pdf embed, .slide.media-google_slides iframe {
     position: fixed !important;
     top: 120px !important;
     left: 0 !important;
     width: 100% !important;
     height: calc(100vh - 180px) !important; /* Adjusted for ticker */
     border: none !important;
-    z-index: 50 !important;
-    background: white !important;
+    z-index: 100 !important;
+    background: black !important;
     transform-origin: 0 0 !important;
 }
 

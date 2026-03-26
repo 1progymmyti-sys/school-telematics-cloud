@@ -458,16 +458,8 @@ function renderSlide(item) {
     let contentHtml = '';
     const layoutClass = `layout-${item.layout || 'fullscreen'}`;
 
-    // Layout Checks for Auto-Fullscreen (Hide Header)
-    // NOTE: Removed 'website' so header stays visible for sites!
-    const isFullMedia = (item.layout === 'fullscreen' || !item.layout) &&
-        ['image', 'live_image', 'youtube'].includes(item.mediaType);
-
-    if (isFullMedia) {
-        document.body.classList.add('fullscreen-mode');
-    } else {
-        document.body.classList.remove('fullscreen-mode');
-    }
+    // Layout Checks (Header Visibility)
+    document.body.classList.remove('fullscreen-mode');
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
