@@ -543,12 +543,17 @@ function renderSlide(item) {
         `;
     }
     else if (item.mediaType === 'pdf') {
+        // PDF Fix: Force fit to viewport
+        const pdfUrl = item.mediaSource.includes('data:application/pdf') 
+            ? item.mediaSource 
+            : item.mediaSource + (item.mediaSource.includes('?') ? '&' : '?') + 'view=Fit';
+            
         contentHtml = `
-            <embed
-                src="${item.mediaSource}"
-                type="application/pdf"
+            <iframe
+                src="${pdfUrl}"
                 style="width:100%; height:100%; border:none; display:block;"
-            >
+                frameborder="0"
+            ></iframe>
         `;
     }
     else {
@@ -569,20 +574,72 @@ function renderSlide(item) {
 
     // Layout Splits
     if (item.layout === 'split-left' || item.layout === 'split-right') {
-        // Re-arrange for split
         if (item.mediaType === 'image') {
             container.innerHTML = `
                 <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
-                    <div style="order:${item.layout === 'split-left' ? 1 : 2}; display:flex; flex-direction:column; justify-content:center;">
-                        <h1>${item.title}</h1>
-                        <div>${item.content}</div>
+                    <div style="order:${item.layout === 'split-left' ? 2 : 1}; display:flex; flex-direction:column; justify-content:center; text-align: left;">
+                        <h1 style="font-size:3.5rem;">${item.title}</h1>
+                        <div style="font-size:1.8rem;">${item.content}</div>
                     </div>
-                    <div style="order:${item.layout === 'split-left' ? 2 : 1};">
+                    <div style="order:${item.layout === 'split-left' ? 1 : 2};">
+                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    </div>
+                </div>
+            `;
+            return;
+        }
+    }
+
+    if (item.layout === 'split-top' || item.layout === 'split-bottom') {
+        if (item.mediaType === 'image') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-rows: 1fr 1fr; gap:1rem; padding:1.5rem;">
+                    <div style="order:${item.layout === 'split-top' ? 1 : 2}; height: 100%; overflow: hidden;">
+                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
+                    </div>
+                    <div style="order:${item.layout === 'split-top' ? 2 : 1}; display:flex; flex-direction:column; justify-content:center; text-align: center;">
+                        <h1 style="font-size:3rem; margin-bottom:0.5rem;">${item.title}</h1>
+                        <div style="font-size:1.6rem;">${item.content}</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+    }
+
+    if (item.layout === 'sidebar-right') {
+        if (item.mediaType === 'image') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 7fr 3fr; gap:1.5rem; padding:1.5rem;">
+                    <div style="display:flex; flex-direction:column; justify-content:center; text-align: left;">
+                        <h1 style="font-size:4rem;">${item.title}</h1>
+                        <div style="font-size:2rem;">${item.content}</div>
+                    </div>
+                    <div>
                         <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
                     </div>
                 </div>
             `;
+            return;
         }
+    }
+
+    if (item.layout === 'no-title') {
+        container.innerHTML = `
+            <div class="slide active type-${item.type} ${layoutClass}" style="padding: 1rem;">
+                <div class="slide-body" style="font-size: 3.5rem; max-width: 95%; width: 100%;">${item.content}</div>
+            </div>
+        `;
+        return;
+    }
+
+    if (item.layout === 'title-only') {
+        container.innerHTML = `
+            <div class="slide active type-${item.type} ${layoutClass}">
+                <h1 style="font-size: 6rem; line-height: 1.1;">${item.title}</h1>
+            </div>
+        `;
+        return;
     }
 }
 

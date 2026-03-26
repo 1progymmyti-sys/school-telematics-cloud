@@ -192,10 +192,8 @@ window.onload = async () => {
 function updateSettingsUI(s) {
     if (document.getElementById('schoolName')) document.getElementById('schoolName').value = s.schoolName || '';
     if (document.getElementById('tickerMessage')) document.getElementById('tickerMessage').value = s.tickerMessage || '';
-    if (document.getElementById('hostUrl')) document.getElementById('hostUrl').value = s.hostUrl || '';
     if (document.getElementById('rssUrl')) document.getElementById('rssUrl').value = s.rssUrl || '';
     if (document.getElementById('weatherCity')) document.getElementById('weatherCity').value = s.weatherCity || '';
-    if (document.getElementById('weatherUrl')) document.getElementById('weatherUrl').value = s.weatherUrl || '';
     if (document.getElementById('adminPin')) document.getElementById('adminPin').value = s.adminPin || '';
 
     if (s.logo) {
@@ -321,8 +319,8 @@ function initForm() {
         Object.values(els).forEach(el => { if (el) el.style.display = 'none'; });
 
         // Show relevant
-        if (['text', 'image', 'youtube', 'countdown', 'schedule'].includes(type)) els.content.style.display = 'block';
-        if (['image', 'pdf', 'schedule'].includes(type)) els.file.style.display = 'block';
+        if (['text', 'image', 'youtube', 'countdown'].includes(type)) els.content.style.display = 'block';
+        if (['image', 'pdf'].includes(type)) els.file.style.display = 'block';
         if (type === 'website') els.url.style.display = 'block';
         if (type === 'live_image') els.live.style.display = 'block';
         if (type === 'youtube') els.youtube.style.display = 'block';
@@ -440,10 +438,8 @@ function initSettingsForm() {
             schoolName: fd.get('schoolName'),
             adminPin: fd.get('adminPin'),
             tickerMessage: fd.get('tickerMessage'),
-            hostUrl: fd.get('hostUrl'),
             rssUrl: fd.get('rssUrl'),
             weatherCity: fd.get('weatherCity'),
-            weatherUrl: fd.get('weatherUrl'),
             logo: logo
         };
 
@@ -595,7 +591,6 @@ window.previewAnnouncement = async () => {
             <div style="font-size:1.2rem;color:#94a3b8;max-width:80%;">${content}</div>`;
 
     } else if (mediaType === 'image' || mediaType === 'pdf') {
-        // ... (existing image/pdf logic)
         if (fileInput?.files?.[0]) {
             const dataUrl = await readFileAsBase64(fileInput.files[0]);
             if (mediaType === 'image') {

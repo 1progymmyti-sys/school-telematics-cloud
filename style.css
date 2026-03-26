@@ -204,7 +204,6 @@ select:focus {
     justify-content: space-between;
     align-items: center;
     height: 120px;
-    /* Increased slightly */
 }
 
 .header-left {
@@ -216,9 +215,7 @@ select:focus {
 /* --- LOGO FIX --- */
 .logo {
     height: 80px;
-    /* Default height */
     width: auto;
-    /* Maintain Aspect Ratio */
     max-width: 200px;
     object-fit: contain;
 }
@@ -232,7 +229,6 @@ select:focus {
     position: relative;
     overflow: hidden;
     background: transparent;
-    /* Allow theme background to show */
 }
 
 .slide {
@@ -250,7 +246,6 @@ select:focus {
     padding: 4rem;
     text-align: center;
     background-color: transparent;
-    /* Let theme shine through */
     z-index: 1;
 }
 
@@ -267,9 +262,7 @@ select:focus {
     padding: 0 !important;
     background: #000;
     overflow: hidden;
-    /* Hide scrollbars from slide container */
     display: flex;
-    /* Ensure centering/stretch */
     align-items: center;
     justify-content: center;
 }
@@ -281,7 +274,7 @@ select:focus {
     display: block;
 }
 
-.slide-iframe {
+.slide-iframe, .slide embed {
     width: 100%;
     height: 100%;
     border: none;
@@ -389,12 +382,9 @@ select:focus {
 /* Clock & Weather Styles - FIXED OVERLAY STRATEGY */
 #clock {
     position: fixed !important;
-    /* Detach from Header completely */
     top: 25px !important;
     right: 40px !important;
-    /* Slightly more inset */
     font-size: 3rem !important;
-    /* Slightly smaller to fit layout */
     font-weight: 700 !important;
     color: #3b82f6 !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
@@ -402,7 +392,6 @@ select:focus {
     text-align: right !important;
     line-height: 1 !important;
     z-index: 20005 !important;
-    /* Above Header */
     animation: none !important;
     transform: none !important;
     width: auto !important;
@@ -414,19 +403,14 @@ select:focus {
 
 .weather-container {
     position: fixed !important;
-    /* Detach from Header completely */
     top: 45px !important;
-    /* Vertically aligned roughly with clock center */
-    /* Vertically aligned roughly with clock center */
     right: 300px !important;
-    /* LARGE GAP to prevent overlap */
     display: flex;
     align-items: center;
     gap: 0.5rem;
     color: var(--text-primary);
     font-size: 1.2rem;
     z-index: 20005 !important;
-    /* Above Header */
     animation: none !important;
     transform: none !important;
 }
@@ -451,7 +435,6 @@ select:focus {
     align-items: center;
     border-top: 2px solid var(--accent-color);
     z-index: 1000;
-    /* Always on top */
     box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
 }
 
@@ -474,16 +457,6 @@ select:focus {
     font-size: 1.5rem;
     white-space: nowrap;
     font-weight: 600;
-}
-
-@keyframes ticker {
-    0% {
-        transform: translateX(0);
-    }
-
-    100% {
-        transform: translateX(-100%);
-    }
 }
 
 /* Theme Buttons */
@@ -595,15 +568,9 @@ body.theme-carnival .ticker-container {
     }
 }
 
-/* Themes use Canvas Particles now.
-   See canvas-particles.js for animation logic. */
+/* Themes use Canvas Particles now. */
 
-
-body.theme-christmas {
-    background-color: #020617;
-}
-
-/* Theme Background Colors (Required for Canvas) */
+/* Theme Background Colors */
 body.theme-christmas {
     background-color: #020617;
 }
@@ -722,58 +689,42 @@ body.theme-carnival {
     left: 0 !important;
     width: 100% !important;
     height: 120px !important;
-    /* Explicit Height */
     background: #0f172a !important;
-    /* Dark Slate Blue */
     display: flex !important;
     z-index: 10000 !important;
-    /* Above everything except Popups */
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
-    /* Animation REMOVED */
     animation: none !important;
-    /* KILL ALL ANIMATIONS */
     transform: none !important;
-    /* STOP SCALING */
     transition: none !important;
-    /* STOP TRANSITIONS */
 }
 
 /* 2. Web Iframe starts EXACTLY after Header */
-.framed-web {
+.framed-web, .slide.media-pdf iframe, .slide.media-pdf embed {
     position: fixed !important;
     top: 120px !important;
-    /* Match Header Height */
     left: 0 !important;
     width: 100% !important;
-    height: calc(100vh - 190px) !important;
-    /* 100vh - 120px(Header) - 70px(Ticker) */
+    height: calc(100vh - 180px) !important; /* Adjusted for ticker */
     border: none !important;
     z-index: 50 !important;
     background: white !important;
-    /* Transformation allowed for Zoom */
     transform-origin: 0 0 !important;
 }
 
-/* Ensure Body doesn't hide it */
 body.fullscreen-mode .display-header {
     display: none !important;
-    /* Hide ONLY if truly fullscreen mode (video/image) */
 }
-
-/* But if iframe exists, force show? Handled by JS logic (removed .fullscreen-mode) */
 
 
 .qr-box {
     position: fixed;
     bottom: 90px;
-    /* Above Ticker (70px height) */
     right: 30px;
     background: white;
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     z-index: 20002;
-    /* Above Ticker Label */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -798,147 +749,8 @@ body.fullscreen-mode .display-header {
 @keyframes popIn {
     0% {
         transform: scale(0) translateY(100px);
-        opacity: 0;
     }
-
     100% {
         transform: scale(1) translateY(0);
-        opacity: 1;
     }
-}
-
-/* --- FINAL TICKER STYLES (BLUE EDITION) --- */
-#tickerContainer {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 70px !important;
-    background: #3b82f6 !important;
-    /* BLUE BACKGROUND */
-    border-top: 4px solid #1e40af !important;
-    /* Darker Blue Border */
-    z-index: 20000 !important;
-    display: flex;
-    /* NO !important here, so JS can hide it */
-    align-items: center !important;
-    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
-}
-
-.ticker-label {
-    background: #1e40af !important;
-    /* Darker Blue Label */
-    color: #fff !important;
-    font-weight: 800 !important;
-    font-size: 1.4rem !important;
-    padding: 0 25px !important;
-    height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    white-space: nowrap !important;
-    z-index: 20001;
-    box-shadow: 5px 0 10px rgba(0, 0, 0, 0.1);
-}
-
-#tickerContent {
-    flex: 1 !important;
-    height: 100% !important;
-    overflow: hidden !important;
-    position: relative !important;
-    background: transparent !important;
-    /* Transparent to show blue */
-}
-
-/* The scanning text element */
-.ticker-text {
-    position: absolute !important;
-    top: 50% !important;
-    transform: translateY(-50%);
-    /* Handled by JS mostly, but initial state ok */
-    white-space: nowrap !important;
-    color: #ffffff !important;
-    font-size: 1.6rem !important;
-    /* Slightly larger for clarity */
-    font-weight: 700 !important;
-    /* Bold like the image */
-    font-family: 'Arial', 'Helvetica', sans-serif !important;
-    /* Classic Ticker Font */
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-    /* Subtle shadow for depth */
-    /* Animation removed - handled by JS to prevent resets */
-    will-change: transform;
-}
-
-
-@keyframes ticker-slide {
-    0% {
-        left: 100vw;
-    }
-
-    100% {
-        left: -150%;
-    }
-
-    /* Move well past the screen */
-}
-
-/* Modern Editor Toolbar */
-.editor-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 0.5rem 0.5rem 0 0;
-    margin-bottom: -1px;
-}
-
-.editor-toolbar select, 
-.editor-toolbar button {
-    width: auto !important;
-    height: 36px;
-    padding: 0 0.75rem;
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid #334155 !important;
-    color: white !important;
-    cursor: pointer;
-    border-radius: 0.4rem;
-    transition: var(--transition);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-.editor-toolbar button:hover {
-    background: rgba(255,255,255,0.1) !important;
-    border-color: #475569 !important;
-}
-
-.editor-toolbar .separator {
-    width: 1px;
-    height: 24px;
-    background: #475569;
-    margin: 0 0.25rem;
-}
-
-.editor-content {
-    min-height: 250px;
-    padding: 1.25rem;
-    background: #0f172a !important;
-    border: 1px solid #334155 !important;
-    border-radius: 0 0 0.5rem 0.5rem;
-    color: white;
-    overflow-y: auto;
-    font-size: 1.1rem;
-    line-height: 1.6;
-}
-
-.editor-content:focus {
-    outline: none;
-    border-color: var(--accent-color) !important;
 }
