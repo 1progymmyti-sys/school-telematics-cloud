@@ -5,88 +5,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - FIXED</title>
-    <link rel="stylesheet" href="style.css?v=DASH_V3">
+    <link rel="stylesheet" href="style.css?v=UNDER_CLOCK">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
-<body class="dashboard-mode" style="overflow: hidden;">
-
+<body style="overflow: hidden;">
     <canvas id="themeCanvas"
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></canvas>
-    
-    <div class="dashboard-wrapper">
-        <!-- Dashboard Main Stage -->
-        <main id="slideContainer" class="main-stage">
-            <div class="loading">Σύνδεση στο Cloud...</div>
-        </main>
-
-        <!-- Dashboard Sidebar -->
-        <aside class="sidebar">
-            <div style="text-align: center; padding: 1rem 0;">
-                <img id="schoolLogo" src="logo.png" alt="Logo" style="height: 80px; max-width: 90%; object-fit: contain;">
-                <div id="schoolNameDisplay" style="font-weight: 800; font-size: 1.2rem; color: var(--accent-color); margin-top: 0.5rem; text-transform: uppercase;">ΣΧΟΛΕΙΟ</div>
-            </div>
-
-            <!-- Clock & Date -->
-            <div class="side-card clock-card">
-                <div id="clock">00:00</div>
-                <div id="date">ΦΟΡΤΩΣΗ...</div>
-            </div>
-
-            <!-- Weather -->
-            <div class="side-card weather-card">
-                <div class="card-header" style="color: #60a5fa; font-weight: 900; letter-spacing: 1px; margin-bottom: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
-                    🏠 ΜΕΤΕΩΡΟΛΟΓΙΚΟΣ ΣΤΑΘΜΟΣ
+    <div class="display-container">
+        <header class="display-header">
+            <div class="header-left">
+                <img id="schoolLogo" src="logo.png" alt="School Logo" class="logo">
+                <div>
+                    <div id="schoolNameDisplay" style="font-weight: 700; font-size: 1.5rem;">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
+                    <div id="date" style="color: var(--text-secondary); font-size: 1rem; text-transform: uppercase;">
+                    </div>
+                    <div id="schoolScheduleStatus"
+                        style="color: #ff4545; font-weight: 800; font-size: 1.2rem; margin-top: 4px; text-shadow: 0 0 10px rgba(255, 69, 69, 0.3);">
+                    </div>
                 </div>
-                <div id="weather">
+            </div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div id="weather"
+                    style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); font-size: 1.2rem;">
                     <!-- Weather injected via JS -->
                 </div>
+                <div id="clock" class="clock">00:00</div>
             </div>
-
-            <!-- Status (School Schedule) -->
-            <div class="side-card status-card">
-                <div class="card-header">
-                    <span>ΚΑΤΑΣΤΑΣΗ ΣΧΟΛΕΙΟΥ</span>
-                    <span>🔔</span>
-                </div>
-                <div id="schoolScheduleStatus">Φόρτωση προγράμματος...</div>
-            </div>
-
-            <!-- Upcoming Events -->
-            <div class="side-card upcoming-card">
-                <div class="card-header" style="border-bottom: 2px solid var(--accent-color); padding-bottom: 0.8rem; margin-bottom: 1.5rem;">
-                    <span style="display: flex; align-items: center; gap: 0.8rem;">📅 ΕΠΟΜΕΝΕΣ ΑΝΑΚΟΙΝΩΣΕΙΣ</span>
-                </div>
-                <div id="upcomingEvents">
-                    <!-- Event items will be injected here with date blocks -->
-                </div>
-            </div>
-        </aside>
+        </header>
 
         <!-- Banner Container -->
         <div id="bannerContainer" class="banner-container" style="display: none;"></div>
 
-        <!-- Ticker -->
+        <main id="slideContainer" class="display-content">
+            <!-- Slides will be injected here -->
+            <div class="loading">Σύνδεση στο Cloud (RESTORE)...</div>
+        </main>
+
         <div id="tickerContainer" class="ticker-container" style="display: none;">
-            <div class="ticker-label" style="background: transparent; color: #fbbf24; font-weight: 900; font-size: 1.1rem; padding-right: 0.5rem;">SCHOOL NEWS TICKER:</div>
-            <div id="tickerContent" class="ticker-content" style="color: white; font-weight: 500;"></div>
+            <div class="ticker-label">ΔΙΕΥΘΥΝΣΗ</div>
+            <div id="tickerContent" class="ticker-content"></div>
         </div>
     </div>
 
     <!-- MAIN SCRIPT CLOUD VERSION (MODULE) -->
-    <script type="module" src="script-display.js?v=dashboard_v1"></script>
+    <script type="module" src="script-display.js?v=V3_WEEKLY_FINAL"></script>
 
     <style>
-        /* Essential Overrides only */
+        /* Fix for banner - full width */
+        .banner-container {
+            width: 100% !important;
+            display: block !important;
+        }
+
+        .banner-image {
+            width: 100% !important;
+            max-height: 150px !important;
+            display: block !important;
+        }
+
+        /* Fix for oversized images and iframes in slides - Use full container height */
+        .slide-image {
+            max-width: 100% !important;
+            height: 100% !important;
+            width: auto !important;
+            object-fit: contain !important;
+        }
+
+        .slide-iframe {
+            width: 100%;
+            height: 100%;
+        }
+
         embed {
             width: 100% !important;
             height: 100% !important;
         }
     </style>
+    <style>
+        /* FORCED OVERRIDES TO BYPASS CACHE */
+        #clock {
+            position: fixed !important;
+            top: 25px !important;
+            right: 30px !important;
+            font-family: 'Arial', sans-serif !important;
+            font-size: 2.8rem !important;
+            /* Slightly smaller */
+            font-weight: 700 !important;
+            color: #3b82f6 !important;
+            z-index: 20005 !important;
+            animation: none !important;
+            background: transparent !important;
+            width: auto !important;
+            height: auto !important;
+            line-height: 1 !important;
+            text-align: right !important;
+        }
 
+        #weather {
+            position: fixed !important;
+            top: 85px !important;
+            right: 40px !important;
+            /* MOVED UNDER CLOCK */
+            z-index: 20005 !important;
+            color: #fff !important;
+            font-size: 1.2rem !important;
+            /* Slightly smaller */
+            animation: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            width: auto !important;
+            background: transparent !important;
+        }
 
+        /* Hide original header content partially if needed, but keep logo */
+    </style>
+    <script>
+        let lastTimeStr = "";
+
+        function updateClockDisplay() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+            const dEl = document.getElementById('date');
+
+            // Date check to avoid flicker
+            if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
+
+            let h = now.getHours();
+            const m = now.getMinutes();
+            const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
+            h = h % 12;
+            h = h ? h : 12;
+            const mStr = m < 10 ? '0' + m : m;
+
+            const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+
+            // STRICT CHECK TO STOP PULSE
+            if (lastTimeStr !== newHtml) {
+                const cEl = document.getElementById('clock');
+                if (cEl) cEl.innerHTML = newHtml;
+                lastTimeStr = newHtml;
+            }
+        }
+        setInterval(updateClockDisplay, 1000); // Check every second
+        updateClockDisplay();
+    </script>
 
     <!-- FullScreen Overlay (Large Screen Only) -->
     <div id="fullscreenOverlay" style="

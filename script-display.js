@@ -159,7 +159,6 @@ window.onload = () => {
         });
 
         slides = getActiveSlides(allAnnouncements);
-        updateSidebarNext(slides, currentIndex); 
 
         if (!emergencyActive && slides.length > 0) {
             // Restart rotation if list changed
@@ -254,38 +253,13 @@ function updateScheduleStatus() {
 
 function updateClock() {
     const now = new Date();
-    const isDashboard = document.body.classList.contains('dashboard-mode');
-
-    if (isDashboard) {
-        // Dashboard Format (09:45 AM)
-        let h = now.getHours();
-        const m = now.getMinutes().toString().padStart(2, '0');
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12;
-        h = h ? h : 12; // 0 should be 12
-        const hStr = h.toString().padStart(2, '0');
-        
-        document.getElementById('clock').innerHTML = `${hStr}:${m}<span style="font-size:0.4em; margin-left:10px; opacity:0.8; vertical-align:middle; text-transform:uppercase;">${ampm}</span>`;
-        
-        // Full Date: Monday, September 9, 2024
-        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const dateText = now.toLocaleDateString('el-GR', opts);
-        document.getElementById('date').innerText = dateText;
-    } else {
-        // Legacy format (24h)
-        document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
-    }
-    
+    document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
     updateScheduleStatus();
 }
 
 function applySettings(s) {
-    if (s.schoolName) {
-        // Handle 1o subscript/superscript
-        const formattedName = s.schoolName.replace(/1ο/g, '1<sup>ο</sup>');
-        document.getElementById('schoolNameDisplay').innerHTML = formattedName;
-    }
+    if (s.schoolName) document.getElementById('schoolNameDisplay').innerText = s.schoolName;
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
     // Weather
@@ -380,19 +354,9 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI - Dynamic Data ONLY (Header is in HTML now)
-            weatherEl.style.width = '100%';
-            weatherEl.innerHTML = `
-                <div style="display:flex; align-items:center; justify-content:center; gap:1.2rem; margin-bottom:0.8rem;">
-                    <div style="font-size:3.5rem; line-height:1;">${weatherInfo.icon}</div>
-                    <div style="font-size:3.5rem; font-weight:900; color:white; line-height:1;">${temp}°C</div>
-                </div>
-                <div style="font-size:0.8rem; color:#94a3b8; font-weight:800; width:100%; border-top:1px solid rgba(255,255,255,0.08); padding-top:0.6rem; display:flex; justify-content:space-between; text-transform:uppercase;">
-                    <span>📍 ${name || city}</span>
-                    <span>💨 10km/h</span>
-                    <span>💧 65%</span>
-                </div>
-            `;
+            // Update UI
+            // Format: Icon | City | Temp | Description
+            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.6em; opacity:0.8; margin-left:5px;">(${weatherInfo.desc})</span>`;
         }
     } catch (error) {
         console.error("Weather Error:", error);
@@ -415,6 +379,7 @@ function getWeatherDescription(code) {
         55: { desc: "Ψιχάλες", icon: "🌦️" },
         61: { desc: "Βροχή", icon: "🌧️" },
         63: { desc: "Βροχή", icon: "🌧️" },
+        62: { desc: "Βροχή", icon: "🌧️" },
         65: { desc: "Ισχυρή Βροχή", icon: "🌧️" },
         71: { desc: "Χιόνι", icon: "🌨️" },
         73: { desc: "Χιόνι", icon: "🌨️" },
@@ -478,7 +443,6 @@ function startRotation() {
 
     const item = slides[currentIndex];
     renderSlide(item);
-    updateSidebarNext(slides, currentIndex);
 
     let duration = (item.duration || 10) * 1000;
     if (item.type === 'alert') duration *= 2; // Double for alert
@@ -491,127 +455,161 @@ function startRotation() {
 
 function renderSlide(item) {
     const container = document.getElementById('slideContainer');
-    const isDashboard = document.body.classList.contains('dashboard-mode');
     let contentHtml = '';
-    const layoutClass = `layout-${item.layout || 'center'}`;
+    const layoutClass = `layout-${item.layout || 'fullscreen'}`;
 
-    // Standard Gold Title for Dashboard
-    const dashboardTitleHtml = isDashboard && item.title ? `
-        <div style="
-            color: #fbbf24 !important; 
-            font-size: 24px !important; 
-            font-weight: 800 !important; 
-            margin: 0 !important; 
-            padding: 8px 0 5px 0 !important; 
-            text-transform: none !important; 
-            text-align: center !important;
-            width: 100% !important;
-            line-height: 1.2 !important;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            font-family: 'Inter', sans-serif;
-            display: block !important;
-        ">${item.title}</div>` : '';
+    // Layout Checks for Auto-Fullscreen (Hide Header)
+    // NOTE: Removed 'website' so header stays visible for sites!
+    const isFullMedia = (item.layout === 'fullscreen' || !item.layout) &&
+        ['image', 'live_image', 'youtube'].includes(item.mediaType);
+
+    if (isFullMedia) {
+        document.body.classList.add('fullscreen-mode');
+    } else {
+        document.body.classList.remove('fullscreen-mode');
+    }
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
         const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
-        if (isDashboard) {
-            const layout = item.layout || 'center';
-            if (layout === 'split-left' || layout === 'split-right') {
-                contentHtml = `
-                    ${dashboardTitleHtml}
-                    <div style="display:flex; flex:1; width:100%; gap:2rem; align-items:center;">
-                        <div style="flex:1.3; display:flex; justify-content:center; order:${layout === 'split-left' ? 1 : 2};">
-                            <img src="${url}" class="slide-image" style="width:100%; height:auto; max-height:65vh; border-radius:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.4);">
-                        </div>
-                        <div style="flex:1; font-size:1.6rem; color:#cbd5e1; text-align:${layout === 'split-left' ? 'left' : 'right'}; line-height:1.4; order:${layout === 'split-left' ? 2 : 1};">
-                            ${item.content || ''}
-                        </div>
-                    </div>
-                `;
-            } else {
-                contentHtml = `
-                    ${dashboardTitleHtml}
-                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; overflow:hidden;">
-                        <img src="${url}" class="slide-image" style="width: auto; max-width: 95%; height: auto; max-height: 55vh; margin: 0 auto; border-radius:1rem; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
-                        ${item.content ? `<div style="margin-top: 0.8rem; color:#94a3b8; font-size:1.4rem; text-align:center; max-width:90%; line-height:1.3;">${item.content}</div>` : ''}
-                    </div>
-                `;
-            }
-        } else {
-            contentHtml = `<img src="${url}" class="slide-image">`;
-            if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
-        }
+        contentHtml = `<img src="${url}" class="slide-image">`;
+        if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
     }
     else if (item.mediaType === 'youtube') {
         const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
-        if (isDashboard) {
-            contentHtml = `${dashboardTitleHtml}<div style="flex:1; width:100%; border-radius:1rem; overflow:hidden;"><iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe></div>`;
-        } else {
-            contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
-        }
+        contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
     }
-    else if (item.mediaType === 'website' || item.mediaType === 'pdf') {
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
-        if (isDashboard) {
-            const isPdf = item.mediaType === 'pdf';
-            contentHtml = `
-                ${dashboardTitleHtml}
-                <div style="flex:1; width:100%; height:100%; border-radius:0.8rem; overflow:hidden; position:relative; background:white;">
-                    <iframe src="${item.mediaSource}${isPdf ? '#view=FitH' : ''}" class="slide-iframe" style="width:100%; height:100%; border:none; display:block;" frameborder="0"></iframe>
-                    ${!isPdf ? `<div style="position:absolute; bottom:15px; right:15px; background:white; padding:8px; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.5); z-index:100; display:flex; flex-direction:column; align-items:center;"><img src="${qrUrl}" style="width:80px; height:80px;"><div style="font-size:10px; color:#1e293b; font-weight:900; margin-top:2px;">SCAN ME</div></div>` : ''}
-                </div>
-            `;
+    else if (item.mediaType === 'website') {
+        const scale = parseFloat(item.mediaScale) || 1.0;
+        let scaleStyle = '';
+
+        // Apply Zoom (Scale) Logic
+        if (scale !== 1.0) {
+            const w = 100 / scale;
+            const h = `calc((100vh - 190px) / ${scale})`;
+            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
         } else {
-            contentHtml = `<iframe src="${item.mediaSource}${item.mediaType === 'pdf' ? '#view=FitH' : ''}" class="slide-iframe framed-web" frameborder="0"></iframe><div class="qr-box"><img src="${qrUrl}"><div class="qr-label">SCAN ME</div></div>`;
+            // Default (Fit container) - handled by CSS class .framed-web
+            // CSS: width: 100%, height: calc(100vh - 190px)
         }
+
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+        // Add style attribute to iframe if zoomed
+        contentHtml = `
+            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
+            <div class="qr-box">
+                <img src="${qrUrl}" alt="Scan QR">
+                <div class="qr-label">SCAN ME</div>
+            </div>
+        `;
     }
     else if (item.mediaType === 'countdown') {
+        // Countdown Logic
         const target = new Date(item.mediaSource).getTime();
-        contentHtml = isDashboard ? `${dashboardTitleHtml}<div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center;"><div id="countdown-${item.id}" style="font-size:4rem; font-weight:bold; color:white;">Loading...</div><div style="font-size:1.5rem; color:#94a3b8;">${item.content || ''}</div></div>` : `<h1>${item.title}</h1><div id="countdown-${item.id}" style="font-size:5rem;">Loading...</div>`;
+        contentHtml = `
+            <div style="text-align:center;">
+                <h1>${item.title}</h1>
+                <div id="countdown-${item.id}" style="font-size:5rem; font-weight:bold; font-family:monospace;">Loading...</div>
+                <div style="font-size:2rem;">${item.content || ''}</div>
+            </div>
+        `;
+        // Start detailed ticker for this slide
         startCountdownTicker(item.id, target);
     }
     else if (item.mediaType === 'exam_calendar') {
         contentHtml = `
-            <div style="width:100%; height:${isDashboard ? '100%' : '88vh'}; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden;">
+            <div style="width:100%; height:88vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
                 <div style="background:var(--primary); padding:0.5rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:center;">
-                    <h1 style="margin:0; font-size:1.4rem;">📅 ${item.title || 'Πρόγραμμα'}</h1>
-                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold;"></div>
+                    <h1 style="margin:0; font-size:1.4rem; font-family:sans-serif;">📅 ${item.title || 'Πρόγραμμα'}</h1>
+                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;"></div>
                 </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;"></div>
+                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;">
+                    <div style="grid-column:1/-1; text-align:center; padding:2rem; font-size:1.5rem;">Φόρτωση... ⏳</div>
+                </div>
             </div>
         `;
         setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
     }
     else if (item.mediaType === 'google_slides') {
-        contentHtml = `<iframe src="${item.mediaSource}" frameborder="0" allowfullscreen="true" style="width:100%; height:100%; background:#000;"></iframe>`;
+        contentHtml = `
+            <iframe
+                src="${item.mediaSource}"
+                frameborder="0"
+                allowfullscreen="true"
+                mozallowfullscreen="true"
+                webkitallowfullscreen="true"
+                style="width:100%; height:100%; border:none; display:block; background:#000;"
+            ></iframe>
+        `;
+    }
+    else if (item.mediaType === 'pdf') {
+        contentHtml = `
+            <embed
+                src="${item.mediaSource}"
+                type="application/pdf"
+                style="width:100%; height:100%; border:none; display:block;"
+            >
+        `;
     }
     else {
-        contentHtml = `<div class="slide-type">${getTypeLabel(item.type)}</div><h1 class="slide-title">${item.title}</h1><div class="slide-body">${item.content}</div>`;
+        // Text / Default
+        contentHtml = `
+            <div class="slide-type">${getTypeLabel(item.type)}</div>
+            <h1 class="slide-title">${item.title}</h1>
+            <div class="slide-body">${item.content}</div>
+        `;
     }
 
-    container.innerHTML = `<div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">${contentHtml}</div>`;
+    // Wrap in Slide Div
+    container.innerHTML = `
+        <div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">
+            ${contentHtml}
+        </div>
+    `;
+
+    // Layout Splits
+    if (item.layout === 'split-left' || item.layout === 'split-right') {
+        // Re-arrange for split
+        if (item.mediaType === 'image') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
+                    <div style="order:${item.layout === 'split-left' ? 1 : 2}; display:flex; flex-direction:column; justify-content:center;">
+                        <h1>${item.title}</h1>
+                        <div>${item.content}</div>
+                    </div>
+                    <div style="order:${item.layout === 'split-left' ? 2 : 1};">
+                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
+                    </div>
+                </div>
+            `;
+        }
+    }
 }
 
 function startCountdownTicker(id, targetTime) {
     const update = () => {
         const el = document.getElementById(`countdown-${id}`);
-        if (!el) return;
+        if (!el) return; // Slide gone
+
         const now = new Date().getTime();
         const dist = targetTime - now;
+
         if (dist < 0) {
             el.innerText = "ΕΛΗΞΕ";
             return;
         }
+
         const days = Math.floor(dist / (1000 * 60 * 60 * 24));
         const hours = Math.floor((dist % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((dist % (1000 * 60)) / 1000);
+
         el.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
         requestAnimationFrame(update);
     };
     update();
 }
+
 
 function getTypeLabel(type) {
     const labels = { 'info': 'ENHΜΕΡΩΣΗ', 'alert': 'ΠΡΟΣΟΧΗ', 'event': 'ΕΚΔΗΛΩΣΗ' };
@@ -622,26 +620,37 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
     const gridEl = document.getElementById(`exam-grid-${slideId}`);
     const monthEl = document.getElementById(`exam-month-${slideId}`);
     if (!gridEl || !apiUrl) return;
+
     try {
         const fetchUrl = apiUrl + (apiUrl.includes('?') ? '&api=true' : '?api=true') + '&nocache=' + new Date().getTime();
         const res = await fetch(fetchUrl);
         const data = await res.json();
+        
         if (!data || !data.exams) {
             gridEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Σφάλμα Μορφής Δεδομένων</div>';
             return;
         }
+
         const now = new Date();
-        const currentDay = now.getDay() || 7;
+
+        // Find the Monday of the current week
+        const currentDay = now.getDay() || 7; // 1-7
         const monday = new Date(now);
         monday.setDate(now.getDate() - (currentDay - 1));
+
         const months = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
+
+        // Build ordered day slots: future/today first, then past days (with +7) at the end
         let html = '';
         const daysOfWeekShort = ['ΔΕΥ', 'ΤΡΙ', 'ΤΕΤ', 'ΠΕΜ', 'ΠΑΡ'];
+
         const classMap = {};
         if (data.classes) data.classes.forEach(c => classMap[c.id] = c.name);
+
         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const currentHour = now.getHours();
-        const currentDayIndex = (now.getDay() || 7) - 1;
+        const currentDayIndex = (now.getDay() || 7) - 1; // 0-indexed Mon-Sun
+
         const futureDays = [], pastDays = [];
         for (let i = 0; i < 5; i++) {
             const date = new Date(monday);
@@ -655,21 +664,31 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             }
         }
         const orderedSlots = [...futureDays, ...pastDays];
+
+        // Dynamic header row matching column order
         orderedSlots.forEach(slot => {
             html += `<div style="background:#f1f5f9; color:#1e293b; text-align:center; padding:0.5rem 0.2rem; font-weight:900; font-size:1.2rem; border-bottom:2px solid #cbd5e1;">${daysOfWeekShort[slot.dayIndex]}</div>`;
         });
+
+        // Update date-range label to reflect actual displayed dates
         const firstDate = orderedSlots[0]?.date;
-        const lastDate = orderedSlots[orderedSlots.length - 1]?.date;
+        const lastDate  = orderedSlots[orderedSlots.length - 1]?.date;
         if (monthEl && firstDate && lastDate) {
             const sameMonth = firstDate.getMonth() === lastDate.getMonth();
-            monthEl.innerText = sameMonth ? `Εβδομάδα: ${firstDate.getDate()} - ${lastDate.getDate()} ${months[lastDate.getMonth()]} ${lastDate.getFullYear()}` : `Εβδομάδα: ${firstDate.getDate()} ${months[firstDate.getMonth()]} - ${lastDate.getDate()} ${months[lastDate.getMonth()]} ${lastDate.getFullYear()}`;
+            monthEl.innerText = sameMonth
+                ? `Εβδομάδα: ${firstDate.getDate()} - ${lastDate.getDate()} ${months[lastDate.getMonth()]} ${lastDate.getFullYear()}`
+                : `Εβδομάδα: ${firstDate.getDate()} ${months[firstDate.getMonth()]} - ${lastDate.getDate()} ${months[lastDate.getMonth()]} ${lastDate.getFullYear()}`;
         }
+
+        // 1. Calculate Max Exams across displayed dates
         let maxDailyItems = 0;
         orderedSlots.forEach(slot => {
             const iso = `${slot.date.getFullYear()}-${String(slot.date.getMonth() + 1).padStart(2, '0')}-${String(slot.date.getDate()).padStart(2, '0')}`;
             const count = data.exams.filter(e => e.date === iso).length + (data.schoolSettings?.lockedPeriods || []).filter(lp => iso >= lp.start && iso <= lp.end).length;
             if (count > maxDailyItems) maxDailyItems = count;
         });
+
+        // 2. Define scaling factors
         let scale = 1.0;
         if (maxDailyItems > 5) scale = 0.82;
         if (maxDailyItems > 8) scale = 0.68;
@@ -679,14 +698,19 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         const s = (val, min = 0.45) => Math.max(min, val * scale).toFixed(2) + 'rem';
         const sp = (val) => (val * scale).toFixed(2) + 'rem';
 
+        // Render columns in new order
         for (const slot of orderedSlots) {
             const date = slot.date;
+
             const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             const isToday = (isoDate === todayStr);
+
             const dailyExams = data.exams.filter(e => e.date === isoDate);
             const dailyLocks = (data.schoolSettings?.lockedPeriods || []).filter(lp => isoDate >= lp.start && isoDate <= lp.end);
+
             let bg = isToday ? '#ebf8ff' : 'white';
             if (dailyLocks.length > 0) bg = '#fff5f5';
+
             html += `<div style="background:${bg}; padding:${sp(0.4)}; display:flex; flex-direction:column; gap:${sp(0.3)}; min-height:60vh; border-right:1px solid #e2e8f0; overflow:hidden;">
                 <div style="font-size:${s(1.2, 0.85)}; font-weight:900; color:${isToday ? '#2b6cb0' : '#64748b'}; border-bottom:2px solid ${isToday ? '#bee3f8' : '#f1f5f9'}; padding-bottom:${sp(0.2)}; margin-bottom:${sp(0.1)}; display:flex; justify-content:space-between; align-items:center;">
                     <span style="display:flex; flex-direction:column; line-height:1;">
@@ -695,9 +719,11 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
                     </span>
                     ${isToday ? `<span style="font-size:${s(0.65, 0.45)}; background:#3182ce; color:white; padding:1px 4px; border-radius:5px;">ΣΗΜΕΡΑ</span>` : ''}
                 </div>`;
+            
             dailyLocks.forEach(lp => {
                html += `<div style="background:#fed7d7; color:#c53030; padding:${sp(0.4)}; border-radius:0.3rem; font-size:${s(0.85, 0.58)}; font-weight:bold; border:1px solid #feb2b2; line-height:1.1;">🔒 ${lp.reason}</div>`;
             });
+            
             dailyExams.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(e => {
                const cName = classMap[e.classId] || 'Τμήμα';
                html += `<div style="background:white; border-left:3px solid #3182ce; padding:${sp(0.3)}; border-radius:0.2rem; box-shadow:0 1px 2px rgba(0,0,0,0.03); border-top:1px solid #f1f5f9; border-right:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; position:relative;">
@@ -708,41 +734,14 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
                    </div>
                </div>`;
             });
+
             html += `</div>`;
         }
+        
         gridEl.innerHTML = html;
+
     } catch(err) {
         console.error("Exam Calendar Error:", err);
         gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Αποτυχία Απεικόνισης Δεδομένων 🤔<br><small>${err.message}</small></div>`;
     }
-}
-
-function updateSidebarNext(list, currentIdx) {
-    const upcomingEl = document.getElementById('upcomingEvents');
-    if (!upcomingEl || list.length <= 1) {
-        if (upcomingEl) upcomingEl.innerHTML = '<div style="color:var(--text-secondary); font-size:0.9rem; text-align:center;">Μόνο μία ανακοίνωση διαθέσιμη</div>';
-        return;
-    }
-    const nextItems = [];
-    const count = Math.min(list.length - 1, 3);
-    for (let i = 1; i <= count; i++) {
-        nextItems.push(list[(currentIdx + i) % list.length]);
-    }
-    upcomingEl.innerHTML = nextItems.map((item, idx) => {
-        let day = '??', month = 'ΑΝΑΚ', iconMarkup = '<span style="opacity:0.6;">📢</span>';
-        if (item.startDate || item.createdAt) {
-            const d = new Date(item.startDate || item.createdAt);
-            day = d.getDate();
-            month = getMonthShort(d.getMonth());
-            if (item.type === 'event') iconMarkup = '📅';
-        }
-        const badgeText = idx === 0 ? "ΕΠΟΜΕΝH" : "ΑΚΟΛΟΥΘΕΙ";
-        const badgeColor = idx === 0 ? "#fbbf24" : "rgba(255,255,255,0.4)";
-        return `<div class="event-item" style="border-left:2px solid ${badgeColor}; padding-left:0.8rem; margin-bottom:0.8rem;"><div class="event-details" style="flex:1;"><div style="font-size:0.7rem; color:${badgeColor}; font-weight:900; letter-spacing:1px; margin-bottom:2px;">${badgeText}</div><div class="event-title" style="font-size:1.15rem; font-weight:700; color:white; line-height:1.2;">${item.title}</div><div style="font-size:0.8rem; color:var(--text-secondary); margin-top:3px; display:flex; align-items:center; gap:5px;">${iconMarkup} <span>${day} ${month}</span></div></div></div>`;
-    }).join("");
-}
-
-function getMonthShort(m) {
-    const months = ['ΙΑΝ', 'ΦΕΒ', 'ΜΑΡ', 'ΑΠΡ', 'ΜΑΪ', 'ΙΟΥΝ', 'ΙΟΥΛ', 'ΑΥΓ', 'ΣΕΠ', 'ΟΚΤ', 'ΝΟΕ', 'ΔΕΚ'];
-    return months[m] || 'ΕΚΔ';
 }
