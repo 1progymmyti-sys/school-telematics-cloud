@@ -19,9 +19,9 @@ body.fullscreen-mode .display-container {
     --glass-border: rgba(255, 255, 255, 0.1);
     --text-primary: #ffffff;
     --text-secondary: #94a3b8;
-    --accent-color: #ef4444; /* Ruby Red by default */
-    --accent-glow: rgba(239, 68, 68, 0.4);
-    --accent-hover: #dc2626;
+    --accent-color: #3b82f6; /* Modern Blue as default */
+    --accent-glow: rgba(59, 130, 146, 0.4);
+    --accent-hover: #2563eb;
     --alert-color: #ef4444;
     --success-color: #22c55e;
     --warning-color: #eab308;
@@ -231,9 +231,9 @@ select:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 12vh;
-    min-height: 80px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    height: 14vh; /* Slightly taller for better breathing room */
+    min-height: 100px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     position: relative;
     z-index: 1000;
 }
@@ -246,14 +246,11 @@ select:focus {
 }
 
 .school-logo, .logo {
-    max-height: 9.5vh; /* Proportional to header */
+    max-height: 10vh; /* Proportional to header */
     width: auto;
     object-fit: contain;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.9); /* Clean white background support */
-    padding: 6px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Removed white background box for a cleaner bleed-in */
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2)); 
     transition: transform 0.3s ease;
 }
 
@@ -299,10 +296,10 @@ select:focus {
     position: absolute;
     top: 0px; 
     left: 0;
-    height: 4px;
+    height: 3px;
     width: 0%; 
     background: linear-gradient(to right, var(--accent-color), #ffffff);
-    box-shadow: 0 0 15px var(--accent-glow);
+    box-shadow: 0 0 12px var(--accent-glow);
     z-index: 10001;
     transition: width 0.5s linear;
 }
