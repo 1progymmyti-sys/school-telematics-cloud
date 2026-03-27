@@ -201,6 +201,7 @@ function updateScheduleStatus() {
         const now = new Date();
         const currentTime = now.getHours() * 60 + now.getMinutes();
         const displayEl = document.getElementById('schoolScheduleStatus');
+        const progressEl = document.getElementById('headerProgressBar');
 
         if (!displayEl) return;
 
@@ -208,6 +209,7 @@ function updateScheduleStatus() {
         const dayOfWeek = now.getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) {
             displayEl.style.display = 'none';
+            if (progressEl) progressEl.style.width = '0%';
             return;
         }
 
@@ -219,31 +221,42 @@ function updateScheduleStatus() {
             const [sH, sM] = slot.start.split(':').map(Number);
             const [eH, eM] = slot.end.split(':').map(Number);
 
-            // Convert to minutes
             const startTotal = sH * 60 + sM;
             const endTotal = eH * 60 + eM;
 
             if (currentTime >= startTotal && currentTime < endTotal) {
-                activeSlot = { ...slot, endTotal };
+                activeSlot = { ...slot, startTotal, endTotal };
                 nextSlot = schoolSchedule[i + 1];
                 break;
             }
         }
 
         if (activeSlot) {
+            const totalDuration = activeSlot.endTotal - activeSlot.startTotal;
+            const elapsed = currentTime - activeSlot.startTotal;
+            const percentage = (elapsed / totalDuration) * 100;
             const remaining = activeSlot.endTotal - currentTime;
+
+            // Update Text
             let text = `${activeSlot.name} (Λήξη σε ${remaining}')`;
-
-            if (nextSlot) {
-                text += ` -> Ακολουθεί: ${nextSlot.name}`;
-            } else {
-                text += ` -> Ακολουθεί: Λήξη Μαθημάτων`;
-            }
-
             displayEl.textContent = text;
-            displayEl.style.display = 'block';
+            displayEl.style.display = 'inline-flex';
+
+            // Update Progress Bar
+            if (progressEl) {
+                progressEl.style.width = `${percentage}%`;
+                // Change color if near end (last 5 mins)
+                if (remaining <= 5) {
+                    progressEl.style.background = 'linear-gradient(to right, #ef4444, #f87171)';
+                    progressEl.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.6)';
+                } else {
+                    progressEl.style.background = 'linear-gradient(to right, var(--accent-color), #60a5fa)';
+                    progressEl.style.boxShadow = '0 0 15px var(--accent-glow)';
+                }
+            }
         } else {
             displayEl.style.display = 'none';
+            if (progressEl) progressEl.style.width = '0%';
         }
 
     } catch (e) {
@@ -253,8 +266,20 @@ function updateScheduleStatus() {
 
 function updateClock() {
     const now = new Date();
-    document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    // Date update
+    const dEl = document.getElementById('date');
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+    if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
+
+    // Time update (Forced 24h)
+    const h = now.getHours().toString().padStart(2, '0');
+    const m = now.getMinutes().toString().padStart(2, '0');
+    const timeStr = `${h}:${m}`;
+    const cEl = document.getElementById('clock');
+    if (cEl && cEl.innerText !== timeStr) cEl.innerText = timeStr;
+
     updateScheduleStatus();
 }
 

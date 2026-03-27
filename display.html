@@ -91,25 +91,7 @@
 
         /* Hide original header content partially if needed, but keep logo */
     </style>
-    <script>
-        function updateClockDisplay() {
-            const now = new Date();
-            const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
-            const dEl = document.getElementById('date');
-
-            if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
-
-            const h = now.getHours().toString().padStart(2, '0');
-            const m = now.getMinutes().toString().padStart(2, '0');
-            const newHtml = `${h}:${m}`;
-
-            const cEl = document.getElementById('clock');
-            if (cEl && cEl.innerText !== newHtml) cEl.innerText = newHtml;
-        }
-        setInterval(updateClockDisplay, 1000);
-        updateClockDisplay();
-    </script>
+    </style>
 
     <!-- FullScreen Overlay (Large Screen Only) -->
     <div id="fullscreenOverlay" style="
