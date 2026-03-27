@@ -545,16 +545,23 @@ function renderSlide(item) {
         `;
     }
     else if (item.mediaType === 'pdf') {
-        // PDF Fix: Force fit to viewport
-        const pdfUrl = item.mediaSource.includes('data:application/pdf') 
-            ? item.mediaSource 
-            : item.mediaSource + (item.mediaSource.includes('?') ? '&' : '?') + 'view=Fit';
+        // PDF Fix: Use Google Docs Viewer to render the PDF as web content
+        // This prevents TVs from asking for "Download" as they just see a standard web page.
+        // Falls back to direct iframe if it's a data: (local) PDF
+        
+        let pdfUrl = item.mediaSource;
+        if (!pdfUrl.includes('data:application/pdf')) {
+            // Encode the URL and wrap it in Google's Viewer
+            pdfUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
+        }
             
         contentHtml = `
             <iframe
                 src="${pdfUrl}"
-                style="width:100%; height:100%; border:none; display:block;"
+                class="slide-iframe framed-web"
+                style="width:100%; height:100%; border:none; display:block; background:#fff;"
                 frameborder="0"
+                allowfullscreen
             ></iframe>
         `;
     }
