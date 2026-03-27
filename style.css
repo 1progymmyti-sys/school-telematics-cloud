@@ -252,6 +252,40 @@ select:focus {
     object-fit: contain;
 }
 
+/* Header Progress Bar - Bottom Neon Line */
+.header-progress {
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    height: 4px;
+    width: 0%; /* Dynamic */
+    background: linear-gradient(to right, var(--accent-color), #60a5fa);
+    box-shadow: 0 0 15px var(--accent-glow);
+    z-index: 10001;
+    transition: width 0.5s linear;
+}
+
+.schedule-badge {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 8px;
+    padding: 0.4rem 1rem;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 2rem;
+    color: #60a5fa;
+    font-weight: 700;
+    font-size: 1.25rem;
+    text-shadow: 0 0 10px rgba(96, 165, 250, 0.4);
+    backdrop-filter: blur(5px);
+}
+
+.schedule-badge::before {
+    content: "⏱";
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
 .display-info {
     font-family: var(--font-family);
 }
