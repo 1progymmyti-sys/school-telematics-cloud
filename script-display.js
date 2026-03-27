@@ -407,6 +407,12 @@ function activateEmergency(msg) {
         </div>
     `;
 
+    const finalScale = () => {
+        const slide = document.querySelector('.slide.active');
+        if (slide) autoScaleText(slide);
+    };
+    setTimeout(finalScale, 100);
+
     playSirenLoop();
 }
 
@@ -443,6 +449,10 @@ function startRotation() {
 
     const item = slides[currentIndex];
     renderSlide(item);
+    setTimeout(() => {
+        const slide = document.querySelector('.slide.active');
+        if (slide) autoScaleText(slide);
+    }, 50);
 
     let duration = (item.duration || 10) * 1000;
     if (item.type === 'alert') duration *= 2; // Double for alert
@@ -570,8 +580,8 @@ function renderSlide(item) {
             container.innerHTML = `
                 <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
                     <div style="order:${item.layout === 'split-left' ? 2 : 1}; display:flex; flex-direction:column; justify-content:center; text-align: left;">
-                        <h1 style="font-size:3.5rem;">${item.title}</h1>
-                        <div style="font-size:1.8rem;">${item.content}</div>
+                        <h1 style="font-size:3.5rem;" class="slide-title">${item.title}</h1>
+                        <div style="font-size:1.8rem;" class="slide-body">${item.content}</div>
                     </div>
                     <div style="order:${item.layout === 'split-left' ? 1 : 2};">
                         <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
@@ -590,8 +600,8 @@ function renderSlide(item) {
                         <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
                     </div>
                     <div style="order:${item.layout === 'split-top' ? 2 : 1}; display:flex; flex-direction:column; justify-content:center; text-align: center;">
-                        <h1 style="font-size:3rem; margin-bottom:0.5rem;">${item.title}</h1>
-                        <div style="font-size:1.6rem;">${item.content}</div>
+                        <h1 style="font-size:3rem; margin-bottom:0.5rem;" class="slide-title">${item.title}</h1>
+                        <div style="font-size:1.6rem;" class="slide-body">${item.content}</div>
                     </div>
                 </div>
             `;
@@ -604,8 +614,8 @@ function renderSlide(item) {
             container.innerHTML = `
                 <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 7fr 3fr; gap:1.5rem; padding:1.5rem;">
                     <div style="display:flex; flex-direction:column; justify-content:center; text-align: left;">
-                        <h1 style="font-size:4rem;">${item.title}</h1>
-                        <div style="font-size:2rem;">${item.content}</div>
+                        <h1 style="font-size:4rem;" class="slide-title">${item.title}</h1>
+                        <div style="font-size:2rem;" class="slide-body">${item.content}</div>
                     </div>
                     <div>
                         <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
@@ -634,6 +644,73 @@ function renderSlide(item) {
         return;
     }
 }
+
+/**
+ * Automatically scales font size of title and body to fit within the slide container
+ * @param {HTMLElement} slideEl 
+ */
+function autoScaleText(slideEl) {
+    if (!slideEl) return;
+    
+    // Skip for these types as they are iframes/media handled separately
+    if (slideEl.classList.contains('media-website') || 
+        slideEl.classList.contains('media-pdf') || 
+        slideEl.classList.contains('media-google_slides') || 
+        slideEl.classList.contains('media-exam_calendar')) {
+        return;
+    }
+
+    const title = slideEl.querySelector('h1, .slide-title');
+    const body = slideEl.querySelector('.slide-body');
+    
+    // Safety check - avoid infinite loops
+    let maxIterations = 30;
+    
+    // Check for overflow specifically in terms of scroll height vs client height
+    // Add small buffer to avoid scrollbars
+    const hasOverflow = () => slideEl.scrollHeight > slideEl.clientHeight + 5;
+    
+    // If no specific elements found, try the first level of content
+    if (!title && !body && hasOverflow()) {
+        const content = slideEl.querySelector('div');
+        if (content) {
+             let curFs = parseFloat(window.getComputedStyle(content).fontSize);
+             while (hasOverflow() && maxIterations > 0 && curFs > 12) {
+                 curFs *= 0.95;
+                 content.style.fontSize = curFs + 'px';
+                 maxIterations--;
+             }
+        }
+    }
+
+    // Main scaling loop for title and body
+    while (hasOverflow() && maxIterations > 0) {
+        let changed = false;
+        
+        if (title) {
+            const currentTitleFs = parseFloat(window.getComputedStyle(title).fontSize);
+            if (currentTitleFs > 24) {
+                title.style.fontSize = (currentTitleFs * 0.94) + 'px';
+                title.style.lineHeight = "1.05";
+                title.style.marginBottom = (parseFloat(window.getComputedStyle(title).marginBottom) * 0.9) + 'px';
+                changed = true;
+            }
+        }
+        
+        if (body) {
+            const currentBodyFs = parseFloat(window.getComputedStyle(body).fontSize);
+            if (currentBodyFs > 16) {
+                body.style.fontSize = (currentBodyFs * 0.94) + 'px';
+                body.style.lineHeight = "1.2";
+                changed = true;
+            }
+        }
+        
+        if (!changed) break; // Reached floor for both
+        maxIterations--;
+    }
+}
+
 
 function startCountdownTicker(id, targetTime) {
     const update = () => {
