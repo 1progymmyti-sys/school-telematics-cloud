@@ -33,7 +33,7 @@ async function fetchRSS(url) {
                 if (index >= 5) return; // Keep only the latest 5 to avoid enormous text
                 const title = item.querySelector("title")?.textContent;
                 if (title) {
-                    htmlItems.push(`<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${title}</span>`);
+                    htmlItems.push(`<span style="margin-right: 120px; font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight:700; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:15px;">&bull;</span> ${title}</span>`);
                 }
             });
             showTickerText(htmlItems.join(''), "ΕΝΗΜΕΡΩΣΗ");
