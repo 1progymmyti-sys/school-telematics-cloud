@@ -413,39 +413,24 @@ select:focus {
 }
 
 /* Clock & Weather Styles - FIXED OVERLAY STRATEGY */
+/* Clock & Weather Styles - Integrated into Header Flex */
 #clock {
-    position: fixed !important;
-    top: 25px !important;
-    right: 40px !important;
-    font-size: 3rem !important;
-    font-weight: 700 !important;
-    color: #3b82f6 !important;
+    font-size: 4.5rem !important;
+    font-weight: 800 !important;
+    color: var(--accent-color) !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
-    text-align: right !important;
     line-height: 1 !important;
     z-index: 20005 !important;
-    animation: none !important;
-    transform: none !important;
-    width: auto !important;
-    background: transparent !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    text-shadow: none !important;
 }
 
-.weather-container {
-    position: fixed !important;
-    top: 45px !important;
-    right: 300px !important;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-primary);
-    font-size: 1.2rem;
-    z-index: 20005 !important;
-    animation: none !important;
-    transform: none !important;
+#weather {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    color: var(--text-primary) !important;
+    font-size: 1.4rem !important;
+    opacity: 0.9 !important;
 }
 
 /* NUCLEAR OPTION FOR PULSING */
