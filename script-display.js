@@ -193,7 +193,8 @@ const schoolSchedule = [
     { name: "5ο Διάλειμμα", type: "break", start: "12:20", end: "12:25" },
     { name: "6η Ώρα", type: "lesson", start: "12:25", end: "13:10" },
     { name: "6ο Διάλειμμα", type: "break", start: "13:10", end: "13:15" },
-    { name: "7η Ώρα", type: "lesson", start: "13:15", end: "13:55" }
+    { name: "7η Ώρα", type: "lesson", start: "13:15", end: "13:55" },
+    { name: "ΔΟΚΙΜΗ (Τεστ)", type: "lesson", start: "23:00", end: "23:59" }
 ];
 
 function updateScheduleStatus() {
