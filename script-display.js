@@ -33,7 +33,8 @@ async function fetchRSS(url) {
                 if (index >= 5) return; // Keep only the latest 5 to avoid enormous text
                 const title = item.querySelector("title")?.textContent;
                 if (title) {
-                    htmlItems.push(`<span style="margin-right: 120px; font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight:700; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:15px;">&bull;</span> ${title}</span>`);
+                    // Corrected the style string based on the user's intent to modify font-size and ensure valid HTML/CSS
+                    htmlItems.push(`<span style="margin-right: 120px; font-family: 'Playfair Display', serif; font-size: 2.6rem; font-weight:700; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:15px;">&bull;</span> ${title}</span>`);
                 }
             });
             showTickerText(htmlItems.join(''), "ΕΝΗΜΕΡΩΣΗ");
@@ -243,16 +244,17 @@ function updateScheduleStatus() {
             displayEl.textContent = text;
             displayEl.style.display = 'inline-flex';
 
-            // Update Progress Bar
+            // Update Progress Bar using CSS Variables for theme compatibility
             if (progressEl) {
                 progressEl.style.width = `${percentage}%`;
-                // Change color if near end (last 5 mins)
                 if (remaining <= 5) {
+                    // Alert state: uses slightly different gradient but respects theme accents
                     progressEl.style.background = 'linear-gradient(to right, #ef4444, #f87171)';
-                    progressEl.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.6)';
+                    progressEl.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.8)';
                 } else {
-                    progressEl.style.background = 'linear-gradient(to right, var(--accent-color), #60a5fa)';
-                    progressEl.style.boxShadow = '0 0 15px var(--accent-glow)';
+                    // Normal state: uses CSS variable
+                    progressEl.style.background = `linear-gradient(to right, transparent, var(--accent-color))`;
+                    progressEl.style.boxShadow = `0 0 10px var(--accent-glow)`;
                 }
             }
         } else {
@@ -382,7 +384,7 @@ async function updateWeather(city) {
 
             // Update UI
             // Format: Icon | City | Temp | Description
-            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.6em; opacity:0.8; margin-left:5px;">(${weatherInfo.desc})</span>`;
+            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.85em; opacity:0.8; margin-left:8px; font-weight:400;">(${weatherInfo.desc})</span>`;
         }
     } catch (error) {
         console.error("Weather Error:", error);

@@ -15,20 +15,20 @@ body.fullscreen-mode .display-container {
 :root {
     --bg-color: #020617;
     --card-bg: rgba(30, 41, 59, 0.7);
-    --glass-bg: rgba(15, 23, 42, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.12);
-    --text-primary: #f8fafc;
+    --glass-bg: rgba(15, 23, 42, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-primary: #ffffff;
     --text-secondary: #94a3b8;
-    --accent-color: #3b82f6;
-    --accent-glow: rgba(59, 130, 246, 0.4);
-    --accent-hover: #2563eb;
+    --accent-color: #ef4444; /* Ruby Red by default */
+    --accent-glow: rgba(239, 68, 68, 0.4);
+    --accent-hover: #dc2626;
     --alert-color: #ef4444;
     --success-color: #22c55e;
     --warning-color: #eab308;
     --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    --transition-slow: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.3s ease;
-    --blur-amount: 12px;
+    --blur-amount: 16px; /* Increased blur for more premium feel */
 }
 
 /* 
@@ -242,24 +242,66 @@ select:focus {
     display: flex;
     align-items: center;
     gap: 1.5rem;
+    height: 100%;
 }
 
-/* --- LOGO FIX --- */
-.logo {
-    height: 80px;
+.school-logo, .logo {
+    max-height: 9.5vh; /* Proportional to header */
     width: auto;
-    max-width: 200px;
     object-fit: contain;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9); /* Clean white background support */
+    padding: 6px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease;
 }
 
-/* Header Progress Bar - Bottom Neon Line */
+.school-logo:hover, .logo:hover {
+    transform: scale(1.05);
+}
+
+.display-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px; /* Slightly more space */
+}
+
+#schoolNameDisplay {
+    font-weight: 800;
+    font-size: 2.6rem; /* Slightly larger for impact */
+    line-height: 1.1;
+    margin: 0;
+    letter-spacing: -1px;
+    background: linear-gradient(to bottom, #ffffff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.header-status-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.date-display {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* Header Progress Bar - Top Neon Line (More visible, premium) */
 .header-progress {
     position: absolute;
-    bottom: 0px;
+    top: 0px; 
     left: 0;
     height: 4px;
-    width: 0%; /* Dynamic */
-    background: linear-gradient(to right, var(--accent-color), #60a5fa);
+    width: 0%; 
+    background: linear-gradient(to right, var(--accent-color), #ffffff);
     box-shadow: 0 0 15px var(--accent-glow);
     z-index: 10001;
     transition: width 0.5s linear;
@@ -268,20 +310,27 @@ select:focus {
 .schedule-badge {
     display: inline-flex;
     align-items: center;
-    margin-top: 8px;
-    padding: 0.4rem 1rem;
-    background: rgba(59, 130, 246, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 2rem;
-    color: #60a5fa;
-    font-weight: 700;
-    font-size: 1.25rem;
-    text-shadow: 0 0 10px rgba(96, 165, 250, 0.4);
-    backdrop-filter: blur(5px);
+    padding: 0.3rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--accent-color);
+    border-radius: 50px;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 15px var(--accent-glow), inset 0 0 10px rgba(255,255,255,0.1);
+    animation: badgeFloat 3s ease-in-out infinite;
+    white-space: nowrap;
+}
+
+@keyframes badgeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
 }
 
 .schedule-badge::before {
-    content: "⏱";
+    content: "🕒";
     margin-right: 8px;
     font-size: 1.1em;
 }
@@ -578,11 +627,19 @@ body.theme-national .display-header {
     box-shadow: 0 4px 20px rgba(96, 165, 250, 0.3);
     border-bottom-color: #60a5fa;
 }
+body.theme-national {
+    --accent-color: #60a5fa; /* Blue accent for National theme */
+    --accent-glow: rgba(96, 165, 250, 0.5);
+}
 
 body.theme-celebration .display-header {
     background: linear-gradient(135deg, #27272a 0%, #18181b 50%, #27272a 100%);
     box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
     border-bottom-color: #f59e0b;
+}
+body.theme-celebration {
+    --accent-color: #f59e0b;
+    --accent-glow: rgba(245, 158, 11, 0.5);
 }
 
 body.theme-valentine .display-header {
@@ -594,6 +651,10 @@ body.theme-valentine .display-header {
 body.theme-exams .display-header {
     background: linear-gradient(135deg, #292524 0%, #1c1917 100%);
     border-bottom-color: #a8a29e;
+}
+body.theme-exams {
+    --accent-color: #94a3b8;
+    --accent-glow: rgba(148, 163, 184, 0.4);
 }
 
 body.theme-carnival .display-header {
