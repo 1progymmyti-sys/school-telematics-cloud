@@ -26,18 +26,37 @@ body.fullscreen-mode .display-container {
     --transition: all 0.3s ease;
 }
 
+/* 
+    UNIVERSAL RESET & NORMALIZATION 
+    Ensures consistent appearance across different TV browsers (Tizen, webOS, Android TV, etc.)
+*/
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+    /* Responsive root font size: 1rem = 1% of the smaller screen dimension */
+    font-size: 1.2vmin; 
+    height: 100%;
+    overflow: hidden;
 }
 
 body {
     font-family: var(--font-family);
     background-color: var(--bg-color);
     color: var(--text-primary);
-    line-height: 1.6;
+    line-height: 1.5;
     min-height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    position: relative;
+    /* Prevent text selection */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* Typography */
@@ -197,13 +216,17 @@ select:focus {
 }
 
 .display-header {
-    padding: 1.5rem 2rem;
+    padding: 1.5vh 2vw;
     background: linear-gradient(to right, var(--card-bg), var(--bg-color));
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
+    -webkit-display: flex;
     justify-content: space-between;
+    -webkit-justify-content: space-between;
     align-items: center;
-    height: 120px;
+    -webkit-align-items: center;
+    height: 12vh; /* Use vh for consistent proportions */
+    min-height: 80px;
 }
 
 .header-left {
@@ -284,8 +307,9 @@ select:focus {
 }
 
 .slide-title {
-    font-size: 4rem;
+    font-size: 8rem; /* Scaled by root 1.1vmin */
     margin-bottom: 2rem;
+    color: #ffffff; /* Fallback */
     background: linear-gradient(to right, #fff, #94a3b8);
     -webkit-background-clip: text;
     background-clip: text;
@@ -438,10 +462,13 @@ select:focus {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 60px;
+    height: 8vh; /* Proportionate to screen */
+    min-height: 50px;
     background: rgba(0, 0, 0, 0.9);
     display: flex;
+    -webkit-display: flex;
     align-items: center;
+    -webkit-align-items: center;
     border-top: 2px solid var(--accent-color);
     z-index: 1000;
     box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
@@ -700,7 +727,7 @@ body.theme-carnival {
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 120px !important;
+    height: 12vh !important;
     background: #0f172a !important;
     display: flex !important;
     z-index: 10000 !important;
@@ -710,13 +737,13 @@ body.theme-carnival {
     transition: none !important;
 }
 
-/* 2. Web Iframe starts EXACTLY after Header */
+/* 2. Web Iframe starts EXACTLY after Header and ends before Ticker */
 .framed-web, .slide.media-pdf iframe, .slide.media-pdf embed, .slide.media-google_slides iframe {
     position: fixed !important;
-    top: 120px !important;
+    top: 12vh !important;
     left: 0 !important;
     width: 100% !important;
-    height: calc(100vh - 180px) !important; /* Adjusted for ticker */
+    height: 80vh !important; /* Fixed viewport height */
     border: none !important;
     z-index: 100 !important;
     background: black !important;
