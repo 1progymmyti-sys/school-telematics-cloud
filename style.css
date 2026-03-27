@@ -415,7 +415,7 @@ select:focus {
 /* Clock & Weather Styles - FIXED OVERLAY STRATEGY */
 /* Clock & Weather Styles - Integrated into Header Flex */
 #clock {
-    font-size: 4.5rem !important;
+    font-size: 3.2rem !important;
     font-weight: 800 !important;
     color: var(--accent-color) !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
