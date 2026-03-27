@@ -742,12 +742,12 @@ body.fullscreen-mode .display-header {
 
 .qr-box {
     position: fixed;
-    bottom: 90px;
-    right: 30px;
+    bottom: 9vh; /* Placed exactly above the 8vh ticker */
+    right: 1.5vw;
     background: white;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    padding: 8px; /* Reduced padding */
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
     z-index: 20002;
     display: flex;
     flex-direction: column;
@@ -756,18 +756,18 @@ body.fullscreen-mode .display-header {
 }
 
 .qr-box img {
-    width: 120px;
-    height: 120px;
+    width: 90px; /* Smaller QR */
+    height: 90px;
     display: block;
 }
 
 .qr-label {
-    margin-top: 5px;
+    margin-top: 3px;
     font-weight: 800;
-    font-size: 0.9rem;
+    font-size: 0.7rem; /* Smaller label */
     color: #000;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 @keyframes popIn {
