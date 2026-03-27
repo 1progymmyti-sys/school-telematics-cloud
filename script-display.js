@@ -467,189 +467,148 @@ function renderSlide(item) {
     const container = document.getElementById('slideContainer');
     let contentHtml = '';
     const layoutClass = `layout-${item.layout || 'fullscreen'}`;
+    let extraStyles = '';
 
     // Layout Checks (Header Visibility)
     document.body.classList.remove('fullscreen-mode');
 
-    // Media Logic
-    if (item.mediaType === 'image' || item.mediaType === 'live_image') {
-        const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
-        contentHtml = `<img src="${url}" class="slide-image">`;
-        if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
-    }
-    else if (item.mediaType === 'youtube') {
-        const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
-        contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
-    }
-    else if (item.mediaType === 'website') {
-        const scale = parseFloat(item.mediaScale) || 1.0;
-        let scaleStyle = '';
-
-        // Apply Zoom (Scale) Logic
-        if (scale !== 1.0) {
-            const w = 100 / scale;
-            const h = `calc((100vh - 190px) / ${scale})`;
-            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
-        } else {
-            // Default (Fit container) - handled by CSS class .framed-web
-            // CSS: width: 100%, height: calc(100vh - 190px)
-        }
-
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
-        // Add style attribute to iframe if zoomed
+    // Handle Layout-Specific Content Construction
+    if (item.layout === 'split-left' || item.layout === 'split-right') {
+        const orderText = item.layout === 'split-left' ? 2 : 1;
+        const orderMedia = item.layout === 'split-left' ? 1 : 2;
         contentHtml = `
-            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
-            <div class="qr-box">
-                <img src="${qrUrl}" alt="Scan QR">
-                <div class="qr-label">SCAN ME</div>
-            </div>
-        `;
-    }
-    else if (item.mediaType === 'countdown') {
-        // Countdown Logic
-        const target = new Date(item.mediaSource).getTime();
-        contentHtml = `
-            <div style="text-align:center;">
-                <h1>${item.title}</h1>
-                <div id="countdown-${item.id}" style="font-size:5rem; font-weight:bold; font-family:monospace;">Loading...</div>
-                <div style="font-size:2rem;">${item.content || ''}</div>
-            </div>
-        `;
-        // Start detailed ticker for this slide
-        startCountdownTicker(item.id, target);
-    }
-    else if (item.mediaType === 'exam_calendar') {
-        contentHtml = `
-            <div style="width:100%; height:88vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                <div style="background:var(--primary); padding:0.5rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:center;">
-                    <h1 style="margin:0; font-size:1.4rem; font-family:sans-serif;">📅 ${item.title || 'Πρόγραμμα'}</h1>
-                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;"></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem; width:100%; height:100%;">
+                <div style="order:${orderText}; display:flex; flex-direction:column; justify-content:center; text-align: left;">
+                    <h1 style="font-size:3.5rem;" class="slide-title">${item.title}</h1>
+                    <div style="font-size:1.8rem;" class="slide-body">${item.content}</div>
                 </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;">
-                    <div style="grid-column:1/-1; text-align:center; padding:2rem; font-size:1.5rem;">Φόρτωση... ⏳</div>
+                <div style="order:${orderMedia};">
+                    <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
                 </div>
             </div>
         `;
-        setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
     }
-    else if (item.mediaType === 'google_slides') {
+    else if (item.layout === 'split-top' || item.layout === 'split-bottom') {
+        const orderMedia = item.layout === 'split-top' ? 1 : 2;
+        const orderText = item.layout === 'split-top' ? 2 : 1;
         contentHtml = `
-            <iframe
-                src="${item.mediaSource}"
-                frameborder="0"
-                allowfullscreen="true"
-                mozallowfullscreen="true"
-                webkitallowfullscreen="true"
-                style="width:100%; height:100%; border:none; display:block; background:#000;"
-            ></iframe>
+            <div style="display:grid; grid-template-rows: 1fr 1fr; gap:1.5rem; padding:1.5rem; width:100%; height:100%;">
+                <div style="order:${orderMedia}; height: 100%; overflow: hidden;">
+                    <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1.5rem;">
+                </div>
+                <div style="order:${orderText}; display:flex; flex-direction:column; justify-content:center; text-align: center;">
+                    <h1 style="font-size:3rem; margin-bottom:0.5rem;" class="slide-title">${item.title}</h1>
+                    <div style="font-size:1.6rem;" class="slide-body">${item.content}</div>
+                </div>
+            </div>
         `;
     }
-    else if (item.mediaType === 'pdf') {
-        // PDF Fix: Use Google Docs Viewer to render the PDF as web content
-        // This prevents TVs from asking for "Download" as they just see a standard web page.
-        // Falls back to direct iframe if it's a data: (local) PDF
-        
-        let pdfUrl = item.mediaSource;
-        if (!pdfUrl.includes('data:application/pdf')) {
-            // Encode the URL and wrap it in Google's Viewer
-            pdfUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`;
-        }
-            
+    else if (item.layout === 'sidebar-right') {
         contentHtml = `
-            <iframe
-                src="${pdfUrl}"
-                class="slide-iframe framed-web"
-                style="width:100%; height:100%; border:none; display:block; background:#fff;"
-                frameborder="0"
-                allowfullscreen
-            ></iframe>
+            <div style="display:grid; grid-template-columns: 7fr 3fr; gap:2rem; padding:2.5rem; width:100%; height:100%;">
+                <div style="display:flex; flex-direction:column; justify-content:center; text-align: left;">
+                    <h1 style="font-size:4rem;" class="slide-title">${item.title}</h1>
+                    <div style="font-size:2rem;" class="slide-body">${item.content}</div>
+                </div>
+                <div>
+                    <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                </div>
+            </div>
         `;
+    }
+    else if (item.layout === 'no-title') {
+        contentHtml = `<div class="slide-body" style="font-size: 3.5rem; max-width: 90%; width: 100%;">${item.content}</div>`;
+    }
+    else if (item.layout === 'title-only') {
+        contentHtml = `<h1 style="font-size: 6rem; line-height: 1.1;" class="slide-title">${item.title}</h1>`;
     }
     else {
-        // Text / Default
-        contentHtml = `
-            <div class="slide-type">${getTypeLabel(item.type)}</div>
-            <h1 class="slide-title">${item.title}</h1>
-            <div class="slide-body">${item.content}</div>
-        `;
-    }
-
-    // Wrap in Slide Div
-    container.innerHTML = `
-        <div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">
-            ${contentHtml}
-        </div>
-    `;
-
-    // Layout Splits
-    if (item.layout === 'split-left' || item.layout === 'split-right') {
-        if (item.mediaType === 'image') {
-            container.innerHTML = `
-                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
-                    <div style="order:${item.layout === 'split-left' ? 2 : 1}; display:flex; flex-direction:column; justify-content:center; text-align: left;">
-                        <h1 style="font-size:3.5rem;" class="slide-title">${item.title}</h1>
-                        <div style="font-size:1.8rem;" class="slide-body">${item.content}</div>
+        // Default / Media Logic
+        if (item.mediaType === 'image' || item.mediaType === 'live_image') {
+            const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
+            contentHtml = `<img src="${url}" class="slide-image">`;
+            if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
+        }
+        else if (item.mediaType === 'youtube') {
+            const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
+            contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
+        }
+        else if (item.mediaType === 'website') {
+            const scale = parseFloat(item.mediaScale) || 1.0;
+            let scaleStyle = '';
+            if (scale !== 1.0) {
+                const w = 100 / scale;
+                const h = `calc((100vh - 12vh - 8vh) / ${scale})`; // Correct for glass header/ticker
+                scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
+            }
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+            contentHtml = `
+                <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
+                <div class="qr-box">
+                    <img src="${qrUrl}" alt="Scan QR">
+                    <div class="qr-label">SCAN ME</div>
+                </div>
+            `;
+        }
+        else if (item.mediaType === 'countdown') {
+            const target = new Date(item.mediaSource).getTime();
+            contentHtml = `
+                <div style="text-align:center;">
+                    <h1 class="slide-title">${item.title}</h1>
+                    <div id="countdown-${item.id}" style="font-size:6rem; font-weight:900; font-family:monospace; color:var(--accent-color); text-shadow: 0 0 30px var(--accent-glow);">Loading...</div>
+                    <div class="slide-body" style="margin-top:2rem;">${item.content || ''}</div>
+                </div>
+            `;
+            startCountdownTicker(item.id, target);
+        }
+        else if (item.mediaType === 'exam_calendar') {
+            contentHtml = `
+                <div style="width:100%; height:82vh; display:flex; flex-direction:column; background:var(--glass-bg); backdrop-filter:blur(20px); border-radius:1.5rem; overflow:hidden; border:1px solid var(--glass-border); box-shadow:0 30px 60px rgba(0,0,0,0.4);">
+                    <div style="background:var(--accent-color); padding:1rem 2rem; color:white; display:flex; justify-content:space-between; align-items:center;">
+                        <h1 style="margin:0; font-size:1.8rem;">📅 ${item.title || 'Πρόγραμμα'}</h1>
+                        <div id="exam-month-${item.id}" style="font-size:1.4rem; font-weight:bold; text-transform:uppercase;"></div>
                     </div>
-                    <div style="order:${item.layout === 'split-left' ? 1 : 2};">
-                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:rgba(255,255,255,0.1); overflow:hidden;">
+                        <div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem;">Φόρτωση... ⏳</div>
                     </div>
                 </div>
             `;
-            return;
+            setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
         }
-    }
-
-    if (item.layout === 'split-top' || item.layout === 'split-bottom') {
-        if (item.mediaType === 'image') {
-            container.innerHTML = `
-                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-rows: 1fr 1fr; gap:1rem; padding:1.5rem;">
-                    <div style="order:${item.layout === 'split-top' ? 1 : 2}; height: 100%; overflow: hidden;">
-                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
-                    </div>
-                    <div style="order:${item.layout === 'split-top' ? 2 : 1}; display:flex; flex-direction:column; justify-content:center; text-align: center;">
-                        <h1 style="font-size:3rem; margin-bottom:0.5rem;" class="slide-title">${item.title}</h1>
-                        <div style="font-size:1.6rem;" class="slide-body">${item.content}</div>
-                    </div>
-                </div>
+        else if (item.mediaType === 'google_slides' || item.mediaType === 'pdf') {
+            let src = item.mediaSource;
+            if (item.mediaType === 'pdf' && !src.includes('data:application/pdf')) {
+                src = `https://docs.google.com/viewer?url=${encodeURIComponent(src)}&embedded=true`;
+            }
+            contentHtml = `<iframe src="${src}" class="slide-iframe" frameborder="0" allowfullscreen></iframe>`;
+        }
+        else {
+            contentHtml = `
+                <div class="slide-type">${getTypeLabel(item.type)}</div>
+                <h1 class="slide-title">${item.title}</h1>
+                <div class="slide-body">${item.content}</div>
             `;
-            return;
         }
     }
 
-    if (item.layout === 'sidebar-right') {
-        if (item.mediaType === 'image') {
-            container.innerHTML = `
-                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 7fr 3fr; gap:1.5rem; padding:1.5rem;">
-                    <div style="display:flex; flex-direction:column; justify-content:center; text-align: left;">
-                        <h1 style="font-size:4rem;" class="slide-title">${item.title}</h1>
-                        <div style="font-size:2rem;" class="slide-body">${item.content}</div>
-                    </div>
-                    <div>
-                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
-                    </div>
-                </div>
-            `;
-            return;
-        }
+    // TRANSITION ENGINE
+    const oldSlide = container.querySelector('.slide.active');
+    if (oldSlide) {
+        oldSlide.classList.remove('active');
+        oldSlide.style.transform = 'scale(0.95) translateY(-20px)';
+        oldSlide.style.opacity = '0';
+        setTimeout(() => { if (oldSlide.parentNode) oldSlide.remove(); }, 800);
     }
 
-    if (item.layout === 'no-title') {
-        container.innerHTML = `
-            <div class="slide active type-${item.type} ${layoutClass}" style="padding: 1rem;">
-                <div class="slide-body" style="font-size: 3.5rem; max-width: 95%; width: 100%;">${item.content}</div>
-            </div>
-        `;
-        return;
-    }
+    const newSlide = document.createElement('div');
+    newSlide.className = `slide type-${item.type} ${layoutClass} media-${item.mediaType}`;
+    newSlide.innerHTML = contentHtml;
+    container.appendChild(newSlide);
 
-    if (item.layout === 'title-only') {
-        container.innerHTML = `
-            <div class="slide active type-${item.type} ${layoutClass}">
-                <h1 style="font-size: 6rem; line-height: 1.1;">${item.title}</h1>
-            </div>
-        `;
-        return;
-    }
+    // Trigger Entrance
+    setTimeout(() => {
+        newSlide.classList.add('active');
+    }, 50);
 }
 
 /**

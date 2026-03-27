@@ -13,17 +13,22 @@ body.fullscreen-mode .display-container {
 /* Base Styles (Repeated here for safety since we append) */
 
 :root {
-    --bg-color: #0f172a;
-    --card-bg: #1e293b;
+    --bg-color: #020617;
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --glass-bg: rgba(15, 23, 42, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.12);
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --accent-color: #3b82f6;
+    --accent-glow: rgba(59, 130, 246, 0.4);
     --accent-hover: #2563eb;
     --alert-color: #ef4444;
     --success-color: #22c55e;
     --warning-color: #eab308;
     --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    --transition: all 0.3s ease;
+    --transition-slow: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.3s ease;
+    --blur-amount: 12px;
 }
 
 /* 
@@ -218,17 +223,19 @@ select:focus {
 }
 
 .display-header {
-    padding: 1.5vh 2vw;
-    background: linear-gradient(to right, var(--card-bg), var(--bg-color));
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5vh 3vw;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    -webkit-backdrop-filter: blur(var(--blur-amount));
+    border-bottom: 1px solid var(--glass-border);
     display: flex;
-    -webkit-display: flex;
     justify-content: space-between;
-    -webkit-justify-content: space-between;
     align-items: center;
-    -webkit-align-items: center;
-    height: 12vh; /* Use vh for consistent proportions */
+    height: 12vh;
     min-height: 80px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1000;
 }
 
 .header-left {
@@ -263,7 +270,8 @@ select:focus {
     width: 100%;
     height: 100%;
     opacity: 0;
-    transition: opacity 1s ease-in-out;
+    transform: scale(1.05) translateY(20px);
+    transition: var(--transition-slow);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -272,11 +280,14 @@ select:focus {
     text-align: center;
     background-color: transparent;
     z-index: 1;
+    pointer-events: none;
 }
 
 .slide.active {
     opacity: 1;
+    transform: scale(1) translateY(0);
     z-index: 2;
+    pointer-events: auto;
 }
 
 /* Media Slide Styles */
@@ -449,28 +460,31 @@ select:focus {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 8vh; /* Proportionate to screen */
+    height: 8vh;
     min-height: 50px;
-    background: rgba(0, 0, 0, 0.9);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    -webkit-backdrop-filter: blur(var(--blur-amount));
     display: flex;
-    -webkit-display: flex;
     align-items: center;
-    -webkit-align-items: center;
-    border-top: 2px solid var(--accent-color);
+    border-top: 1px solid var(--glass-border);
     z-index: 1000;
-    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .ticker-label {
     background: var(--accent-color);
-    color: #000;
-    padding: 0 2rem;
+    color: #fff;
+    padding: 0 2.5rem;
     height: 100%;
     display: flex;
     align-items: center;
     font-weight: 800;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     z-index: 1002;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .ticker-content {
@@ -715,13 +729,19 @@ body.theme-carnival {
     left: 0 !important;
     width: 100% !important;
     height: 12vh !important;
-    background: #0f172a !important;
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(var(--blur-amount)) !important;
+    -webkit-backdrop-filter: blur(var(--blur-amount)) !important;
     display: flex !important;
     z-index: 10000 !important;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
-    animation: none !important;
-    transform: none !important;
-    transition: none !important;
+    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5) !important;
+    border-bottom: 1px solid var(--glass-border) !important;
+    animation: headerEntrance 1s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes headerEntrance {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 /* 2. Web Iframe starts EXACTLY after Header and ends before Ticker */
@@ -744,17 +764,20 @@ body.fullscreen-mode .display-header {
 
 .qr-box {
     position: fixed;
-    bottom: 9vh; /* Placed exactly above the 8vh ticker */
+    bottom: 9vh;
     right: 1.5vw;
-    background: white;
-    padding: 8px; /* Reduced padding */
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     z-index: 20002;
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 .qr-box img {
