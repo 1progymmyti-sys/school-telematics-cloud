@@ -243,6 +243,7 @@ select:focus {
     align-items: center;
     gap: 1.5rem;
     height: 100%;
+    max-width: 50%;
 }
 
 .school-logo, .logo {
@@ -267,7 +268,7 @@ select:focus {
 
 #schoolNameDisplay {
     font-weight: 800;
-    font-size: 2.6rem; /* Slightly larger for impact */
+    font-size: clamp(1.5rem, 2.5vw, 2.6rem); /* Responsive sizing */
     line-height: 1.1;
     margin: 0;
     letter-spacing: -1px;
@@ -276,6 +277,10 @@ select:focus {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .header-status-row {

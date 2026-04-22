@@ -216,41 +216,61 @@ function updateScheduleStatus() {
         let activeSlot = null;
         let nextSlot = null;
 
-        for (let i = 0; i < schoolSchedule.length; i++) {
-            const slot = schoolSchedule[i];
-            const [sH, sM] = slot.start.split(':').map(Number);
-            const [eH, eM] = slot.end.split(':').map(Number);
+        const firstSlot = schoolSchedule[0];
+        const lastSlot = schoolSchedule[schoolSchedule.length - 1];
+        const firstStartTotal = firstSlot.start.split(':').map(Number).reduce((h, m) => h * 60 + m);
+        const lastEndTotal = lastSlot.end.split(':').map(Number).reduce((h, m) => h * 60 + m);
 
-            const startTotal = sH * 60 + sM;
-            const endTotal = eH * 60 + eM;
+        if (currentTime < firstStartTotal) {
+            const remaining = firstStartTotal - currentTime;
+            activeSlot = { name: "Προσέλευση", startTotal: currentTime, endTotal: firstStartTotal, type: "break" };
+            nextSlot = firstSlot;
+        } else if (currentTime >= lastEndTotal) {
+            displayEl.style.display = 'none';
+            if (progressEl) progressEl.style.width = '0%';
+            return;
+        } else {
+            for (let i = 0; i < schoolSchedule.length; i++) {
+                const slot = schoolSchedule[i];
+                const [sH, sM] = slot.start.split(':').map(Number);
+                const [eH, eM] = slot.end.split(':').map(Number);
 
-            if (currentTime >= startTotal && currentTime < endTotal) {
-                activeSlot = { ...slot, startTotal, endTotal };
-                nextSlot = schoolSchedule[i + 1];
-                break;
+                const startTotal = sH * 60 + sM;
+                const endTotal = eH * 60 + eM;
+
+                if (currentTime >= startTotal && currentTime < endTotal) {
+                    activeSlot = { ...slot, startTotal, endTotal };
+                    nextSlot = schoolSchedule[i + 1];
+                    break;
+                }
             }
         }
 
         if (activeSlot) {
             const totalDuration = activeSlot.endTotal - activeSlot.startTotal;
             const elapsed = currentTime - activeSlot.startTotal;
-            const percentage = (elapsed / totalDuration) * 100;
+            const percentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
             const remaining = activeSlot.endTotal - currentTime;
 
             // Update Text
             let text = `${activeSlot.name} (Λήξη σε ${remaining}')`;
+            if (nextSlot) {
+                text += ` • Ακολουθεί: ${nextSlot.name}`;
+            } else if (currentTime < lastEndTotal) {
+                text += ` • Σχόλασμα!`;
+            }
             displayEl.textContent = text;
             displayEl.style.display = 'inline-flex';
 
             // Update Progress Bar using CSS Variables for theme compatibility
             if (progressEl) {
                 progressEl.style.width = `${percentage}%`;
-                if (remaining <= 5) {
-                    // Alert state: uses slightly different gradient but respects theme accents
+                if (remaining <= 5 && activeSlot.type !== 'break' && activeSlot.name !== 'Προσέλευση') {
+                    // Alert state
                     progressEl.style.background = 'linear-gradient(to right, #ef4444, #f87171)';
                     progressEl.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.8)';
                 } else {
-                    // Normal state: uses CSS variable
+                    // Normal state
                     progressEl.style.background = `linear-gradient(to right, transparent, var(--accent-color))`;
                     progressEl.style.boxShadow = `0 0 10px var(--accent-glow)`;
                 }
