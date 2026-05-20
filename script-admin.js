@@ -314,7 +314,8 @@ function initForm() {
             youtube: document.getElementById('youtubeGroup'),
             countdown: document.getElementById('countdownGroup'),
             examcal: document.getElementById('examCalendarGroup'),
-            googleSlides: document.getElementById('googleSlidesGroup')
+            googleSlides: document.getElementById('googleSlidesGroup'),
+            scale: document.getElementById('scaleGroup')
         };
 
         // Reset all (null-safe)
@@ -329,6 +330,7 @@ function initForm() {
         if (type === 'countdown') els.countdown.style.display = 'block';
         if (type === 'exam_calendar') els.examcal.style.display = 'block';
         if (type === 'google_slides') els.googleSlides.style.display = 'block';
+        if (['website', 'pdf', 'image'].includes(type)) { if (els.scale) els.scale.style.display = 'block'; }
     };
     mediaTypeSelect.onchange = updateVisibility;
     updateVisibility();
@@ -399,7 +401,7 @@ function initForm() {
             mediaType: type,
             content: document.getElementById('contentEditor').innerHTML,
             mediaSource: mediaSource,
-            mediaScale: fd.get('iframeScale') || 1.0,
+            mediaScale: parseFloat(fd.get('iframeScale')) || 1.0,
             extraData: extraData,
             createdAt: new Date().toISOString(),
             order: editId ? (allAnnouncements.find(i => i.id === editId)?.order ?? allAnnouncements.length) : allAnnouncements.length
@@ -415,6 +417,8 @@ function initForm() {
                 alert("Added!");
                 form.reset();
                 document.getElementById('contentEditor').innerHTML = '';
+                const scaleVal = document.getElementById('scaleValue');
+                if (scaleVal) scaleVal.textContent = '100%';
             }
         } catch (err) {
             console.error(err);
@@ -712,6 +716,13 @@ window.editItem = (id) => {
         }
     }
 
+    // Restore Zoom scale
+    const mediaScale = item.mediaScale !== undefined ? item.mediaScale : 1.0;
+    const scaleInput = document.getElementById('iframeScale');
+    const scaleVal = document.getElementById('scaleValue');
+    if (scaleInput) scaleInput.value = mediaScale;
+    if (scaleVal) scaleVal.textContent = Math.round(mediaScale * 100) + '%';
+
     // Change Button
     const btn = form.querySelector('button[type="submit"]');
     btn.textContent = "💾 Ενημέρωση";
@@ -724,6 +735,8 @@ function cancelEdit() {
     editId = null;
     document.getElementById('announcementForm').reset();
     document.getElementById('contentEditor').innerHTML = '';
+    const scaleVal = document.getElementById('scaleValue');
+    if (scaleVal) scaleVal.textContent = '100%';
     const btn = document.querySelector('#announcementForm button[type="submit"]');
     btn.textContent = "Δημοσίευση";
     btn.style.background = "";

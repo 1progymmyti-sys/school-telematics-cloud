@@ -28,16 +28,21 @@ function base64ToUint8Array(base64) {
 }
 
 // Helper: Render PDF using PDF.js with fallback to native embed
-async function renderPDFJS(pdfSource, containerId) {
+async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
     const fallback = () => {
+        const scale = parseFloat(userScale) || 1.0;
+        let scaleStyle = '';
+        if (scale !== 1.0) {
+            scaleStyle = `transform: scale(${scale}) !important; transform-origin: top center !important; width: ${100/scale}% !important; height: ${100/scale}% !important;`;
+        }
         container.innerHTML = `
             <embed
                 src="${pdfSource}"
                 type="application/pdf"
-                style="width:100%; height:100%; border:none; display:block;"
+                style="width:100%; height:100%; border:none; display:block; ${scaleStyle}"
             >
         `;
     };
@@ -75,7 +80,7 @@ async function renderPDFJS(pdfSource, containerId) {
             const canvas = document.createElement('canvas');
             canvas.style.display = 'block';
             canvas.style.margin = '0 auto 15px auto';
-            canvas.style.maxWidth = '100%';
+            canvas.style.maxWidth = parseFloat(userScale) > 1.0 ? 'none' : '100%';
             canvas.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
             canvas.style.borderRadius = '8px';
             container.appendChild(canvas);
@@ -90,7 +95,8 @@ async function renderPDFJS(pdfSource, containerId) {
             const scaleWidth = containerWidth / viewport.width;
             const scaleHeight = containerHeight / viewport.height;
             // Use slightly smaller scale to fit with margins nicely, capped at 2.0x for quality
-            const scale = Math.min(scaleWidth, scaleHeight, 2.0) * 0.95;
+            const fitScale = Math.min(scaleWidth, scaleHeight, 2.0) * 0.95;
+            const scale = fitScale * parseFloat(userScale);
 
             const scaledViewport = page.getViewport({ scale: scale });
             canvas.width = scaledViewport.width;
@@ -564,7 +570,12 @@ function renderSlide(item) {
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
         const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
-        contentHtml = `<img src="${url}" class="slide-image">`;
+        const scale = parseFloat(item.mediaScale) || 1.0;
+        let imgStyle = '';
+        if (scale !== 1.0) {
+            imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
+        }
+        contentHtml = `<img src="${url}" class="slide-image" style="${imgStyle}">`;
         if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
     }
     else if (item.mediaType === 'youtube') {
@@ -640,7 +651,7 @@ function renderSlide(item) {
                 <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; color:var(--text-primary); font-size:1.5rem;">Φόρτωση PDF... ⏳</div>
             </div>
         `;
-        setTimeout(() => renderPDFJS(item.mediaSource, `pdf-container-${item.id}`), 50);
+        setTimeout(() => renderPDFJS(item.mediaSource, `pdf-container-${item.id}`, item.mediaScale || 1.0), 50);
     }
     else {
         // Text / Default
@@ -662,14 +673,19 @@ function renderSlide(item) {
     if (item.layout === 'split-left' || item.layout === 'split-right') {
         // Re-arrange for split
         if (item.mediaType === 'image') {
+            const scale = parseFloat(item.mediaScale) || 1.0;
+            let imgStyle = '';
+            if (scale !== 1.0) {
+                imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
+            }
             container.innerHTML = `
                 <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
                     <div style="order:${item.layout === 'split-left' ? 1 : 2}; display:flex; flex-direction:column; justify-content:center;">
                         <h1>${item.title}</h1>
                         <div>${item.content}</div>
                     </div>
-                    <div style="order:${item.layout === 'split-left' ? 2 : 1};">
-                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
+                    <div style="order:${item.layout === 'split-left' ? 2 : 1}; overflow:hidden; border-radius:1rem;">
+                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem; ${imgStyle}">
                     </div>
                 </div>
             `;
