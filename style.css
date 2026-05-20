@@ -13,57 +13,31 @@ body.fullscreen-mode .display-container {
 /* Base Styles (Repeated here for safety since we append) */
 
 :root {
-    --bg-color: #020617;
-    --card-bg: rgba(30, 41, 59, 0.7);
-    --glass-bg: rgba(15, 23, 42, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --text-primary: #ffffff;
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
-    --accent-color: #3b82f6; /* Modern Blue as default */
-    --accent-glow: rgba(59, 130, 146, 0.4);
+    --accent-color: #3b82f6;
     --accent-hover: #2563eb;
     --alert-color: #ef4444;
     --success-color: #22c55e;
     --warning-color: #eab308;
     --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    --transition-slow: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-fast: all 0.3s ease;
-    --blur-amount: 16px; /* Increased blur for more premium feel */
+    --transition: all 0.3s ease;
 }
 
-/* 
-    UNIVERSAL RESET & NORMALIZATION 
-    Ensures consistent appearance across different TV browsers (Tizen, webOS, Android TV, etc.)
-*/
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-html {
-    font-size: 16px; /* Standard base for admin/other pages */
 }
 
 body {
     font-family: var(--font-family);
     background-color: var(--bg-color);
     color: var(--text-primary);
-    line-height: 1.5;
+    line-height: 1.6;
     min-height: 100vh;
-}
-
-/* TV Display Specific Scaling & Reset */
-.display-container, body[style*="overflow: hidden"] {
-    font-size: 1.25vmin; /* Only for the TV Dashboard */
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden !important;
-    position: fixed;
-    top: 0;
-    left: 0;
 }
 
 /* Typography */
@@ -223,118 +197,30 @@ select:focus {
 }
 
 .display-header {
-    padding: 1.5vh 3vw;
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-amount));
-    -webkit-backdrop-filter: blur(var(--blur-amount));
-    border-bottom: 1px solid var(--glass-border);
+    padding: 1.5rem 2rem;
+    background: linear-gradient(to right, var(--card-bg), var(--bg-color));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 14vh; /* Slightly taller for better breathing room */
-    min-height: 100px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    position: relative;
-    z-index: 1000;
+    height: 120px;
+    /* Increased slightly */
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    height: 100%;
-    max-width: 50%;
 }
 
-.school-logo, .logo {
-    max-height: 10vh; /* Proportional to header */
+/* --- LOGO FIX --- */
+.logo {
+    height: 80px;
+    /* Default height */
     width: auto;
+    /* Maintain Aspect Ratio */
+    max-width: 200px;
     object-fit: contain;
-    /* Removed white background box for a cleaner bleed-in */
-    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2)); 
-    transition: transform 0.3s ease;
-}
-
-.school-logo:hover, .logo:hover {
-    transform: scale(1.05);
-}
-
-.display-info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px; /* Slightly more space */
-}
-
-#schoolNameDisplay {
-    font-weight: 800;
-    font-size: clamp(1.5rem, 2.5vw, 2.6rem); /* Responsive sizing */
-    line-height: 1.1;
-    margin: 0;
-    letter-spacing: -1px;
-    background: linear-gradient(to bottom, #ffffff, #94a3b8);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-}
-
-.header-status-row {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.date-display {
-    color: var(--text-secondary);
-    font-size: 1.2rem;
-    text-transform: uppercase;
-    margin: 0;
-}
-
-/* Header Progress Bar - Top Neon Line (More visible, premium) */
-.header-progress {
-    position: absolute;
-    top: 0px; 
-    left: 0;
-    height: 3px;
-    width: 0%; 
-    background: linear-gradient(to right, var(--accent-color), #ffffff);
-    box-shadow: 0 0 12px var(--accent-glow);
-    z-index: 10001;
-    transition: width 0.5s linear;
-}
-
-.schedule-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.3rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--accent-color);
-    border-radius: 50px;
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 1.1rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-    box-shadow: 0 0 15px var(--accent-glow), inset 0 0 10px rgba(255,255,255,0.1);
-    animation: badgeFloat 3s ease-in-out infinite;
-    white-space: nowrap;
-}
-
-@keyframes badgeFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
-}
-
-.schedule-badge::before {
-    content: "🕒";
-    margin-right: 8px;
-    font-size: 1.1em;
 }
 
 .display-info {
@@ -346,6 +232,7 @@ select:focus {
     position: relative;
     overflow: hidden;
     background: transparent;
+    /* Allow theme background to show */
 }
 
 .slide {
@@ -355,36 +242,34 @@ select:focus {
     width: 100%;
     height: 100%;
     opacity: 0;
-    transform: scale(1.05) translateY(20px);
-    transition: var(--transition-slow);
+    transition: opacity 1s ease-in-out;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 130px 4rem 80px 4rem;
+    padding: 4rem;
     text-align: center;
     background-color: transparent;
+    /* Let theme shine through */
     z-index: 1;
-    pointer-events: none;
 }
 
 .slide.active {
     opacity: 1;
-    transform: scale(1) translateY(0);
     z-index: 2;
-    pointer-events: auto;
 }
 
 /* Media Slide Styles */
 .slide.media-image,
 .slide.media-live_image,
 .slide.media-website,
-.slide.media-pdf,
-.slide.media-google_slides {
+.slide.media-pdf {
     padding: 0 !important;
     background: #000;
     overflow: hidden;
+    /* Hide scrollbars from slide container */
     display: flex;
+    /* Ensure centering/stretch */
     align-items: center;
     justify-content: center;
 }
@@ -396,7 +281,7 @@ select:focus {
     display: block;
 }
 
-.slide-iframe, .slide embed {
+.slide-iframe {
     width: 100%;
     height: 100%;
     border: none;
@@ -405,9 +290,8 @@ select:focus {
 }
 
 .slide-title {
-    font-size: 8rem; /* Scaled by root 1.1vmin */
+    font-size: 4rem;
     margin-bottom: 2rem;
-    color: #ffffff; /* Fallback */
     background: linear-gradient(to right, #fff, #94a3b8);
     -webkit-background-clip: text;
     background-clip: text;
@@ -464,14 +348,6 @@ select:focus {
     -webkit-text-fill-color: initial;
 }
 
-.ticker-text {
-    display: inline-block;
-    white-space: nowrap;
-    will-change: transform;
-    line-height: 1;
-    /* No animation here, handled by JS */
-}
-
 @keyframes alertBadgePulse {
     from {
         transform: scale(1);
@@ -511,24 +387,48 @@ select:focus {
 }
 
 /* Clock & Weather Styles - FIXED OVERLAY STRATEGY */
-/* Clock & Weather Styles - Integrated into Header Flex */
 #clock {
-    font-size: 3.2rem !important;
-    font-weight: 800 !important;
-    color: var(--accent-color) !important;
+    position: fixed !important;
+    /* Detach from Header completely */
+    top: 25px !important;
+    right: 40px !important;
+    /* Slightly more inset */
+    font-size: 3rem !important;
+    /* Slightly smaller to fit layout */
+    font-weight: 700 !important;
+    color: #3b82f6 !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
+    text-align: right !important;
     line-height: 1 !important;
     z-index: 20005 !important;
+    /* Above Header */
+    animation: none !important;
+    transform: none !important;
+    width: auto !important;
+    background: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-shadow: none !important;
 }
 
-#weather {
-    display: flex !important;
-    align-items: center !important;
-    gap: 0.5rem !important;
-    color: var(--text-primary) !important;
-    font-size: 1.4rem !important;
-    opacity: 0.9 !important;
+.weather-container {
+    position: fixed !important;
+    /* Detach from Header completely */
+    top: 45px !important;
+    /* Vertically aligned roughly with clock center */
+    /* Vertically aligned roughly with clock center */
+    right: 300px !important;
+    /* LARGE GAP to prevent overlap */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    z-index: 20005 !important;
+    /* Above Header */
+    animation: none !important;
+    transform: none !important;
 }
 
 /* NUCLEAR OPTION FOR PULSING */
@@ -545,43 +445,45 @@ select:focus {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 8vh;
-    min-height: 50px;
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--blur-amount));
-    -webkit-backdrop-filter: blur(var(--blur-amount));
+    height: 60px;
+    background: rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
-    border-top: 1px solid var(--glass-border);
+    border-top: 2px solid var(--accent-color);
     z-index: 1000;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    /* Always on top */
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
 }
 
 .ticker-label {
     background: var(--accent-color);
-    color: #fff;
-    padding: 0 2.5rem;
+    color: #000;
+    padding: 0 2rem;
     height: 100%;
     display: flex;
     align-items: center;
     font-weight: 800;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     z-index: 1002;
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
-    text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 .ticker-content {
     flex: 1;
     overflow: hidden;
     color: white;
-    font-size: 1.8rem; /* Slightly reduced for better balance */
+    font-size: 1.5rem;
     white-space: nowrap;
     font-weight: 600;
-    display: flex;
-    align-items: center; 
-    height: 100%;
+}
+
+@keyframes ticker {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
 }
 
 /* Theme Buttons */
@@ -629,19 +531,11 @@ body.theme-national .display-header {
     box-shadow: 0 4px 20px rgba(96, 165, 250, 0.3);
     border-bottom-color: #60a5fa;
 }
-body.theme-national {
-    --accent-color: #60a5fa; /* Blue accent for National theme */
-    --accent-glow: rgba(96, 165, 250, 0.5);
-}
 
 body.theme-celebration .display-header {
     background: linear-gradient(135deg, #27272a 0%, #18181b 50%, #27272a 100%);
     box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
     border-bottom-color: #f59e0b;
-}
-body.theme-celebration {
-    --accent-color: #f59e0b;
-    --accent-glow: rgba(245, 158, 11, 0.5);
 }
 
 body.theme-valentine .display-header {
@@ -653,10 +547,6 @@ body.theme-valentine .display-header {
 body.theme-exams .display-header {
     background: linear-gradient(135deg, #292524 0%, #1c1917 100%);
     border-bottom-color: #a8a29e;
-}
-body.theme-exams {
-    --accent-color: #94a3b8;
-    --accent-glow: rgba(148, 163, 184, 0.4);
 }
 
 body.theme-carnival .display-header {
@@ -705,9 +595,15 @@ body.theme-carnival .ticker-container {
     }
 }
 
-/* Themes use Canvas Particles now. */
+/* Themes use Canvas Particles now.
+   See canvas-particles.js for animation logic. */
 
-/* Theme Background Colors */
+
+body.theme-christmas {
+    background-color: #020617;
+}
+
+/* Theme Background Colors (Required for Canvas) */
 body.theme-christmas {
     background-color: #020617;
 }
@@ -825,78 +721,224 @@ body.theme-carnival {
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 12vh !important;
-    background: var(--glass-bg) !important;
-    backdrop-filter: blur(var(--blur-amount)) !important;
-    -webkit-backdrop-filter: blur(var(--blur-amount)) !important;
+    height: 120px !important;
+    /* Explicit Height */
+    background: #0f172a !important;
+    /* Dark Slate Blue */
     display: flex !important;
     z-index: 10000 !important;
-    box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5) !important;
-    border-bottom: 1px solid var(--glass-border) !important;
-    animation: headerEntrance 1s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    /* Above everything except Popups */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5) !important;
+    /* Animation REMOVED */
+    animation: none !important;
+    /* KILL ALL ANIMATIONS */
+    transform: none !important;
+    /* STOP SCALING */
+    transition: none !important;
+    /* STOP TRANSITIONS */
 }
 
-@keyframes headerEntrance {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* 2. Web Iframe starts EXACTLY after Header and ends before Ticker */
-.framed-web, .slide.media-pdf iframe, .slide.media-pdf embed, .slide.media-google_slides iframe {
+/* 2. Web Iframe starts EXACTLY after Header */
+.framed-web {
     position: fixed !important;
-    top: 12vh !important;
+    top: 120px !important;
+    /* Match Header Height */
     left: 0 !important;
     width: 100% !important;
-    height: 80vh !important; /* Fixed viewport height */
+    height: calc(100vh - 190px) !important;
+    /* 100vh - 120px(Header) - 70px(Ticker) */
     border: none !important;
-    z-index: 100 !important;
-    background: black !important;
+    z-index: 50 !important;
+    background: white !important;
+    /* Transformation allowed for Zoom */
     transform-origin: 0 0 !important;
 }
 
+/* Ensure Body doesn't hide it */
 body.fullscreen-mode .display-header {
     display: none !important;
+    /* Hide ONLY if truly fullscreen mode (video/image) */
 }
+
+/* But if iframe exists, force show? Handled by JS logic (removed .fullscreen-mode) */
 
 
 .qr-box {
     position: fixed;
-    bottom: 9vh;
-    right: 1.5vw;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    bottom: 90px;
+    /* Above Ticker (70px height) */
+    right: 30px;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     z-index: 20002;
+    /* Above Ticker Label */
     display: flex;
     flex-direction: column;
     align-items: center;
-    animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .qr-box img {
-    width: 90px; /* Smaller QR */
-    height: 90px;
+    width: 120px;
+    height: 120px;
     display: block;
 }
 
 .qr-label {
-    margin-top: 3px;
+    margin-top: 5px;
     font-weight: 800;
-    font-size: 0.7rem; /* Smaller label */
+    font-size: 0.9rem;
     color: #000;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
 }
 
 @keyframes popIn {
     0% {
         transform: scale(0) translateY(100px);
+        opacity: 0;
     }
+
     100% {
         transform: scale(1) translateY(0);
+        opacity: 1;
     }
+}
+
+/* --- FINAL TICKER STYLES (BLUE EDITION) --- */
+#tickerContainer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 70px !important;
+    background: #3b82f6 !important;
+    /* BLUE BACKGROUND */
+    border-top: 4px solid #1e40af !important;
+    /* Darker Blue Border */
+    z-index: 20000 !important;
+    display: flex;
+    /* NO !important here, so JS can hide it */
+    align-items: center !important;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.ticker-label {
+    background: #1e40af !important;
+    /* Darker Blue Label */
+    color: #fff !important;
+    font-weight: 800 !important;
+    font-size: 1.4rem !important;
+    padding: 0 25px !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    z-index: 20001;
+    box-shadow: 5px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+#tickerContent {
+    flex: 1 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: transparent !important;
+    /* Transparent to show blue */
+}
+
+/* The scanning text element */
+.ticker-text {
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    /* Handled by JS mostly, but initial state ok */
+    white-space: nowrap !important;
+    color: #ffffff !important;
+    font-size: 1.6rem !important;
+    /* Slightly larger for clarity */
+    font-weight: 700 !important;
+    /* Bold like the image */
+    font-family: 'Arial', 'Helvetica', sans-serif !important;
+    /* Classic Ticker Font */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    /* Subtle shadow for depth */
+    /* Animation removed - handled by JS to prevent resets */
+    will-change: transform;
+}
+
+
+@keyframes ticker-slide {
+    0% {
+        left: 100vw;
+    }
+
+    100% {
+        left: -150%;
+    }
+
+    /* Move well past the screen */
+}
+
+/* Modern Editor Toolbar */
+.editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 0.5rem 0.5rem 0 0;
+    margin-bottom: -1px;
+}
+
+.editor-toolbar select, 
+.editor-toolbar button {
+    width: auto !important;
+    height: 36px;
+    padding: 0 0.75rem;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid #334155 !important;
+    color: white !important;
+    cursor: pointer;
+    border-radius: 0.4rem;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.editor-toolbar button:hover {
+    background: rgba(255,255,255,0.1) !important;
+    border-color: #475569 !important;
+}
+
+.editor-toolbar .separator {
+    width: 1px;
+    height: 24px;
+    background: #475569;
+    margin: 0 0.25rem;
+}
+
+.editor-content {
+    min-height: 250px;
+    padding: 1.25rem;
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+    border-radius: 0 0 0.5rem 0.5rem;
+    color: white;
+    overflow-y: auto;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.editor-content:focus {
+    outline: none;
+    border-color: var(--accent-color) !important;
 }

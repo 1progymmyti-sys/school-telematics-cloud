@@ -3,10 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - FIXED</title>
     <link rel="stylesheet" href="style.css?v=UNDER_CLOCK">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -20,20 +17,22 @@
     <div class="display-container">
         <header class="display-header">
             <div class="header-left">
-                <img id="schoolLogo" src="logo.png" alt="School Logo" class="school-logo">
-                <div class="display-info">
-                    <div id="schoolNameDisplay" class="school-name-header">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
-                    <div class="header-status-row">
-                        <div id="date" class="date-display"></div>
-                        <div id="schoolScheduleStatus" class="schedule-badge">---</div>
+                <img id="schoolLogo" src="logo.png" alt="School Logo" class="logo">
+                <div>
+                    <div id="schoolNameDisplay" style="font-weight: 700; font-size: 1.5rem;">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
+                    <div id="date" style="color: var(--text-secondary); font-size: 1rem; text-transform: uppercase;">
+                    </div>
+                    <div id="schoolScheduleStatus"
+                        style="color: #ff4545; font-weight: 800; font-size: 1.2rem; margin-top: 4px; text-shadow: 0 0 10px rgba(255, 69, 69, 0.3);">
                     </div>
                 </div>
             </div>
-            <div id="headerProgressBar" class="header-progress"></div>
-            <div class="header-right" style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 0.2rem; line-height: 1;">
-                <div id="clock" class="clock">00:00</div>
-                <div id="weather" style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); font-size: 1.4rem; opacity: 0.9; font-weight: 500;">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <div id="weather"
+                    style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); font-size: 1.2rem;">
+                    <!-- Weather injected via JS -->
                 </div>
+                <div id="clock" class="clock">00:00</div>
             </div>
         </header>
 
@@ -86,11 +85,75 @@
         }
     </style>
     <style>
-        /* REMOVED DUPLICATE INLINE OVERRIDES - Now handled in style.css */
+        /* FORCED OVERRIDES TO BYPASS CACHE */
+        #clock {
+            position: fixed !important;
+            top: 25px !important;
+            right: 30px !important;
+            font-family: 'Arial', sans-serif !important;
+            font-size: 2.8rem !important;
+            /* Slightly smaller */
+            font-weight: 700 !important;
+            color: #3b82f6 !important;
+            z-index: 20005 !important;
+            animation: none !important;
+            background: transparent !important;
+            width: auto !important;
+            height: auto !important;
+            line-height: 1 !important;
+            text-align: right !important;
+        }
+
+        #weather {
+            position: fixed !important;
+            top: 85px !important;
+            right: 40px !important;
+            /* MOVED UNDER CLOCK */
+            z-index: 20005 !important;
+            color: #fff !important;
+            font-size: 1.2rem !important;
+            /* Slightly smaller */
+            animation: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            width: auto !important;
+            background: transparent !important;
+        }
 
         /* Hide original header content partially if needed, but keep logo */
     </style>
-    </style>
+    <script>
+        let lastTimeStr = "";
+
+        function updateClockDisplay() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+            const dEl = document.getElementById('date');
+
+            // Date check to avoid flicker
+            if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
+
+            let h = now.getHours();
+            const m = now.getMinutes();
+            const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
+            h = h % 12;
+            h = h ? h : 12;
+            const mStr = m < 10 ? '0' + m : m;
+
+            const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+
+            // STRICT CHECK TO STOP PULSE
+            if (lastTimeStr !== newHtml) {
+                const cEl = document.getElementById('clock');
+                if (cEl) cEl.innerHTML = newHtml;
+                lastTimeStr = newHtml;
+            }
+        }
+        setInterval(updateClockDisplay, 1000); // Check every second
+        updateClockDisplay();
+    </script>
 
     <!-- FullScreen Overlay (Large Screen Only) -->
     <div id="fullscreenOverlay" style="
@@ -158,44 +221,11 @@
                 }
             }
         });
-
-        /**
-         * UNIVERSAL SCALE ENGINE
-         * This script ensures that no matter the resolution of the TV, 
-         * the design remains proportional and fills the screen correctly.
-         */
-        function adjustDisplayScaling() {
-            const container = document.querySelector('.display-container');
-            if (!container) return;
-
-            // Design dimensions (Standard 1080p)
-            const designW = 1920;
-            const designH = 1080;
-            
-            const winW = window.innerWidth;
-            const winH = window.innerHeight;
-            
-            // Calculate scale factors
-            const scaleW = winW / designW;
-            const scaleH = winH / designH;
-            
-            // For general layouts, we use vmin/vh in CSS.
-            // But if the browser is extremely old and doesn't support them well,
-            // we could force a body scale. For now, we'll just log and check for anomalies.
-            console.log(`Resolution Detected: ${winW}x${winH} | Scale: ${scaleW.toFixed(2)}x`);
-            
-            // Force redrawing of specific elements that might get stuck
-            const header = document.querySelector('.display-header');
-            if (header) header.style.width = '100vw';
-        }
-
-        window.addEventListener('resize', adjustDisplayScaling);
-        adjustDisplayScaling();
     </script>
 
     <div
-        style="position: fixed; bottom: 8px; right: 15px; z-index: 50000; font-size: 0.95rem; color: rgba(255,255,255,0.7); text-shadow: 1px 1px 3px rgba(0,0,0,1); pointer-events: none; font-weight: 700; font-family: 'Inter', sans-serif;">
-        ΚΑΤΑΣΚΕΥΗ: Ε. ΒΑΛΑΚΟΣ με το Antigravity
+        style="position: fixed; bottom: 5px; right: 10px; z-index: 50000; font-size: 0.85rem; color: rgba(255,255,255,0.8); text-shadow: 1px 1px 2px rgba(0,0,0,0.8); pointer-events: none; font-weight: bold;">
+        ΚΑΤΑΣΚΕΥΗ: Ε. ΒΑΛΑΚΟΣ with Antigravity
     </div>
 </body>
 

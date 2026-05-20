@@ -33,7 +33,7 @@ async function fetchRSS(url) {
                 if (index >= 5) return; // Keep only the latest 5 to avoid enormous text
                 const title = item.querySelector("title")?.textContent;
                 if (title) {
-                    htmlItems.push(`<span style="margin-right: 120px; font-family: 'Playfair Display', serif; font-size: 1.95rem; font-weight:700; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:15px;">&bull;</span> ${title}</span>`);
+                    htmlItems.push(`<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px;">&bull;</span> ${title}</span>`);
                 }
             });
             showTickerText(htmlItems.join(''), "ΕΝΗΜΕΡΩΣΗ");
@@ -85,8 +85,8 @@ function startTickerAnim(element) {
             tickerOffset = window.innerWidth;
         }
 
-        // Apply transform (0 for Y so flex centering from CSS takes over)
-        element.style.transform = `translate3d(${tickerOffset}px, 0, 0)`;
+        // Apply transform (maintain Y centering)
+        element.style.transform = `translate3d(${tickerOffset}px, -50%, 0)`;
 
         tickerAnimId = requestAnimationFrame(loop);
     }
@@ -201,7 +201,6 @@ function updateScheduleStatus() {
         const now = new Date();
         const currentTime = now.getHours() * 60 + now.getMinutes();
         const displayEl = document.getElementById('schoolScheduleStatus');
-        const progressEl = document.getElementById('headerProgressBar');
 
         if (!displayEl) return;
 
@@ -209,75 +208,42 @@ function updateScheduleStatus() {
         const dayOfWeek = now.getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) {
             displayEl.style.display = 'none';
-            if (progressEl) progressEl.style.width = '0%';
             return;
         }
 
         let activeSlot = null;
         let nextSlot = null;
 
-        const firstSlot = schoolSchedule[0];
-        const lastSlot = schoolSchedule[schoolSchedule.length - 1];
-        const firstStartTotal = firstSlot.start.split(':').map(Number).reduce((h, m) => h * 60 + m);
-        const lastEndTotal = lastSlot.end.split(':').map(Number).reduce((h, m) => h * 60 + m);
+        for (let i = 0; i < schoolSchedule.length; i++) {
+            const slot = schoolSchedule[i];
+            const [sH, sM] = slot.start.split(':').map(Number);
+            const [eH, eM] = slot.end.split(':').map(Number);
 
-        if (currentTime < firstStartTotal) {
-            const remaining = firstStartTotal - currentTime;
-            activeSlot = { name: "Προσέλευση", startTotal: currentTime, endTotal: firstStartTotal, type: "break" };
-            nextSlot = firstSlot;
-        } else if (currentTime >= lastEndTotal) {
-            displayEl.style.display = 'none';
-            if (progressEl) progressEl.style.width = '0%';
-            return;
-        } else {
-            for (let i = 0; i < schoolSchedule.length; i++) {
-                const slot = schoolSchedule[i];
-                const [sH, sM] = slot.start.split(':').map(Number);
-                const [eH, eM] = slot.end.split(':').map(Number);
+            // Convert to minutes
+            const startTotal = sH * 60 + sM;
+            const endTotal = eH * 60 + eM;
 
-                const startTotal = sH * 60 + sM;
-                const endTotal = eH * 60 + eM;
-
-                if (currentTime >= startTotal && currentTime < endTotal) {
-                    activeSlot = { ...slot, startTotal, endTotal };
-                    nextSlot = schoolSchedule[i + 1];
-                    break;
-                }
+            if (currentTime >= startTotal && currentTime < endTotal) {
+                activeSlot = { ...slot, endTotal };
+                nextSlot = schoolSchedule[i + 1];
+                break;
             }
         }
 
         if (activeSlot) {
-            const totalDuration = activeSlot.endTotal - activeSlot.startTotal;
-            const elapsed = currentTime - activeSlot.startTotal;
-            const percentage = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
             const remaining = activeSlot.endTotal - currentTime;
-
-            // Update Text
             let text = `${activeSlot.name} (Λήξη σε ${remaining}')`;
-            if (nextSlot) {
-                text += ` • Ακολουθεί: ${nextSlot.name}`;
-            } else if (currentTime < lastEndTotal) {
-                text += ` • Σχόλασμα!`;
-            }
-            displayEl.textContent = text;
-            displayEl.style.display = 'inline-flex';
 
-            // Update Progress Bar using CSS Variables for theme compatibility
-            if (progressEl) {
-                progressEl.style.width = `${percentage}%`;
-                if (remaining <= 5 && activeSlot.type !== 'break' && activeSlot.name !== 'Προσέλευση') {
-                    // Alert state
-                    progressEl.style.background = 'linear-gradient(to right, #ef4444, #f87171)';
-                    progressEl.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.8)';
-                } else {
-                    // Normal state
-                    progressEl.style.background = `linear-gradient(to right, transparent, var(--accent-color))`;
-                    progressEl.style.boxShadow = `0 0 10px var(--accent-glow)`;
-                }
+            if (nextSlot) {
+                text += ` -> Ακολουθεί: ${nextSlot.name}`;
+            } else {
+                text += ` -> Ακολουθεί: Λήξη Μαθημάτων`;
             }
+
+            displayEl.textContent = text;
+            displayEl.style.display = 'block';
         } else {
             displayEl.style.display = 'none';
-            if (progressEl) progressEl.style.width = '0%';
         }
 
     } catch (e) {
@@ -287,20 +253,8 @@ function updateScheduleStatus() {
 
 function updateClock() {
     const now = new Date();
-    
-    // Date update
-    const dEl = document.getElementById('date');
-    const options = { weekday: 'long', day: 'numeric', month: 'long' };
-    const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
-    if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
-
-    // Time update (Forced 24h)
-    const h = now.getHours().toString().padStart(2, '0');
-    const m = now.getMinutes().toString().padStart(2, '0');
-    const timeStr = `${h}:${m}`;
-    const cEl = document.getElementById('clock');
-    if (cEl && cEl.innerText !== timeStr) cEl.innerText = timeStr;
-
+    document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
     updateScheduleStatus();
 }
 
@@ -402,7 +356,7 @@ async function updateWeather(city) {
 
             // Update UI
             // Format: Icon | City | Temp | Description
-            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.85em; opacity:0.8; margin-left:8px; font-weight:400;">(${weatherInfo.desc})</span>`;
+            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.6em; opacity:0.8; margin-left:5px;">(${weatherInfo.desc})</span>`;
         }
     } catch (error) {
         console.error("Weather Error:", error);
@@ -453,12 +407,6 @@ function activateEmergency(msg) {
         </div>
     `;
 
-    const finalScale = () => {
-        const slide = document.querySelector('.slide.active');
-        if (slide) autoScaleText(slide);
-    };
-    setTimeout(finalScale, 100);
-
     playSirenLoop();
 }
 
@@ -495,10 +443,6 @@ function startRotation() {
 
     const item = slides[currentIndex];
     renderSlide(item);
-    setTimeout(() => {
-        const slide = document.querySelector('.slide.active');
-        if (slide) autoScaleText(slide);
-    }, 50);
 
     let duration = (item.duration || 10) * 1000;
     if (item.type === 'alert') duration *= 2; // Double for alert
@@ -513,216 +457,134 @@ function renderSlide(item) {
     const container = document.getElementById('slideContainer');
     let contentHtml = '';
     const layoutClass = `layout-${item.layout || 'fullscreen'}`;
-    let extraStyles = '';
 
-    // Layout Checks (Header Visibility)
-    document.body.classList.remove('fullscreen-mode');
+    // Layout Checks for Auto-Fullscreen (Hide Header)
+    // NOTE: Removed 'website' so header stays visible for sites!
+    const isFullMedia = (item.layout === 'fullscreen' || !item.layout) &&
+        ['image', 'live_image', 'youtube'].includes(item.mediaType);
 
-    // Handle Layout-Specific Content Construction
-    if (item.layout === 'split-left' || item.layout === 'split-right') {
-        const orderText = item.layout === 'split-left' ? 2 : 1;
-        const orderMedia = item.layout === 'split-left' ? 1 : 2;
+    if (isFullMedia) {
+        document.body.classList.add('fullscreen-mode');
+    } else {
+        document.body.classList.remove('fullscreen-mode');
+    }
+
+    // Media Logic
+    if (item.mediaType === 'image' || item.mediaType === 'live_image') {
+        const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
+        contentHtml = `<img src="${url}" class="slide-image">`;
+        if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
+    }
+    else if (item.mediaType === 'youtube') {
+        const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
+        contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
+    }
+    else if (item.mediaType === 'website') {
+        const scale = parseFloat(item.mediaScale) || 1.0;
+        let scaleStyle = '';
+
+        // Apply Zoom (Scale) Logic
+        if (scale !== 1.0) {
+            const w = 100 / scale;
+            const h = `calc((100vh - 190px) / ${scale})`;
+            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
+        } else {
+            // Default (Fit container) - handled by CSS class .framed-web
+            // CSS: width: 100%, height: calc(100vh - 190px)
+        }
+
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+        // Add style attribute to iframe if zoomed
         contentHtml = `
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem; width:100%; height:100%;">
-                <div style="order:${orderText}; display:flex; flex-direction:column; justify-content:center; text-align: left;">
-                    <h1 style="font-size:3.5rem;" class="slide-title">${item.title}</h1>
-                    <div style="font-size:1.8rem;" class="slide-body">${item.content}</div>
-                </div>
-                <div style="order:${orderMedia};">
-                    <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
-                </div>
+            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
+            <div class="qr-box">
+                <img src="${qrUrl}" alt="Scan QR">
+                <div class="qr-label">SCAN ME</div>
             </div>
         `;
     }
-    else if (item.layout === 'split-top' || item.layout === 'split-bottom') {
-        const orderMedia = item.layout === 'split-top' ? 1 : 2;
-        const orderText = item.layout === 'split-top' ? 2 : 1;
+    else if (item.mediaType === 'countdown') {
+        // Countdown Logic
+        const target = new Date(item.mediaSource).getTime();
         contentHtml = `
-            <div style="display:grid; grid-template-rows: 1fr 1fr; gap:1.5rem; padding:1.5rem; width:100%; height:100%;">
-                <div style="order:${orderMedia}; height: 100%; overflow: hidden;">
-                    <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1.5rem;">
+            <div style="text-align:center;">
+                <h1>${item.title}</h1>
+                <div id="countdown-${item.id}" style="font-size:5rem; font-weight:bold; font-family:monospace;">Loading...</div>
+                <div style="font-size:2rem;">${item.content || ''}</div>
+            </div>
+        `;
+        // Start detailed ticker for this slide
+        startCountdownTicker(item.id, target);
+    }
+    else if (item.mediaType === 'exam_calendar') {
+        contentHtml = `
+            <div style="width:100%; height:88vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                <div style="background:var(--primary); padding:0.5rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:center;">
+                    <h1 style="margin:0; font-size:1.4rem; font-family:sans-serif;">📅 ${item.title || 'Πρόγραμμα'}</h1>
+                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;"></div>
                 </div>
-                <div style="order:${orderText}; display:flex; flex-direction:column; justify-content:center; text-align: center;">
-                    <h1 style="font-size:3rem; margin-bottom:0.5rem;" class="slide-title">${item.title}</h1>
-                    <div style="font-size:1.6rem;" class="slide-body">${item.content}</div>
+                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;">
+                    <div style="grid-column:1/-1; text-align:center; padding:2rem; font-size:1.5rem;">Φόρτωση... ⏳</div>
                 </div>
             </div>
         `;
+        setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
     }
-    else if (item.layout === 'sidebar-right') {
+    else if (item.mediaType === 'google_slides') {
         contentHtml = `
-            <div style="display:grid; grid-template-columns: 7fr 3fr; gap:2rem; padding:2.5rem; width:100%; height:100%;">
-                <div style="display:flex; flex-direction:column; justify-content:center; text-align: left;">
-                    <h1 style="font-size:4rem;" class="slide-title">${item.title}</h1>
-                    <div style="font-size:2rem;" class="slide-body">${item.content}</div>
-                </div>
-                <div>
-                    <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-                </div>
-            </div>
+            <iframe
+                src="${item.mediaSource}"
+                frameborder="0"
+                allowfullscreen="true"
+                mozallowfullscreen="true"
+                webkitallowfullscreen="true"
+                style="width:100%; height:100%; border:none; display:block; background:#000;"
+            ></iframe>
         `;
     }
-    else if (item.layout === 'no-title') {
-        contentHtml = `<div class="slide-body" style="font-size: 3.5rem; max-width: 90%; width: 100%;">${item.content}</div>`;
-    }
-    else if (item.layout === 'title-only') {
-        contentHtml = `<h1 style="font-size: 6rem; line-height: 1.1;" class="slide-title">${item.title}</h1>`;
+    else if (item.mediaType === 'pdf') {
+        contentHtml = `
+            <embed
+                src="${item.mediaSource}"
+                type="application/pdf"
+                style="width:100%; height:100%; border:none; display:block;"
+            >
+        `;
     }
     else {
-        // Default / Media Logic
-        if (item.mediaType === 'image' || item.mediaType === 'live_image') {
-            const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
-            contentHtml = `<img src="${url}" class="slide-image">`;
-            if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
-        }
-        else if (item.mediaType === 'youtube') {
-            const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
-            contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
-        }
-        else if (item.mediaType === 'website') {
-            const scale = parseFloat(item.mediaScale) || 1.0;
-            let scaleStyle = '';
-            if (scale !== 1.0) {
-                const w = 100 / scale;
-                const h = `calc((100vh - 12vh - 8vh) / ${scale})`; // Correct for glass header/ticker
-                scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
-            }
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
-            contentHtml = `
-                <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
-                <div class="qr-box">
-                    <img src="${qrUrl}" alt="Scan QR">
-                    <div class="qr-label">SCAN ME</div>
-                </div>
-            `;
-        }
-        else if (item.mediaType === 'countdown') {
-            const target = new Date(item.mediaSource).getTime();
-            contentHtml = `
-                <div style="text-align:center;">
-                    <h1 class="slide-title">${item.title}</h1>
-                    <div id="countdown-${item.id}" style="font-size:6rem; font-weight:900; font-family:monospace; color:var(--accent-color); text-shadow: 0 0 30px var(--accent-glow);">Loading...</div>
-                    <div class="slide-body" style="margin-top:2rem;">${item.content || ''}</div>
-                </div>
-            `;
-            startCountdownTicker(item.id, target);
-        }
-        else if (item.mediaType === 'exam_calendar') {
-            contentHtml = `
-                <div style="width:100%; height:82vh; display:flex; flex-direction:column; background:var(--glass-bg); backdrop-filter:blur(20px); border-radius:1.5rem; overflow:hidden; border:1px solid var(--glass-border); box-shadow:0 30px 60px rgba(0,0,0,0.4);">
-                    <div style="background:var(--accent-color); padding:1rem 2rem; color:white; display:flex; justify-content:space-between; align-items:center;">
-                        <h1 style="margin:0; font-size:1.8rem;">📅 ${item.title || 'Πρόγραμμα'}</h1>
-                        <div id="exam-month-${item.id}" style="font-size:1.4rem; font-weight:bold; text-transform:uppercase;"></div>
+        // Text / Default
+        contentHtml = `
+            <div class="slide-type">${getTypeLabel(item.type)}</div>
+            <h1 class="slide-title">${item.title}</h1>
+            <div class="slide-body">${item.content}</div>
+        `;
+    }
+
+    // Wrap in Slide Div
+    container.innerHTML = `
+        <div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">
+            ${contentHtml}
+        </div>
+    `;
+
+    // Layout Splits
+    if (item.layout === 'split-left' || item.layout === 'split-right') {
+        // Re-arrange for split
+        if (item.mediaType === 'image') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
+                    <div style="order:${item.layout === 'split-left' ? 1 : 2}; display:flex; flex-direction:column; justify-content:center;">
+                        <h1>${item.title}</h1>
+                        <div>${item.content}</div>
                     </div>
-                    <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:rgba(255,255,255,0.1); overflow:hidden;">
-                        <div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem;">Φόρτωση... ⏳</div>
+                    <div style="order:${item.layout === 'split-left' ? 2 : 1};">
+                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem;">
                     </div>
                 </div>
             `;
-            setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
         }
-        else if (item.mediaType === 'google_slides' || item.mediaType === 'pdf') {
-            let src = item.mediaSource;
-            if (item.mediaType === 'pdf' && !src.includes('data:application/pdf')) {
-                src = `https://docs.google.com/viewer?url=${encodeURIComponent(src)}&embedded=true`;
-            }
-            contentHtml = `<iframe src="${src}" class="slide-iframe" frameborder="0" allowfullscreen></iframe>`;
-        }
-        else {
-            contentHtml = `
-                <div class="slide-type">${getTypeLabel(item.type)}</div>
-                <h1 class="slide-title">${item.title}</h1>
-                <div class="slide-body">${item.content}</div>
-            `;
-        }
-    }
-
-    // TRANSITION ENGINE
-    const oldSlide = container.querySelector('.slide.active');
-    if (oldSlide) {
-        oldSlide.classList.remove('active');
-        oldSlide.style.transform = 'scale(0.95) translateY(-20px)';
-        oldSlide.style.opacity = '0';
-        setTimeout(() => { if (oldSlide.parentNode) oldSlide.remove(); }, 800);
-    }
-
-    const newSlide = document.createElement('div');
-    newSlide.className = `slide type-${item.type} ${layoutClass} media-${item.mediaType}`;
-    newSlide.innerHTML = contentHtml;
-    container.appendChild(newSlide);
-
-    // Trigger Entrance
-    setTimeout(() => {
-        newSlide.classList.add('active');
-    }, 50);
-}
-
-/**
- * Automatically scales font size of title and body to fit within the slide container
- * @param {HTMLElement} slideEl 
- */
-function autoScaleText(slideEl) {
-    if (!slideEl) return;
-    
-    // Skip for these types as they are iframes/media handled separately
-    if (slideEl.classList.contains('media-website') || 
-        slideEl.classList.contains('media-pdf') || 
-        slideEl.classList.contains('media-google_slides') || 
-        slideEl.classList.contains('media-exam_calendar')) {
-        return;
-    }
-
-    const title = slideEl.querySelector('h1, .slide-title');
-    const body = slideEl.querySelector('.slide-body');
-    
-    // Safety check - avoid infinite loops
-    let maxIterations = 30;
-    
-    // Check for overflow specifically in terms of scroll height vs client height
-    // Add small buffer to avoid scrollbars
-    const hasOverflow = () => slideEl.scrollHeight > slideEl.clientHeight + 5;
-    
-    // If no specific elements found, try the first level of content
-    if (!title && !body && hasOverflow()) {
-        const content = slideEl.querySelector('div');
-        if (content) {
-             let curFs = parseFloat(window.getComputedStyle(content).fontSize);
-             while (hasOverflow() && maxIterations > 0 && curFs > 12) {
-                 curFs *= 0.95;
-                 content.style.fontSize = curFs + 'px';
-                 maxIterations--;
-             }
-        }
-    }
-
-    // Main scaling loop for title and body
-    while (hasOverflow() && maxIterations > 0) {
-        let changed = false;
-        
-        if (title) {
-            const currentTitleFs = parseFloat(window.getComputedStyle(title).fontSize);
-            if (currentTitleFs > 24) {
-                title.style.fontSize = (currentTitleFs * 0.94) + 'px';
-                title.style.lineHeight = "1.05";
-                title.style.marginBottom = (parseFloat(window.getComputedStyle(title).marginBottom) * 0.9) + 'px';
-                changed = true;
-            }
-        }
-        
-        if (body) {
-            const currentBodyFs = parseFloat(window.getComputedStyle(body).fontSize);
-            if (currentBodyFs > 16) {
-                body.style.fontSize = (currentBodyFs * 0.94) + 'px';
-                body.style.lineHeight = "1.2";
-                changed = true;
-            }
-        }
-        
-        if (!changed) break; // Reached floor for both
-        maxIterations--;
     }
 }
-
 
 function startCountdownTicker(id, targetTime) {
     const update = () => {
