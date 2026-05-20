@@ -16,6 +16,98 @@ let tickerAnimId = null;
 let tickerOffset = window.innerWidth;
 let lastTickerContent = '';
 
+// Helper: Convert Base64 / Data URI to Uint8Array for PDF.js
+function base64ToUint8Array(base64) {
+    const raw = atob(base64);
+    const rawLength = raw.length;
+    const array = new Uint8Array(new ArrayBuffer(rawLength));
+    for (let i = 0; i < rawLength; i++) {
+        array[i] = raw.charCodeAt(i);
+    }
+    return array;
+}
+
+// Helper: Render PDF using PDF.js with fallback to native embed
+async function renderPDFJS(pdfSource, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const fallback = () => {
+        container.innerHTML = `
+            <embed
+                src="${pdfSource}"
+                type="application/pdf"
+                style="width:100%; height:100%; border:none; display:block;"
+            >
+        `;
+    };
+
+    try {
+        if (typeof window.pdfjsLib === 'undefined') {
+            console.warn("PDF.js library not loaded, using fallback");
+            fallback();
+            return;
+        }
+
+        const pdfjsLib = window.pdfjsLib;
+
+        // Configure worker
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        }
+
+        let pdfData = pdfSource;
+        if (typeof pdfSource === 'string' && pdfSource.startsWith('data:')) {
+            const base64Index = pdfSource.indexOf(';base64,');
+            if (base64Index !== -1) {
+                const base64Data = pdfSource.substring(base64Index + 8);
+                pdfData = base64ToUint8Array(base64Data);
+            }
+        }
+
+        const loadingTask = pdfjsLib.getDocument(pdfData);
+        const pdf = await loadingTask.promise;
+
+        container.innerHTML = ''; // Clear loading message
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const canvas = document.createElement('canvas');
+            canvas.style.display = 'block';
+            canvas.style.margin = '0 auto 15px auto';
+            canvas.style.maxWidth = '100%';
+            canvas.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
+            canvas.style.borderRadius = '8px';
+            container.appendChild(canvas);
+
+            const context = canvas.getContext('2d');
+            const viewport = page.getViewport({ scale: 1.0 });
+
+            // Calculate scaling to fit slide container perfectly
+            const containerWidth = container.clientWidth || window.innerWidth;
+            const containerHeight = (container.clientHeight || window.innerHeight) - 40;
+
+            const scaleWidth = containerWidth / viewport.width;
+            const scaleHeight = containerHeight / viewport.height;
+            // Use slightly smaller scale to fit with margins nicely, capped at 2.0x for quality
+            const scale = Math.min(scaleWidth, scaleHeight, 2.0) * 0.95;
+
+            const scaledViewport = page.getViewport({ scale: scale });
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+
+            const renderContext = {
+                canvasContext: context,
+                viewport: scaledViewport
+            };
+            await page.render(renderContext).promise;
+        }
+    } catch (err) {
+        console.error("PDF.js render failed, executing fallback:", err);
+        fallback();
+    }
+}
+
 // Helper: Fetch RSS Feed directly (now that CORS is enabled)
 async function fetchRSS(url) {
     if (!url) return;
@@ -544,12 +636,11 @@ function renderSlide(item) {
     }
     else if (item.mediaType === 'pdf') {
         contentHtml = `
-            <embed
-                src="${item.mediaSource}"
-                type="application/pdf"
-                style="width:100%; height:100%; border:none; display:block;"
-            >
+            <div id="pdf-container-${item.id}" style="width:100%; height:100%; overflow-y:auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:10px;">
+                <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; color:var(--text-primary); font-size:1.5rem;">Φόρτωση PDF... ⏳</div>
+            </div>
         `;
+        setTimeout(() => renderPDFJS(item.mediaSource, `pdf-container-${item.id}`), 50);
     }
     else {
         // Text / Default
