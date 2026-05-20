@@ -9,6 +9,7 @@ const SETTINGS_DOC_ID = "schoolConfig";
 let allAnnouncements = [];
 let currentSettings = {};
 let editId = null;
+let currentUploadedFiles = []; // Array of { name, type, size, data }
 
 // Helper: Read File as Base64
 const readFileAsBase64 = (file) => {
@@ -27,6 +28,80 @@ const readFileAsText = (file) => {
         reader.onerror = error => reject(error);
         reader.readAsText(file);
     });
+};
+
+// Helper: Compress Image to Jpeg using Canvas
+const compressImage = (file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const maxDim = 1280;
+                
+                if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Compress to JPEG with 0.75 quality
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                resolve(compressedBase64);
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+};
+
+// Render the selected files list in the form
+const renderSelectedFiles = () => {
+    const listContainer = document.getElementById("selectedFilesList");
+    if (!listContainer) return;
+    
+    if (currentUploadedFiles.length === 0) {
+        listContainer.style.display = 'none';
+        listContainer.innerHTML = '';
+        return;
+    }
+    
+    listContainer.style.display = 'flex';
+    listContainer.innerHTML = currentUploadedFiles.map((fileObj, index) => {
+        const sizeKB = (fileObj.size / 1024).toFixed(1);
+        const icon = fileObj.type.includes('pdf') ? '📄 PDF' : '🖼️ Εικόνα';
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
+                    <span style="font-size: 0.9rem; flex-shrink: 0;">${icon}</span>
+                    <span style="font-size: 0.85rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="${fileObj.name}">${fileObj.name}</span>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); flex-shrink: 0;">(${sizeKB} KB)</span>
+                </div>
+                <button type="button" style="background: transparent; border: none; color: var(--alert-color); font-size: 1.1rem; cursor: pointer; padding: 0 0.2rem; line-height: 1;" onclick="window.removeSelectedFile(${index})">✕</button>
+            </div>
+        `;
+    }).join("");
+};
+
+window.removeSelectedFile = (index) => {
+    currentUploadedFiles.splice(index, 1);
+    renderSelectedFiles();
+    const fileInput = document.getElementById('file');
+    if (fileInput) fileInput.value = '';
 };
 
 // --- INIT ---
@@ -302,6 +377,49 @@ function initSortable() {
 function initForm() {
     const form = document.getElementById('announcementForm');
     const mediaTypeSelect = document.getElementById('mediaType');
+    const fileInput = document.getElementById('file');
+
+    // File Input Listener for Multi-file Uploads & Image Compression
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                let data = "";
+                let size = file.size;
+                
+                try {
+                    if (file.type.startsWith('image/')) {
+                        data = await compressImage(file);
+                        size = Math.round((data.length - 814) * 0.75);
+                    } else {
+                        // PDF or Excel
+                        if (file.type === 'application/pdf' && file.size > 700000) {
+                            alert(`⚠️ Το PDF "${file.name}" είναι πολύ μεγάλο (${(file.size / 1024).toFixed(0)} KB).\n\nΤο Firestore επιτρέπει max ~700 KB ανά αρχείο. Παρακαλώ συμπιέστε το ή χρησιμοποιήστε εξωτερικό σύνδεσμο.`);
+                            continue;
+                        }
+                        data = await readFileAsBase64(file);
+                        size = file.size;
+                    }
+                    
+                    currentUploadedFiles.push({
+                        name: file.name,
+                        type: file.type,
+                        size: size,
+                        data: data
+                    });
+                } catch (err) {
+                    console.error("Error reading file:", file.name, err);
+                    alert(`Σφάλμα κατά την ανάγνωση του αρχείου ${file.name}`);
+                }
+            }
+            
+            renderSelectedFiles();
+            fileInput.value = ''; // Reset so the same file can be selected again
+        });
+    }
 
     // Visibility Logic
     const updateVisibility = () => {
@@ -341,23 +459,28 @@ function initForm() {
         const fd = new FormData(form);
         const type = fd.get('mediaType');
 
-        let mediaSource = fd.get('mediaSource') || ""; // Fallback
+        let mediaSource = "";
+        let mediaSources = [];
 
-        // Handle Files (Base64)
-        const file = fd.get('file');
-        if (file && file.size > 0) {
-            // Warn if PDF is too large for Firestore (limit ~700KB raw = ~950KB base64)
-            if (type === 'pdf' && file.size > 700000) {
-                alert(`⚠️ Το PDF είναι πολύ μεγάλο (${(file.size / 1024).toFixed(0)} KB).\n\nΤο Firestore επιτρέπει max ~700 KB ανά αρχείο.\n\nΣυμπιέστε το PDF ή χρησιμοποιήστε έναν εξωτερικό σύνδεσμο (Τύπος: Ιστοσελίδα) από Google Drive.`);
+        // Handle Files from local state array
+        if (['image', 'pdf', 'schedule'].includes(type) && currentUploadedFiles.length > 0) {
+            mediaSources = currentUploadedFiles.map(f => f.data);
+            mediaSource = mediaSources[0]; // Backward compatibility fallback
+
+            // Total size check to avoid Firestore 1MB document limit
+            const totalLength = mediaSources.reduce((sum, src) => sum + src.length, 0);
+            const approxTotalSizeBytes = Math.round((totalLength - (814 * mediaSources.length)) * 0.75);
+            if (approxTotalSizeBytes > 950000) {
+                alert(`⚠️ Το συνολικό μέγεθος των αρχείων είναι πολύ μεγάλο (${(approxTotalSizeBytes / 1024).toFixed(0)} KB).\n\nΤο Firestore επιτρέπει μέγιστο μέγεθος εγγράφου 1 MB (περίπου 750 KB αρχείων).\n\nΠαρακαλώ αφαιρέστε κάποια αρχεία ή συμπιέστε τα περισσότερο.`);
                 return;
             }
-            try {
-                mediaSource = await readFileAsBase64(file);
-            } catch (err) { alert("Error reading file"); return; }
         } else if (editId) {
-            // Keep existing if editing and no new file
+            // Keep existing if editing and no new files uploaded
             const old = allAnnouncements.find(i => i.id === editId);
-            if (old) mediaSource = old.mediaSource;
+            if (old) {
+                mediaSource = old.mediaSource || "";
+                mediaSources = old.mediaSources || (old.mediaSource ? [old.mediaSource] : []);
+            }
         }
 
         // Handle specific inputs
@@ -401,6 +524,7 @@ function initForm() {
             mediaType: type,
             content: document.getElementById('contentEditor').innerHTML,
             mediaSource: mediaSource,
+            mediaSources: mediaSources,
             mediaScale: parseFloat(fd.get('iframeScale')) || 1.0,
             extraData: extraData,
             createdAt: new Date().toISOString(),
@@ -415,6 +539,8 @@ function initForm() {
             } else {
                 await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
                 alert("Added!");
+                currentUploadedFiles = [];
+                renderSelectedFiles();
                 form.reset();
                 document.getElementById('contentEditor').innerHTML = '';
                 const scaleVal = document.getElementById('scaleValue');
@@ -582,7 +708,6 @@ window.previewAnnouncement = async () => {
     const slidesCnt  = document.getElementById('slidesCount')?.value || '1';
     const slidesDly  = document.getElementById('slidesDelay')?.value || '5000';
     const slidesLp   = document.getElementById('slidesLoop')?.checked ? 'true' : 'false';
-    const fileInput  = document.getElementById('file');
 
     // Type badge colors
     const typeColors = { info: '#3b82f6', alert: '#ef4444', event: '#22c55e' };
@@ -598,21 +723,40 @@ window.previewAnnouncement = async () => {
             <h1 style="font-size:2.5rem;font-weight:700;background:linear-gradient(to right,#fff,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1rem;">${title}</h1>
             <div style="font-size:1.2rem;color:#94a3b8;max-width:80%;">${content}</div>`;
 
-    } else if (mediaType === 'image' || mediaType === 'pdf') {
-        // ... (existing image/pdf logic)
-        if (fileInput?.files?.[0]) {
-            const dataUrl = await readFileAsBase64(fileInput.files[0]);
+    } else if (mediaType === 'image' || mediaType === 'pdf' || mediaType === 'schedule') {
+        if (currentUploadedFiles.length > 0) {
             if (mediaType === 'image') {
-                contentHtml = `<img src="${dataUrl}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:0.5rem;">`;
+                contentHtml = `
+                    <div style="display: flex; gap: 10px; width: 100%; height: 100%; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        ${currentUploadedFiles.map(f => `<img src="${f.data}" style="max-width: calc(${currentUploadedFiles.length > 1 ? '50%' : '100%'} - 10px); max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">`).join("")}
+                    </div>`;
+            } else if (mediaType === 'pdf') {
+                contentHtml = `
+                    <div style="display: flex; gap: 10px; width: 100%; height: 100%; justify-content: center; align-items: center;">
+                        ${currentUploadedFiles.map(f => `<embed src="${f.data}" type="application/pdf" style="width: 100%; height: 100%; border: none; border-radius: 0.5rem;">`).join("")}
+                    </div>`;
             } else {
-                contentHtml = `<embed src="${dataUrl}" type="application/pdf" style="width:100%;height:100%;border:none;">`;
+                contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📄 Προεπισκόπηση Προγράμματος (συμπεριλαμβάνονται ${currentUploadedFiles.length} αρχεία)</div>`;
             }
         } else if (editId) {
             const old = allAnnouncements.find(i => i.id === editId);
-            if (old?.mediaSource) {
-                contentHtml = mediaType === 'image'
-                    ? `<img src="${old.mediaSource}" style="max-width:100%;max-height:100%;object-fit:contain;">`
-                    : `<embed src="${old.mediaSource}" type="application/pdf" style="width:100%;height:100%;border:none;">`;
+            const sources = old?.mediaSources || (old?.mediaSource ? [old.mediaSource] : []);
+            if (sources.length > 0) {
+                if (mediaType === 'image') {
+                    contentHtml = `
+                        <div style="display: flex; gap: 10px; width: 100%; height: 100%; justify-content: center; align-items: center; flex-wrap: wrap;">
+                            ${sources.map(src => `<img src="${src}" style="max-width: calc(${sources.length > 1 ? '50%' : '100%'} - 10px); max-height: 100%; object-fit: contain; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">`).join("")}
+                        </div>`;
+                } else if (mediaType === 'pdf') {
+                    contentHtml = `
+                        <div style="display: flex; gap: 10px; width: 100%; height: 100%; justify-content: center; align-items: center;">
+                            ${sources.map(src => `<embed src="${src}" type="application/pdf" style="width: 100%; height: 100%; border: none; border-radius: 0.5rem;">`).join("")}
+                        </div>`;
+                } else {
+                    contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📄 Προεπισκόπηση Προγράμματος (συμπεριλαμβάνονται ${sources.length} αρχεία)</div>`;
+                }
+            } else {
+                contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
             }
         } else {
             contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
@@ -681,6 +825,39 @@ window.editItem = (id) => {
     editId = id;
     const form = document.getElementById('announcementForm');
 
+    // Restore currentUploadedFiles from item
+    currentUploadedFiles = [];
+    if (item.mediaSources && Array.isArray(item.mediaSources) && item.mediaSources.length > 0) {
+        currentUploadedFiles = item.mediaSources.map((src, idx) => {
+            const isPdf = src.startsWith('data:application/pdf');
+            return {
+                name: isPdf ? `Αρχείο PDF ${idx + 1}` : `Εικόνα ${idx + 1}`,
+                type: isPdf ? 'application/pdf' : 'image/jpeg',
+                size: Math.round((src.length - 814) * 0.75),
+                data: src
+            };
+        });
+    } else if (item.mediaSource) {
+        const isPdf = item.mediaSource.startsWith('data:application/pdf');
+        const isExcel = item.mediaSource.startsWith('data:application/vnd') || item.mediaSource.startsWith('data:application/octet');
+        let typeStr = 'image/jpeg';
+        let nameStr = 'Εικόνα 1';
+        if (isPdf) {
+            typeStr = 'application/pdf';
+            nameStr = 'Αρχείο PDF 1';
+        } else if (isExcel) {
+            typeStr = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            nameStr = 'Αρχείο Excel 1';
+        }
+        currentUploadedFiles = [{
+            name: nameStr,
+            type: typeStr,
+            size: Math.round((item.mediaSource.length - 814) * 0.75),
+            data: item.mediaSource
+        }];
+    }
+    renderSelectedFiles();
+
     // Fill standard fields
     document.getElementById('title').value = item.title;
     document.getElementById('type').value = item.type;
@@ -733,6 +910,8 @@ window.editItem = (id) => {
 
 function cancelEdit() {
     editId = null;
+    currentUploadedFiles = [];
+    renderSelectedFiles();
     document.getElementById('announcementForm').reset();
     document.getElementById('contentEditor').innerHTML = '';
     const scaleVal = document.getElementById('scaleValue');
