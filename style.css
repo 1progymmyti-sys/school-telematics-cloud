@@ -942,3 +942,101 @@ body.fullscreen-mode .display-header {
     outline: none;
     border-color: var(--accent-color) !important;
 }
+
+/* --- MULTI-MEDIA & GRID LAYOUTS --- */
+
+.multi-image-container {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    overflow: hidden;
+    background: transparent;
+}
+
+.multi-image-item {
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.multi-image-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Dynamic styling based on image count for optimal grids */
+.multi-image-container.count-1 .multi-image-item {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.multi-image-container.count-2 .multi-image-item {
+    max-width: calc(50% - 0.75rem);
+    max-height: 100%;
+}
+
+.multi-image-container.count-3 .multi-image-item,
+.multi-image-container.count-4 .multi-image-item {
+    max-width: calc(50% - 0.75rem);
+    max-height: calc(50% - 0.75rem);
+}
+
+.multi-image-container.count-5 .multi-image-item,
+.multi-image-container.count-6 .multi-image-item {
+    max-width: calc(33.333% - 1rem);
+    max-height: calc(50% - 0.75rem);
+}
+
+.multi-image-container.count-7 .multi-image-item,
+.multi-image-container.count-8 .multi-image-item,
+.multi-image-container.count-9 .multi-image-item {
+    max-width: calc(33.333% - 1rem);
+    max-height: calc(33.333% - 1rem);
+}
+
+/* Support for top and bottom split layouts */
+.layout-split-top,
+.layout-split-bottom {
+    display: grid !important;
+    gap: 2rem;
+    padding: 2rem !important;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.layout-split-top {
+    grid-template-rows: 1fr 1.2fr;
+}
+
+.layout-split-bottom {
+    grid-template-rows: 1.2fr 1fr;
+}
+
+/* Scrollbar styling for PDF list inside container */
+[id^="pdf-container-"]::-webkit-scrollbar {
+    width: 8px;
+}
+
+[id^="pdf-container-"]::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+[id^="pdf-container-"]::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+[id^="pdf-container-"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}

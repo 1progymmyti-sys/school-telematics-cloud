@@ -569,14 +569,25 @@ function renderSlide(item) {
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
-        const url = item.mediaType === 'live_image' ? `${item.mediaSource}?t=${Date.now()}` : item.mediaSource;
+        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : [item.mediaSource];
         const scale = parseFloat(item.mediaScale) || 1.0;
         let imgStyle = '';
         if (scale !== 1.0) {
             imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
         }
-        contentHtml = `<img src="${url}" class="slide-image" style="${imgStyle}">`;
-        if (item.content) contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
+        
+        if (sources.length > 0 && (sources[0] || item.mediaSource)) {
+            contentHtml = `
+                <div class="multi-image-container count-${sources.length}">
+                    ${sources.map(src => `<img src="${src}" class="multi-image-item" style="${imgStyle}">`).join("")}
+                </div>
+            `;
+            if (item.content && (item.layout === 'fullscreen' || !item.layout)) {
+                contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
+            }
+        } else {
+            contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
+        }
     }
     else if (item.mediaType === 'youtube') {
         const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
@@ -645,13 +656,49 @@ function renderSlide(item) {
             ></iframe>
         `;
     }
-    else if (item.mediaType === 'pdf') {
-        contentHtml = `
-            <div id="pdf-container-${item.id}" style="width:100%; height:100%; overflow-y:auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:10px;">
-                <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; color:var(--text-primary); font-size:1.5rem;">Φόρτωση PDF... ⏳</div>
-            </div>
-        `;
-        setTimeout(() => renderPDFJS(item.mediaSource, `pdf-container-${item.id}`, item.mediaScale || 1.0), 50);
+    else if (item.mediaType === 'pdf' || item.mediaType === 'schedule') {
+        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : [item.mediaSource];
+        const pdfSources = [];
+        const imageSources = [];
+        
+        sources.forEach(src => {
+            if (src && (src.startsWith('data:application/pdf') || src.toLowerCase().includes('.pdf'))) {
+                pdfSources.push(src);
+            } else if (src && (src.startsWith('data:image/') || src.match(/\.(jpeg|jpg|gif|png|webp)/i))) {
+                imageSources.push(src);
+            } else if (src) {
+                pdfSources.push(src);
+            }
+        });
+        
+        if (pdfSources.length > 0) {
+            contentHtml = `
+                <div style="display: flex; gap: 1rem; width: 100%; height: 100%; justify-content: center; align-items: stretch; padding: 10px; overflow: hidden;">
+                    ${pdfSources.map((src, idx) => `
+                        <div id="pdf-container-${item.id}-${idx}" style="flex: 1; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #1e293b; border-radius: 8px; padding: 10px;">
+                            <div style="color: var(--text-primary); font-size: 1.2rem; margin: auto;">Φόρτωση PDF ${idx + 1}... ⏳</div>
+                        </div>
+                    `).join("")}
+                </div>
+            `;
+            
+            pdfSources.forEach((src, idx) => {
+                setTimeout(() => renderPDFJS(src, `pdf-container-${item.id}-${idx}`, item.mediaScale || 1.0), 50 + (idx * 50));
+            });
+        } else if (imageSources.length > 0) {
+            const scale = parseFloat(item.mediaScale) || 1.0;
+            let imgStyle = '';
+            if (scale !== 1.0) {
+                imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
+            }
+            contentHtml = `
+                <div class="multi-image-container count-${imageSources.length}">
+                    ${imageSources.map(src => `<img src="${src}" class="multi-image-item" style="${imgStyle}">`).join("")}
+                </div>
+            `;
+        } else {
+            contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
+        }
     }
     else {
         // Text / Default
@@ -662,34 +709,47 @@ function renderSlide(item) {
         `;
     }
 
-    // Wrap in Slide Div
-    container.innerHTML = `
-        <div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">
-            ${contentHtml}
-        </div>
-    `;
-
-    // Layout Splits
-    if (item.layout === 'split-left' || item.layout === 'split-right') {
-        // Re-arrange for split
-        if (item.mediaType === 'image') {
-            const scale = parseFloat(item.mediaScale) || 1.0;
-            let imgStyle = '';
-            if (scale !== 1.0) {
-                imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
-            }
-            container.innerHTML = `
-                <div class="slide active type-${item.type} ${layoutClass}" style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; padding:2rem;">
-                    <div style="order:${item.layout === 'split-left' ? 1 : 2}; display:flex; flex-direction:column; justify-content:center;">
-                        <h1>${item.title}</h1>
-                        <div>${item.content}</div>
-                    </div>
-                    <div style="order:${item.layout === 'split-left' ? 2 : 1}; overflow:hidden; border-radius:1rem;">
-                        <img src="${item.mediaSource}" style="width:100%; height:100%; object-fit:cover; border-radius:1rem; ${imgStyle}">
-                    </div>
-                </div>
-            `;
+    // Wrap and layout rendering
+    if (['split-left', 'split-right', 'split-top', 'split-bottom'].includes(item.layout)) {
+        let gridStyle = 'display: grid; gap: 2rem; padding: 2rem; width: 100%; height: 100%; box-sizing: border-box;';
+        let textOrder = 1;
+        let mediaOrder = 2;
+        
+        if (item.layout === 'split-left') {
+            gridStyle += 'grid-template-columns: 1fr 1fr;';
+            textOrder = 1;
+            mediaOrder = 2;
+        } else if (item.layout === 'split-right') {
+            gridStyle += 'grid-template-columns: 1fr 1fr;';
+            textOrder = 2;
+            mediaOrder = 1;
+        } else if (item.layout === 'split-top') {
+            gridStyle += 'grid-template-rows: 1fr 1.2fr;';
+            textOrder = 1;
+            mediaOrder = 2;
+        } else if (item.layout === 'split-bottom') {
+            gridStyle += 'grid-template-rows: 1.2fr 1fr;';
+            textOrder = 2;
+            mediaOrder = 1;
         }
+        
+        container.innerHTML = `
+            <div class="slide active type-${item.type} ${layoutClass}" style="${gridStyle}">
+                <div style="order:${textOrder}; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding: 1rem; overflow: hidden;">
+                    <h1 style="font-size:3.5rem; margin-bottom:1.5rem; background:linear-gradient(to right,#fff,#94a3b8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent; font-weight: 800; line-height: 1.2;">${item.title}</h1>
+                    <div style="font-size:1.8rem; color:var(--text-secondary); max-width:90%; line-height: 1.5; max-height: 60%; overflow-y: auto;">${item.content || ''}</div>
+                </div>
+                <div style="order:${mediaOrder}; overflow:hidden; border-radius:1rem; width:100%; height:100%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
+                    ${contentHtml}
+                </div>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">
+                ${contentHtml}
+            </div>
+        `;
     }
 }
 

@@ -275,6 +275,8 @@
                             <option value="fullscreen">Πλήρης Οθόνη (Standard)</option>
                             <option value="split-left">Split: Εικόνα Αριστερά (50%)</option>
                             <option value="split-right">Split: Εικόνα Δεξιά (50%)</option>
+                            <option value="split-top">Split: Εικόνα Πάνω (50%)</option>
+                            <option value="split-bottom">Split: Εικόνα Κάτω (50%)</option>
                         </select>
                     </div>
 
@@ -343,9 +345,10 @@
                     </div>
 
                     <div id="fileGroup" class="form-group" style="display: none;">
-                        <label for="file">Επιλογή Αρχείου (Εικόνα, PDF ή Excel)</label>
-                        <input type="file" id="file" name="file" accept="image/*,application/pdf,.xlsx,.xls">
-                        <small style="color: var(--text-secondary);">Για πρόγραμμα, επιλέξτε αρχείο Excel (.xlsx) ή PDF.</small>
+                        <label for="file">Επιλογή Αρχείων (Εικόνα, PDF ή Excel)</label>
+                        <input type="file" id="file" name="file" accept="image/*,application/pdf,.xlsx,.xls" multiple>
+                        <small style="color: var(--text-secondary);">Για πρόγραμμα, επιλέξτε αρχείο Excel (.xlsx) ή PDF. Μπορείτε να επιλέξετε πολλαπλές φωτογραφίες ή PDF.</small>
+                        <div id="selectedFilesList" style="margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.5rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); min-height: 40px; display: none;"></div>
                     </div>
 
                     <div id="urlGroup" class="form-group" style="display: none;">
