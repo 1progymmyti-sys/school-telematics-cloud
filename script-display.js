@@ -569,17 +569,33 @@ function renderSlide(item) {
 
     // Media Logic
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
-        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : [item.mediaSource];
+        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : (item.mediaSource ? [item.mediaSource] : []);
         const scale = parseFloat(item.mediaScale) || 1.0;
-        let imgStyle = '';
+        let imgScale = '';
         if (scale !== 1.0) {
-            imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
+            imgScale = `transform: scale(${scale}); transform-origin: center center;`;
         }
-        
-        if (sources.length > 0 && (sources[0] || item.mediaSource)) {
+
+        if (sources.length > 0 && sources[0]) {
+            // Calculate max-width per image dynamically
+            const n = sources.length;
+            const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
+            const gap = 1.5; // rem
+            const maxW = cols === 1 ? '100%' : `calc(${(100/cols).toFixed(2)}% - ${(gap*(cols-1)/cols).toFixed(2)}rem)`;
+            const maxH = n <= cols ? '100%' : `calc(${(100 / Math.ceil(n/cols)).toFixed(2)}% - ${gap/2}rem)`;
+
             contentHtml = `
-                <div class="multi-image-container count-${sources.length}">
-                    ${sources.map(src => `<img src="${src}" class="multi-image-item" style="${imgStyle}">`).join("")}
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                            display: flex; flex-wrap: wrap; gap: ${gap}rem; padding: ${gap}rem;
+                            justify-content: center; align-items: center;
+                            overflow: hidden; box-sizing: border-box; background: transparent;">
+                    ${sources.map(src => `
+                        <img src="${src}"
+                            style="max-width: ${maxW}; max-height: ${maxH};
+                                   object-fit: contain; border-radius: 0.75rem;
+                                   box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+                                   flex-shrink: 0; ${imgScale}">
+                    `).join('')}
                 </div>
             `;
             if (item.content && (item.layout === 'fullscreen' || !item.layout)) {
@@ -687,13 +703,24 @@ function renderSlide(item) {
             });
         } else if (imageSources.length > 0) {
             const scale = parseFloat(item.mediaScale) || 1.0;
-            let imgStyle = '';
-            if (scale !== 1.0) {
-                imgStyle = `transform: scale(${scale}) !important; transform-origin: center center !important;`;
-            }
+            let imgScale = scale !== 1.0 ? `transform: scale(${scale}); transform-origin: center center;` : '';
+            const n = imageSources.length;
+            const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
+            const gap = 1.5;
+            const maxW = cols === 1 ? '100%' : `calc(${(100/cols).toFixed(2)}% - ${(gap*(cols-1)/cols).toFixed(2)}rem)`;
+            const maxH = n <= cols ? '100%' : `calc(${(100 / Math.ceil(n/cols)).toFixed(2)}% - ${gap/2}rem)`;
             contentHtml = `
-                <div class="multi-image-container count-${imageSources.length}">
-                    ${imageSources.map(src => `<img src="${src}" class="multi-image-item" style="${imgStyle}">`).join("")}
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+                            display: flex; flex-wrap: wrap; gap: ${gap}rem; padding: ${gap}rem;
+                            justify-content: center; align-items: center;
+                            overflow: hidden; box-sizing: border-box; background: transparent;">
+                    ${imageSources.map(src => `
+                        <img src="${src}"
+                            style="max-width: ${maxW}; max-height: ${maxH};
+                                   object-fit: contain; border-radius: 0.75rem;
+                                   box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+                                   flex-shrink: 0; ${imgScale}">
+                    `).join('')}
                 </div>
             `;
         } else {
