@@ -846,27 +846,25 @@ body.fullscreen-mode .display-header {
     height: 100% !important;
     overflow: hidden !important;
     position: relative !important;
+    display: flex !important;
+    align-items: center !important;
     background: transparent !important;
     /* Transparent to show blue */
 }
 
-/* The scanning text element */
+/* The scanning text element - perfectly centered vertically */
 .ticker-text {
-    position: absolute !important;
-    top: 50% !important;
-    transform: translateY(-50%);
-    /* Handled by JS mostly, but initial state ok */
+    position: relative !important;
+    top: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
     white-space: nowrap !important;
     color: #ffffff !important;
     font-size: 1.6rem !important;
-    /* Slightly larger for clarity */
     font-weight: 700 !important;
-    /* Bold like the image */
+    line-height: 1 !important;
     font-family: 'Arial', 'Helvetica', sans-serif !important;
-    /* Classic Ticker Font */
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-    /* Subtle shadow for depth */
-    /* Animation removed - handled by JS to prevent resets */
     will-change: transform;
 }
 
