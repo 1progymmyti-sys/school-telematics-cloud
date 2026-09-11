@@ -124,37 +124,6 @@
 
         /* Hide original header content partially if needed, but keep logo */
     </style>
-    <script>
-        let lastTimeStr = "";
-
-        function updateClockDisplay() {
-            const now = new Date();
-            const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
-            const dEl = document.getElementById('date');
-
-            // Date check to avoid flicker
-            if (dEl && dEl.innerText !== dateStr) dEl.innerText = dateStr;
-
-            let h = now.getHours();
-            const m = now.getMinutes();
-            const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
-            h = h % 12;
-            h = h ? h : 12;
-            const mStr = m < 10 ? '0' + m : m;
-
-            const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
-
-            // STRICT CHECK TO STOP PULSE
-            if (lastTimeStr !== newHtml) {
-                const cEl = document.getElementById('clock');
-                if (cEl) cEl.innerHTML = newHtml;
-                lastTimeStr = newHtml;
-            }
-        }
-        setInterval(updateClockDisplay, 1000); // Check every second
-        updateClockDisplay();
-    </script>
 
     <!-- FullScreen Overlay (Large Screen Only) -->
     <div id="fullscreenOverlay" style="

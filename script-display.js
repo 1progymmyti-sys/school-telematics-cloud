@@ -174,17 +174,18 @@ function showTickerText(htmlContent, labelText) {
 function startTickerAnim(element) {
     if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
     tickerOffset = window.innerWidth; // Reset start pos
+    const elementWidth = element.offsetWidth || 1200; // Cache width to prevent 60 FPS layout thrashing
 
     function loop() {
-        tickerOffset -= 1.8; // Faster Speed (requested slightly faster)
+        tickerOffset -= 1.8; // Smooth Speed
 
         // If fully off-screen left, reset to right
-        if (tickerOffset < -element.offsetWidth) {
+        if (tickerOffset < -elementWidth) {
             tickerOffset = window.innerWidth;
         }
 
-        // Apply transform (maintain Y centering)
-        element.style.transform = `translate3d(${tickerOffset}px, -50%, 0)`;
+        // Apply transform (0 on Y so flex centering takes over)
+        element.style.transform = `translate3d(${tickerOffset}px, 0, 0)`;
 
         tickerAnimId = requestAnimationFrame(loop);
     }
@@ -351,8 +352,30 @@ function updateScheduleStatus() {
 
 function updateClock() {
     const now = new Date();
-    document.getElementById('clock').innerText = now.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('date').innerText = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const clockEl = document.getElementById('clock');
+    const dateEl = document.getElementById('date');
+
+    if (clockEl) {
+        let h = now.getHours();
+        const m = now.getMinutes();
+        const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
+        h = h % 12;
+        h = h ? h : 12;
+        const mStr = m < 10 ? '0' + m : m;
+        const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+        if (clockEl.innerHTML !== newHtml) {
+            clockEl.innerHTML = newHtml;
+        }
+    }
+
+    if (dateEl) {
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+        if (dateEl.innerText !== dateStr) {
+            dateEl.innerText = dateStr;
+        }
+    }
+
     updateScheduleStatus();
 }
 
@@ -780,16 +803,23 @@ function renderSlide(item) {
     }
 }
 
+let countdownTimerId = null;
 function startCountdownTicker(id, targetTime) {
+    if (countdownTimerId) clearInterval(countdownTimerId);
+
     const update = () => {
         const el = document.getElementById(`countdown-${id}`);
-        if (!el) return; // Slide gone
+        if (!el) {
+            if (countdownTimerId) clearInterval(countdownTimerId);
+            return;
+        }
 
         const now = new Date().getTime();
         const dist = targetTime - now;
 
         if (dist < 0) {
             el.innerText = "ΕΛΗΞΕ";
+            if (countdownTimerId) clearInterval(countdownTimerId);
             return;
         }
 
@@ -799,9 +829,10 @@ function startCountdownTicker(id, targetTime) {
         const seconds = Math.floor((dist % (1000 * 60)) / 1000);
 
         el.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-        requestAnimationFrame(update);
     };
+
     update();
+    countdownTimerId = setInterval(update, 1000);
 }
 
 

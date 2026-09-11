@@ -18,12 +18,16 @@ export default class ParticleEngine {
     }
 
     start(themeName) {
-        if (this.theme === themeName && this.animationId) return; // Already running
-        this.theme = themeName;
-        this.particles = [];
         this.cancel();
+        this.theme = themeName || 'default';
+        this.particles = [];
 
-        console.log(`Starting particles (or flag) for theme: ${themeName}`);
+        // For default theme, do not run animation loop at all (saves massive GPU/CPU on TVs)
+        if (this.theme === 'default') {
+            return;
+        }
+
+        console.log(`Starting particles for theme: ${this.theme}`);
 
         // Populate initial particles
         if (this.theme !== 'national') {
@@ -37,7 +41,9 @@ export default class ParticleEngine {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        if (this.ctx && this.canvas) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
     }
 
     initParticles() {
@@ -48,13 +54,14 @@ export default class ParticleEngine {
     }
 
     getParticleCount() {
-        const width = this.canvas.width;
-        if (this.theme === 'christmas') return width / 5; // Snow
-        if (this.theme === 'celebration') return width / 10; // Confetti
-        if (this.theme === 'valentine') return width / 15; // Hearts
-        if (this.theme === 'easter') return width / 10; // Glows
-        if (this.theme === 'exams') return width / 12; // Math formulas
-        if (this.theme === 'carnival') return width / 8; // Dense carnival
+        const width = this.canvas.width || 1920;
+        // Optimized for TV performance (30-45 particles instead of 400+)
+        if (this.theme === 'christmas') return Math.min(45, Math.floor(width / 35)); // Snow
+        if (this.theme === 'celebration') return Math.min(35, Math.floor(width / 45)); // Confetti
+        if (this.theme === 'valentine') return Math.min(25, Math.floor(width / 60)); // Hearts
+        if (this.theme === 'easter') return Math.min(20, Math.floor(width / 70)); // Glows
+        if (this.theme === 'exams') return Math.min(20, Math.floor(width / 70)); // Math formulas
+        if (this.theme === 'carnival') return Math.min(30, Math.floor(width / 50)); // Dense carnival
         return 0;
     }
 
