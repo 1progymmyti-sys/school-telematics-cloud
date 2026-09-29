@@ -10,6 +10,81 @@ let allAnnouncements = [];
 let currentSettings = {};
 let editId = null;
 let currentUploadedFiles = []; // Array of { name, type, size, data }
+let searchQuery = "";
+let activeFilter = "all";
+
+// --- TOAST NOTIFICATION SYSTEM ---
+function showToast(title, message, type = 'info', duration = 3500) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || 'ℹ️'}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <div class="toast-message">${message}</div>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.classList.add('toast-hiding');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+// --- CONFIRMATION MODAL SYSTEM ---
+function confirmDialog(title, message, okText = 'Διαγραφή', icon = '🗑️') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const msgEl = document.getElementById('confirmModalMessage');
+        const iconEl = document.getElementById('confirmModalIcon');
+        const okBtn = document.getElementById('confirmOkBtn');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+
+        if (!modal) {
+            resolve(window.confirm(`${title}\n\n${message}`));
+            return;
+        }
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        if (iconEl) iconEl.textContent = icon;
+        if (okBtn) okBtn.textContent = okText;
+
+        modal.style.display = 'flex';
+
+        const cleanup = (result) => {
+            modal.style.display = 'none';
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            document.removeEventListener('keydown', onKey);
+            resolve(result);
+        };
+
+        const onOk = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        const onKey = (e) => {
+            if (e.key === 'Escape') cleanup(false);
+            if (e.key === 'Enter') cleanup(true);
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKey);
+    });
+}
 
 // Helper: Read File as Base64
 const readFileAsBase64 = (file) => {
@@ -185,6 +260,12 @@ window.onload = async () => {
             } else {
                 err.textContent = "Λάθος PIN";
                 err.style.display = 'block';
+                const card = document.getElementById('loginCard');
+                if (card) {
+                    card.classList.remove('shake');
+                    void card.offsetWidth;
+                    card.classList.add('shake');
+                }
                 document.getElementById('pinInput').value = '';
                 document.getElementById('pinInput').focus();
             }
@@ -199,6 +280,12 @@ window.onload = async () => {
                 }
             }
             document.getElementById('loginError').style.display = 'block';
+            const card = document.getElementById('loginCard');
+            if (card) {
+                card.classList.remove('shake');
+                void card.offsetWidth;
+                card.classList.add('shake');
+            }
         }
     };
 
@@ -215,6 +302,7 @@ window.onload = async () => {
             const pinInput = document.getElementById('adminPin');
             if (pinInput) pinInput.type = 'text';
         }
+        showToast("Καλώς ήρθατε", isMaintainer ? "Σύνδεση ως Συντηρητής" : "Σύνδεση ως Διαχειριστής", "success");
     }
 
     async function sha256(message) {
@@ -237,7 +325,6 @@ window.onload = async () => {
         if (e.key === 'Enter') checkPin();
     });
 
-
     // --- END AUTH LOGIC ---
     // Dynamic Event Listeners for Themes (Module Fix)
     document.querySelectorAll('.theme-btn').forEach(btn => {
@@ -253,11 +340,68 @@ window.onload = async () => {
     if (refreshBtn) {
         refreshBtn.onclick = null; // Remove old handler
         refreshBtn.addEventListener('click', () => {
-            // Re-fetch logic is automatic via onSnapshot, but we can log or trigger something if needed
             console.log("List is auto-updating via Firebase!");
-            alert("Η λίστα ενημερώνεται αυτόματα!");
+            showToast("Ενημέρωση", "Η λίστα συγχρονίζεται αυτόματα σε πραγματικό χρόνο!", "info");
         });
     }
+
+    // Search Box Listener
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderList(allAnnouncements);
+        });
+    }
+
+    // Filter Chips Listeners
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            activeFilter = chip.dataset.filter;
+            renderList(allAnnouncements);
+        });
+    });
+
+    // --- TAB NAVIGATION SYSTEM ---
+    const tabButtons = document.querySelectorAll('.admin-tab-btn');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTabId = btn.dataset.tab;
+            if (!targetTabId) return;
+
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.style.display = 'none';
+                pane.classList.remove('active');
+            });
+
+            const activePane = document.getElementById(targetTabId);
+            if (activePane) {
+                activePane.style.display = 'block';
+                activePane.classList.add('active');
+            }
+        });
+    });
+
+    // --- VISUAL MEDIA SELECTOR CARDS ---
+    const mediaCards = document.querySelectorAll('.media-type-card');
+    const mediaTypeSelect = document.getElementById('mediaType');
+    mediaCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const type = card.dataset.type;
+            if (!type || !mediaTypeSelect) return;
+
+            mediaCards.forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+
+            mediaTypeSelect.value = type;
+            mediaTypeSelect.dispatchEvent(new Event('change'));
+        });
+    });
 
     initSettingsForm();
 
@@ -319,30 +463,103 @@ function updateEmergencyUI(s) {
     }
 }
 
+const mediaTypeLabels = {
+    text: '📝 Κείμενο',
+    image: '🖼️ Εικόνα',
+    youtube: '📺 YouTube',
+    countdown: '⏱️ Αντίστροφη',
+    exam_calendar: '📅 Διαγωνίσματα',
+    live_image: '📷 Live Εικόνα',
+    website: '🌐 Ιστοσελίδα',
+    google_slides: '📤 Google Slides',
+    schedule: '📋 Πρόγραμμα',
+    pdf: '📄 PDF'
+};
+
 function renderList(list) {
     const listContainer = document.getElementById("announcementList");
-    listContainer.innerHTML = list.map(item => `
-        <div class="announcement-item type-${item.type}" data-id="${item.id}" style="opacity: ${isActive(item) ? "1" : "0.5"}; cursor: grab;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div class="drag-handle" style="cursor: grab; color: var(--text-secondary); font-size: 1.2rem;">☰</div>
-                <div>
-                    <div style="font-size: 0.8rem; opacity: 0.7; text-transform: uppercase;">
-                        ${item.mediaType} | ${getStatusBadge(item)}
+    if (!listContainer) return;
+
+    // 1. Calculate stats across active announcements
+    const activeItems = allAnnouncements.filter(i => isActive(i));
+    const totalDurationSec = activeItems.reduce((sum, i) => {
+        let d = i.duration || 10;
+        if (i.type === 'alert') d *= 2;
+        return sum + d;
+    }, 0);
+    const mins = Math.floor(totalDurationSec / 60);
+    const secs = totalDurationSec % 60;
+    const durStr = mins > 0 ? `${mins} λ. ${secs > 0 ? secs + ' δ.' : ''}` : `${secs} δευτ.`;
+    const statsPill = document.getElementById('statsPill');
+    if (statsPill) {
+        statsPill.textContent = `${activeItems.length} Ενεργές • Κύκλος: ${durStr}`;
+    }
+
+    // 2. Filter by status / chip
+    let filtered = list;
+    if (activeFilter === 'active') {
+        filtered = filtered.filter(i => isActive(i));
+    } else if (activeFilter === 'paused') {
+        filtered = filtered.filter(i => i.isPaused);
+    } else if (activeFilter === 'alert') {
+        filtered = filtered.filter(i => i.type === 'alert');
+    }
+
+    // 3. Search query filter
+    if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        filtered = filtered.filter(i => 
+            (i.title && i.title.toLowerCase().includes(q)) ||
+            (i.content && i.content.toLowerCase().includes(q)) ||
+            (i.mediaType && i.mediaType.toLowerCase().includes(q))
+        );
+    }
+
+    // 4. Empty state
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `
+            <div style="text-align: center; padding: 2.5rem 1rem; background: rgba(255,255,255,0.02); border-radius: var(--radius-sm); border: 1px dashed var(--border-color); color: var(--text-secondary);">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+                <div style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Δεν βρέθηκαν ανακοινώσεις</div>
+                <div style="font-size: 0.85rem;">Δοκιμάστε διαφορετικό όρο αναζήτησης ή επιλέξτε το φίλτρο «Όλες».</div>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = filtered.map(item => {
+        const typeLabel = mediaTypeLabels[item.mediaType] || item.mediaType;
+        const plainContent = item.content ? item.content.replace(/<[^>]*>/g, "").trim() : "";
+        const snippet = plainContent ? (plainContent.length > 55 ? plainContent.substring(0, 55) + "..." : plainContent) : "";
+        const alertPrefix = item.type === 'alert' ? '<span style="color:var(--alert-color); font-weight:800; font-size:0.75rem;">🚨 ΕΠΕΙΓΟΝ</span> • ' : '';
+
+        return `
+        <div class="announcement-item type-${item.type}" data-id="${item.id}" style="opacity: ${isActive(item) ? "1" : "0.55"}; cursor: grab;">
+            <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
+                <div class="drag-handle" title="Σύρετε για αλλαγή σειράς">☰</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                            ${alertPrefix}${typeLabel}
+                        </span>
+                        ${getStatusBadge(item)}
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">⏱ ${item.duration || 10}δ.</span>
                     </div>
-                    <h3>${item.title}</h3>
-                    <div style="color: var(--text-secondary); font-size: 0.9rem;">${item.content ? item.content.replace(/<[^>]*>/g, "").substring(0, 50) + "..." : ""}</div>
+                    <h3 style="font-size: 1.05rem; margin-bottom: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white;">${item.title}</h3>
+                    ${snippet ? `<div style="color: var(--text-secondary); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${snippet}</div>` : ''}
                 </div>
             </div>
-            <div style="display: flex; gap: 0.5rem; align-items: start;">
-                 <button class="btn" style="background:${item.isPaused ? "#10b981" : "#f59e0b"}; padding:0.5rem; min-width: 40px;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Συνέχιση" : "Παύση"}">
+            <div style="display: flex; gap: 0.4rem; align-items: center; margin-left: 0.75rem; flex-shrink: 0;">
+                <button class="btn btn-sm" style="background:${item.isPaused ? "var(--success-color)" : "var(--warning-color)"}; padding: 0.45rem 0.75rem;" onclick="window.togglePause('${item.id}', ${!!item.isPaused})" title="${item.isPaused ? "Συνέχιση προβολής" : "Παύση προβολής"}">
                     ${item.isPaused ? "▶" : "⏸"}
                 </button>
-                <button class="btn" style="background:#6366f1; padding:0.5rem;" onclick="window.duplicateItem('${item.id}')" title="Αντιγραφή">📋</button>
-                <button class="btn" style="background:var(--warning-color); padding:0.5rem;" onclick="window.editItem('${item.id}')">✎</button>
-                <button class="btn btn-danger" style="padding:0.5rem;" onclick="window.deleteItem('${item.id}')">&times;</button>
+                <button class="btn btn-sm btn-secondary" style="padding: 0.45rem 0.75rem;" onclick="window.duplicateItem('${item.id}')" title="Αντιγραφή">📋</button>
+                <button class="btn btn-sm btn-secondary" style="padding: 0.45rem 0.75rem; color: #fbbf24;" onclick="window.editItem('${item.id}')" title="Επεξεργασία">✎</button>
+                <button class="btn btn-sm btn-danger" style="padding: 0.45rem 0.75rem;" onclick="window.deleteItem('${item.id}')" title="Διαγραφή">&times;</button>
             </div>
         </div>
-    `).join("");
+        `;
+    }).join("");
 }
 
 function initSortable() {
@@ -364,9 +581,10 @@ function initSortable() {
             try {
                 await Promise.all(updates);
                 console.log("Order saved successfully!");
+                showToast("Σειρά", "Η νέα σειρά των ανακοινώσεων αποθηκεύτηκε!", "success");
             } catch (err) {
                 console.error("Order save failed!", err);
-                alert("Σφάλμα στην αποθήκευση της σειράς.");
+                showToast("Σφάλμα", "Σφάλμα στην αποθήκευση της σειράς.", "error");
             }
         }
     });
@@ -397,7 +615,7 @@ function initForm() {
                     } else {
                         // PDF or Excel
                         if (file.type === 'application/pdf' && file.size > 700000) {
-                            alert(`⚠️ Το PDF "${file.name}" είναι πολύ μεγάλο (${(file.size / 1024).toFixed(0)} KB).\n\nΤο Firestore επιτρέπει max ~700 KB ανά αρχείο. Παρακαλώ συμπιέστε το ή χρησιμοποιήστε εξωτερικό σύνδεσμο.`);
+                            showToast("Προσοχή", `Το PDF "${file.name}" είναι πολύ μεγάλο (${(file.size / 1024).toFixed(0)} KB). Το Firestore επιτρέπει max ~700 KB ανά αρχείο.`, "warning", 5000);
                             continue;
                         }
                         data = await readFileAsBase64(file);
@@ -412,7 +630,7 @@ function initForm() {
                     });
                 } catch (err) {
                     console.error("Error reading file:", file.name, err);
-                    alert(`Σφάλμα κατά την ανάγνωση του αρχείου ${file.name}`);
+                    showToast("Σφάλμα", `Σφάλμα κατά την ανάγνωση του αρχείου ${file.name}`, "error");
                 }
             }
             
@@ -449,6 +667,15 @@ function initForm() {
         if (type === 'exam_calendar') els.examcal.style.display = 'block';
         if (type === 'google_slides') els.googleSlides.style.display = 'block';
         if (['website', 'pdf', 'image'].includes(type)) { if (els.scale) els.scale.style.display = 'block'; }
+
+        // Sync Visual Media Cards
+        document.querySelectorAll('.media-type-card').forEach(card => {
+            if (card.dataset.type === type) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
     };
     mediaTypeSelect.onchange = updateVisibility;
     updateVisibility();
@@ -471,7 +698,7 @@ function initForm() {
             const totalLength = mediaSources.reduce((sum, src) => sum + src.length, 0);
             const approxTotalSizeBytes = Math.round((totalLength - (814 * mediaSources.length)) * 0.75);
             if (approxTotalSizeBytes > 950000) {
-                alert(`⚠️ Το συνολικό μέγεθος των αρχείων είναι πολύ μεγάλο (${(approxTotalSizeBytes / 1024).toFixed(0)} KB).\n\nΤο Firestore επιτρέπει μέγιστο μέγεθος εγγράφου 1 MB (περίπου 750 KB αρχείων).\n\nΠαρακαλώ αφαιρέστε κάποια αρχεία ή συμπιέστε τα περισσότερο.`);
+                showToast("Προσοχή", `Το συνολικό μέγεθος των αρχείων είναι πολύ μεγάλο (${(approxTotalSizeBytes / 1024).toFixed(0)} KB). Το Firestore επιτρέπει μέγιστο 1 MB (περίπου 750 KB αρχείων).`, "warning", 6000);
                 return;
             }
         } else if (editId) {
@@ -498,7 +725,7 @@ function initForm() {
             if (match) {
                 mediaSource = `https://docs.google.com/presentation/d/${match[1]}/embed?start=true&loop=${loop}&delayms=${delay}`;
             } else {
-                alert('Αδύνατο εύρεμα ID από το URL. Βεβαιωθείτε ότι το link είναι από Google Slides.');
+                showToast("Σφάλμα", "Αδύνατο εύρεμα ID από το URL. Βεβαιωθείτε ότι το link είναι από Google Slides.", "error");
                 return;
             }
         }
@@ -534,21 +761,25 @@ function initForm() {
         try {
             if (editId) {
                 await updateDoc(doc(db, ANNOUNCEMENTS_COL, editId), docData);
-                alert("Updated!");
+                showToast("Επιτυχία", "Η ανακοίνωση ενημερώθηκε επιτυχώς!", "success");
                 cancelEdit();
             } else {
                 await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
-                alert("Added!");
+                showToast("Επιτυχία", "Η νέα ανακοίνωση δημοσιεύτηκε!", "success");
                 currentUploadedFiles = [];
                 renderSelectedFiles();
                 form.reset();
                 document.getElementById('contentEditor').innerHTML = '';
                 const scaleVal = document.getElementById('scaleValue');
                 if (scaleVal) scaleVal.textContent = '100%';
+                if (mediaTypeSelect) {
+                    mediaTypeSelect.value = 'text';
+                    mediaTypeSelect.dispatchEvent(new Event('change'));
+                }
             }
         } catch (err) {
             console.error(err);
-            alert("Error: " + err.message);
+            showToast("Σφάλμα", "Σφάλμα: " + err.message, "error");
         }
     };
 }
@@ -630,13 +861,16 @@ function initSettingsForm() {
 async function saveSettings(updates) {
     try {
         await setDoc(doc(db, SETTINGS_COL, SETTINGS_DOC_ID), updates, { merge: true });
-        alert("Settings Saved!");
+        showToast("Επιτυχία", "Οι ρυθμίσεις σχολείου αποθηκεύτηκαν!", "success");
     } catch (err) {
-        alert("Save Failed: " + err.message);
+        showToast("Σφάλμα", "Αποτυχία αποθήκευσης: " + err.message, "error");
     }
 }
 
-window.setTheme = (name) => saveSettings({ theme: name });
+window.setTheme = (name) => {
+    saveSettings({ theme: name });
+    showToast("Θέμα", `Εφαρμόστηκε το θέμα: ${name}`, "info");
+};
 
 window.calcSlidesDuration = () => {
     const count = parseInt(document.getElementById('slidesCount').value) || 1;
@@ -656,10 +890,10 @@ window.togglePause = async (id, currentStatus) => {
     const newStatus = !currentStatus;
     try {
         await updateDoc(doc(db, ANNOUNCEMENTS_COL, id), { isPaused: newStatus });
-        // UI updates automatically via onSnapshot
+        showToast("Κατάσταση", newStatus ? "Η ανακοίνωση τέθηκε σε παύση." : "Η ανακοίνωση ενεργοποιήθηκε!", "info");
     } catch (err) {
         console.error("Error toggling pause:", err);
-        alert("Operation failed: " + err.message);
+        showToast("Σφάλμα", "Σφάλμα αλλαγής κατάστασης: " + err.message, "error");
     }
 };
 
@@ -680,14 +914,24 @@ window.duplicateItem = async (id) => {
         // Small visual feedback
         const btn = document.querySelector(`[data-id="${id}"] button[title="Αντιγραφή"]`);
         if (btn) { btn.textContent = '✅'; setTimeout(() => btn.textContent = '📋', 1000); }
+        showToast("Αντιγραφή", "Δημιουργήθηκε αντίγραφο σε κατάσταση παύσης.", "success");
     } catch (err) {
-        alert('Σφάλμα αντιγραφής: ' + err.message);
+        showToast("Σφάλμα", 'Σφάλμα αντιγραφής: ' + err.message, "error");
     }
 };
 
 window.deleteItem = async (id) => {
-    if (!confirm("Delete?")) return;
-    await deleteDoc(doc(db, ANNOUNCEMENTS_COL, id));
+    const item = allAnnouncements.find(i => i.id === id);
+    const itemTitle = item?.title ? `«${item.title}»` : "αυτή την ανακοίνωση";
+    const confirmed = await confirmDialog("Διαγραφή Ανακοίνωσης", `Είστε βέβαιοι ότι θέλετε να διαγράψετε οριστικά ${itemTitle};`, "Διαγραφή", "🗑️");
+    if (!confirmed) return;
+
+    try {
+        await deleteDoc(doc(db, ANNOUNCEMENTS_COL, id));
+        showToast("Διαγράφηκε", "Η ανακοίνωση αφαιρέθηκε επιτυχώς.", "info");
+    } catch (err) {
+        showToast("Σφάλμα", "Σφάλμα διαγραφής: " + err.message, "error");
+    }
 };
 
 window.previewAnnouncement = async () => {
@@ -919,6 +1163,11 @@ function cancelEdit() {
     const btn = document.querySelector('#announcementForm button[type="submit"]');
     btn.textContent = "Δημοσίευση";
     btn.style.background = "";
+    const mediaTypeSelect = document.getElementById('mediaType');
+    if (mediaTypeSelect) {
+        mediaTypeSelect.value = 'text';
+        mediaTypeSelect.dispatchEvent(new Event('change'));
+    }
 }
 
 // Helpers
@@ -933,7 +1182,7 @@ function isActive(item) {
 }
 
 function getStatusBadge(item) {
-    if (item.isPaused) return "(PAUSED)";
-    if (!isActive(item)) return "(INACTIVE)";
-    return "(ACTIVE)";
+    if (item.isPaused) return '<span class="badge badge-paused">⏸ Παύση</span>';
+    if (!isActive(item)) return '<span class="badge badge-inactive">⏹ Ανενεργή</span>';
+    return '<span class="badge badge-active">▶ Ενεργή</span>';
 }

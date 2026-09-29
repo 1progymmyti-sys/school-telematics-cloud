@@ -5,86 +5,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics Cloud - Διαχείριση</title>
-    <link rel="stylesheet" href="style.css?v=2.0">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=2026_REVAMP_5">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 
 <body>
     <!-- Login Screen -->
     <div id="loginScreen"
-        style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
-        <h1 style="margin-bottom: 2rem;">🔐 Είσοδος Διαχειριστή</h1>
-        <div
-            style="background: var(--card-bg); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1);">
+        style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; text-align: center;">
+        <div style="font-size: 3.5rem; margin-bottom: 0.5rem; animation: pulse 2.5s infinite;">🔐</div>
+        <h1 style="margin-bottom: 0.5rem; font-size: 2rem; background: linear-gradient(to right, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Διαχείριση Σχολικής Τηλεματικής</h1>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 1rem;">Πύλη Ασφαλούς Πρόσβασης Cloud</p>
+        <div id="loginCard"
+            style="background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 2.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); width: 100%; max-width: 380px;">
             <!-- Standard PIN Login -->
             <div id="pinLoginGroup">
-                <p style="margin-bottom: 1rem; color: var(--text-secondary);">Πληκτρολογήστε το PIN για να συνεχίσετε
-                </p>
-                <input type="password" id="pinInput" placeholder="PIN"
-                    style="font-size: 1.5rem; text-align: center; letter-spacing: 5px; margin-bottom: 1rem; width: 200px;"
+                <p style="margin-bottom: 1.25rem; color: var(--text-secondary); font-size: 0.95rem;">Πληκτρολογήστε το PIN διαχειριστή</p>
+                <input type="password" id="pinInput" placeholder="••••"
+                    style="font-size: 2rem; text-align: center; letter-spacing: 12px; margin-bottom: 1.25rem; width: 100%; padding: 0.75rem 1rem; border-radius: var(--radius-sm);"
                     maxlength="20" autofocus>
             </div>
 
             <!-- Maintainer Login -->
             <div id="maintainerLoginGroup" style="display: none;">
-                <p style="margin-bottom: 1rem; color: var(--accent-color);">🛠️ Είσοδος Συντηρητή</p>
-                <input type="text" id="mUser" placeholder="Username"
-                    style="width: 100%; margin-bottom: 0.5rem; padding: 0.8rem;">
-                <input type="password" id="mPass" placeholder="Password"
-                    style="width: 100%; margin-bottom: 1rem; padding: 0.8rem;">
+                <p style="margin-bottom: 1.25rem; color: var(--accent-color); font-weight: 700; font-size: 1rem;">🛠️ Είσοδος Συντηρητή</p>
+                <input type="text" id="mUser" placeholder="Όνομα Χρήστη"
+                    style="width: 100%; margin-bottom: 0.75rem; padding: 0.8rem 1rem;">
+                <input type="password" id="mPass" placeholder="Κωδικός Πρόσβασης"
+                    style="width: 100%; margin-bottom: 1.25rem; padding: 0.8rem 1rem;">
             </div>
 
-            <br>
-            <button id="loginBtn" class="btn" style="width: 100%; font-size: 1.2rem;">Είσοδος</button>
-            <p id="loginError" style="color: var(--alert-color); margin-top: 1rem; display: none;">Λάθος Στοιχεία</p>
+            <button id="loginBtn" class="btn" style="width: 100%; font-size: 1.1rem; padding: 0.85rem;">Είσοδος &rarr;</button>
+            <p id="loginError" style="color: var(--alert-color); margin-top: 1rem; font-weight: 600; display: none;">❌ Λάθος Στοιχεία</p>
 
             <a href="#" id="toggleLoginMode"
-                style="display: block; margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary); text-decoration: underline;">Είσοδος
-                Συντηρητή</a>
+                style="display: inline-block; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); text-decoration: none; transition: var(--transition); padding: 0.35rem 0.75rem; border-radius: 0.35rem; border: 1px solid transparent;">🛠️ Είσοδος Συντηρητή</a>
         </div>
-        <a href="index.html" style="margin-top: 2rem; color: var(--text-secondary);">← Πίσω στην Αρχική</a>
+        <a href="index.html" style="margin-top: 2rem; color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem; transition: var(--transition);" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text-secondary)'">← Πίσω στην Αρχική Πύλη</a>
     </div>
 
     <div id="mainApp" class="container" style="display: none;">
-        <header style="margin-bottom: 3rem; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1>Διαχείριση Ανακοινώσεων (Cloud)</h1>
-                <p style="color: var(--text-secondary);">Προσθέστε ή αφαιρέστε ενημερώσεις για την οθόνη του σχολείου.
-                </p>
+        <!-- Top Dashboard Bar -->
+        <header class="admin-top-bar">
+            <div class="admin-brand">
+                <div class="admin-brand-icon">📺</div>
+                <div>
+                    <div class="admin-brand-title">School Telematics Cloud</div>
+                    <div class="admin-brand-status"><span class="status-dot"></span> Σύστημα Online</div>
+                </div>
             </div>
-            <a href="display.html" target="_blank" class="btn">Άνοιγμα Οθόνης &rarr;</a>
+
+            <!-- Tab Navigation -->
+            <nav class="admin-tabs" id="adminTabsNav">
+                <button type="button" class="admin-tab-btn active" data-tab="tab-announcements">📋 Ανακοινώσεις</button>
+                <button type="button" class="admin-tab-btn" data-tab="tab-settings">⚙️ Ρυθμίσεις</button>
+                <button type="button" class="admin-tab-btn" data-tab="tab-themes">🎨 Θέματα & Banner</button>
+                <button type="button" class="admin-tab-btn emergency-tab-btn" data-tab="tab-emergency">🚨 Έκτακτη Ανάγκη</button>
+            </nav>
+
+            <a href="display.html" target="_blank" class="btn" style="padding: 0.65rem 1.3rem; font-size: 0.9rem;">
+                Άνοιγμα Οθόνης &rarr;
+            </a>
         </header>
 
-        <div class="grid" style="grid-template-columns: 1fr 1.5fr; align-items: start;">
-            <!-- Emergency Section -->
-            <div class="card"
-                style="margin-bottom: 2rem; grid-column: 1 / -1; border: 2px solid var(--alert-color); background: rgba(239, 68, 68, 0.05);">
-                <h2 style="color: var(--alert-color); display: flex; align-items: center; gap: 0.5rem;">🚨 ΕΚΤΑΚΤΗ
-                    ΑΝΑΓΚΗ</h2>
-                <form id="emergencyForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 2; margin-bottom: 0; min-width: 300px;">
+        <!-- Tab 4: Emergency Alert -->
+        <div id="tab-emergency" class="tab-pane" style="display: none;">
+            <div class="card" style="border: 2px solid var(--alert-color); background: rgba(239, 68, 68, 0.08); padding: 3rem 2rem; text-align: center;">
+                <div style="font-size: 3.5rem; margin-bottom: 0.5rem; animation: pulse 1.5s infinite;">🚨</div>
+                <h2 style="color: var(--alert-color); font-size: 1.8rem; margin-bottom: 0.5rem;">ΣΥΣΤΗΜΑ ΕΚΤΑΚΤΗΣ ΑΝΑΓΚΗΣ</h2>
+                <p style="color: var(--text-secondary); max-width: 650px; margin: 0 auto 2rem auto; font-size: 0.95rem;">
+                    Η ενεργοποίηση διακόπτει αμέσως την προβολή όλων των ανακοινώσεων και προβάλλει το μήνυμα σε κόκκινο φόντο με επαναλαμβανόμενο ηχητικό σήμα σειρήνας.
+                </p>
+                <form id="emergencyForm" style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 650px; margin: 0 auto;">
+                    <div class="form-group" style="width: 100%; text-align: left; margin: 0;">
                         <label for="emergencyMessage">Μήνυμα Συναγερμού</label>
                         <input type="text" id="emergencyMessage" name="emergencyMessage"
-                            placeholder="Π.χ. ΑΣΚΗΣΗ ΣΕΙΣΜΟΥ - ΕΚΚΕΝΩΣΗ"
-                            style="font-weight: bold; color: var(--alert-color);">
+                            placeholder="Π.χ. ΑΣΚΗΣΗ ΣΕΙΣΜΟΥ - ΕΚΚΕΝΩΣΗ ΚΤΙΡΙΟΥ"
+                            style="font-size: 1.25rem; font-weight: bold; color: var(--alert-color); text-align: center; padding: 1rem;">
                     </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <button type="submit" id="emergencyToggleBtn" class="btn btn-danger"
-                            style="width:auto; min-width: 250px; font-weight: 800; letter-spacing: 1px; color: white !important; background-color: #dc2626 !important; padding: 1rem;">
-                            🚨 ΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ
-                        </button>
-                    </div>
+                    <button type="submit" id="emergencyToggleBtn" class="btn btn-danger"
+                        style="width: 100%; font-size: 1.25rem; font-weight: 800; letter-spacing: 1px; padding: 1.25rem;">
+                        🚨 ΕΝΕΡΓΟΠΟΙΗΣΗ ΣΥΝΑΓΕΡΜΟΥ
+                    </button>
                 </form>
-                <small style="color: var(--text-secondary); margin-top: 0.5rem; display: block;">Η ενεργοποίηση θα
-                    σταματήσει αμέσως όλες τις προβολές και θα εμφανίσει αυτό το μήνυμα σε πλήρη οθόνη με ήχο
-                    ειδοποίησης.</small>
             </div>
+        </div>
 
-            <!-- Settings Section -->
-            <div class="card" style="margin-bottom: 2rem; grid-column: 1 / -1;">
-                <h2>Ρυθμίσεις Σχολείου</h2>
-                <form id="settingsForm" style="display: flex; flex-direction: column; gap: 1.5rem; background: rgba(30,41,59,0.5); padding: 1.5rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.05);">
+        <!-- Tab 2: Settings Section -->
+        <div id="tab-settings" class="tab-pane" style="display: none;">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem;">⚙️ Ρυθμίσεις Σχολείου & Επικοινωνίας</h2>
+                <form id="settingsForm" style="display: flex; flex-direction: column; gap: 1.5rem; background: rgba(30,41,59,0.5); padding: 1.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
                     
                     <!-- Row 1: School Name & PIN -->
                     <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
@@ -99,12 +111,12 @@
                         </div>
                     </div>
 
-                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 0;">
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;">
 
                     <!-- Row 2: Communication & Display -->
                     <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
-                            <label for="tickerMessage">📢 Κυλιόμενο Μήνυμα</label>
+                            <label for="tickerMessage">📢 Κυλιόμενο Μήνυμα (Κάτω μέρος)</label>
                             <input type="text" id="tickerMessage" name="tickerMessage" placeholder="Μήνυμα στο κάτω μέρος...">
                         </div>
                         <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
@@ -114,11 +126,10 @@
                         <div class="form-group" style="flex: 1; min-width: 200px; margin: 0;">
                             <label for="hostUrl">🌐 QR Base URL (IP)</label>
                             <input type="text" id="hostUrl" name="hostUrl" placeholder="π.χ. http://192.168.1.5:5500">
-                            <small style="font-size: 0.75rem; color: var(--text-secondary);">Για την ψηφοφορία μέσω κινητού</small>
                         </div>
                     </div>
 
-                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 0;">
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;">
 
                     <!-- Row 3: Visuals & Weather -->
                     <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
@@ -144,61 +155,65 @@
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; padding-top: 0.5rem;">
-                        <button type="submit" class="btn" style="padding: 1rem 3rem; background: var(--accent-color); font-weight: 700; letter-spacing: 1px;">
-                            ✅ ΑΠΟΘΗΚΕΥΣΗ ΡΥΘΜΙΣΕΩΝ
+                        <button type="submit" class="btn" style="padding: 0.9rem 2.5rem; background: var(--accent-color); font-weight: 700; letter-spacing: 0.5px;">
+                            💾 ΑΠΟΘΗΚΕΥΣΗ ΡΥΘΜΙΣΕΩΝ
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
 
-                <!-- Theme Selector -->
-                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">🎨 Θεματική Εμφάνιση</h3>
+        <!-- Tab 3: Themes & Banner Section -->
+        <div id="tab-themes" class="tab-pane" style="display: none;">
+            <div class="card" style="margin-bottom: 2rem;">
+                <h2>🎨 Θεματική Εμφάνιση Οθόνης</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Επιλέξτε ένα θέμα για να αλλάξουν αυτόματα τα χρώματα και τα κινούμενα σωματίδια (particles) στην οθόνη του σχολείου.
+                </p>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                     <button onclick="window.setTheme('default')" class="theme-btn" data-theme="default">
-                        <span style="font-size: 2rem;">🏫</span>
-                        <span>Προεπιλογή</span>
+                        <span style="font-size: 2.2rem;">🏫</span>
+                        <span style="font-weight: 700;">Προεπιλογή</span>
                     </button>
                     <button onclick="window.setTheme('christmas')" class="theme-btn" data-theme="christmas">
-                        <span style="font-size: 2rem;">🎄</span>
-                        <span>Χριστούγεννα</span>
+                        <span style="font-size: 2.2rem;">🎄</span>
+                        <span style="font-weight: 700;">Χριστούγεννα</span>
                     </button>
                     <button onclick="window.setTheme('easter')" class="theme-btn" data-theme="easter">
-                        <span style="font-size: 2rem;">🐣</span>
-                        <span>Πάσχα</span>
+                        <span style="font-size: 2.2rem;">🐣</span>
+                        <span style="font-weight: 700;">Πάσχα</span>
                     </button>
                     <button onclick="window.setTheme('national')" class="theme-btn" data-theme="national">
-                        <span style="font-size: 2rem;">🇬🇷</span>
-                        <span>Εθνική Εορτή</span>
+                        <span style="font-size: 2.2rem;">🇬🇷</span>
+                        <span style="font-weight: 700;">Εθνική Εορτή</span>
                     </button>
                     <button onclick="window.setTheme('celebration')" class="theme-btn" data-theme="celebration">
-                        <span style="font-size: 2rem;">🎉</span>
-                        <span>Γιορτή</span>
+                        <span style="font-size: 2.2rem;">🎉</span>
+                        <span style="font-weight: 700;">Γιορτή</span>
                     </button>
                     <button onclick="window.setTheme('valentine')" class="theme-btn" data-theme="valentine">
-                        <span style="font-size: 2rem;">💕</span>
-                        <span>Αγίου Βαλεντίνου</span>
+                        <span style="font-size: 2.2rem;">💕</span>
+                        <span style="font-weight: 700;">Αγίου Βαλεντίνου</span>
                     </button>
                     <button onclick="window.setTheme('carnival')" class="theme-btn" data-theme="carnival">
-                        <span style="font-size: 2rem;">🎭</span>
-                        <span>Απόκριες</span>
+                        <span style="font-size: 2.2rem;">🎭</span>
+                        <span style="font-weight: 700;">Απόκριες</span>
                     </button>
                     <button onclick="window.setTheme('exams')" class="theme-btn" data-theme="exams">
-                        <span style="font-size: 2rem;">📚</span>
-                        <span>Εξετάσεις</span>
+                        <span style="font-size: 2.2rem;">📚</span>
+                        <span style="font-weight: 700;">Εξετάσεις</span>
                     </button>
                 </div>
-                <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
-                    Το θέμα θα εφαρμοστεί αυτόματα στην οθόνη προβολής.
-                </small>
             </div>
 
             <!-- Banner Settings -->
-            <div class="card" style="margin-bottom: 2rem; grid-column: 1 / -1; margin-top: 0 !important;">
-                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">🎄 Διακοσμητικό Banner</h3>
+            <div class="card">
+                <h3>🎄 Διακοσμητικό Banner</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.25rem;">Προαιρετικό banner που εμφανίζεται στο πάνω ή κάτω μέρος της οθόνης.</p>
                 <form id="bannerForm" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
                     <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
-                        <label for="bannerFile">Banner Εικόνα</label>
+                        <label for="bannerFile">Banner Εικόνα (1920x200px)</label>
                         <input type="file" id="bannerFile" name="bannerFile" accept="image/*">
-                        <small style="color: var(--text-secondary);">Προτεινόμενο μέγεθος: 1920x200px</small>
                     </div>
                     <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
                         <label for="bannerPosition">Θέση</label>
@@ -213,15 +228,18 @@
                             <span>Ενεργοποίηση</span>
                         </label>
                     </div>
-                    <img id="bannerPreview" class="media-preview" style="height: 80px; width: auto; margin: 0;"
-                        alt="Banner Preview">
+                    <img id="bannerPreview" class="media-preview" style="height: 80px; width: auto; margin: 0; border-radius: 0.5rem;" alt="Banner Preview">
                     <button type="submit" class="btn">Αποθήκευση Banner</button>
                 </form>
             </div>
+        </div>
 
-            <!-- Form Section -->
-            <div class="card">
-                <h2>Νέα Ανακοίνωση</h2>
+        <!-- Tab 1: Announcements Section (Active) -->
+        <div id="tab-announcements" class="tab-pane active">
+            <div class="grid" style="grid-template-columns: 1fr 1.35fr; align-items: start;">
+                <!-- Form Section -->
+                <div class="card">
+                    <h2>Νέα Ανακοίνωση</h2>
                 <form id="announcementForm">
                     <div class="form-group">
                         <label for="title">Τίτλος</label>
@@ -281,8 +299,50 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="mediaType">Τύπος Περιεχομένου</label>
-                        <select id="mediaType" name="mediaType">
+                        <label>Τύπος Περιεχομένου</label>
+                        <div class="media-type-grid" id="mediaTypeGrid">
+                            <div class="media-type-card active" data-type="text">
+                                <div class="media-type-card-icon">📝</div>
+                                <div class="media-type-card-label">Κείμενο</div>
+                            </div>
+                            <div class="media-type-card" data-type="image">
+                                <div class="media-type-card-icon">🖼️</div>
+                                <div class="media-type-card-label">Εικόνα</div>
+                            </div>
+                            <div class="media-type-card" data-type="youtube">
+                                <div class="media-type-card-icon">📺</div>
+                                <div class="media-type-card-label">YouTube</div>
+                            </div>
+                            <div class="media-type-card" data-type="countdown">
+                                <div class="media-type-card-icon">⏱️</div>
+                                <div class="media-type-card-label">Αντίστροφη</div>
+                            </div>
+                            <div class="media-type-card" data-type="exam_calendar">
+                                <div class="media-type-card-icon">📅</div>
+                                <div class="media-type-card-label">Διαγωνίσματα</div>
+                            </div>
+                            <div class="media-type-card" data-type="live_image">
+                                <div class="media-type-card-icon">📷</div>
+                                <div class="media-type-card-label">Live Εικόνα</div>
+                            </div>
+                            <div class="media-type-card" data-type="website">
+                                <div class="media-type-card-icon">🌐</div>
+                                <div class="media-type-card-label">Ιστοσελίδα</div>
+                            </div>
+                            <div class="media-type-card" data-type="google_slides">
+                                <div class="media-type-card-icon">📤</div>
+                                <div class="media-type-card-label">Slides</div>
+                            </div>
+                            <div class="media-type-card" data-type="schedule">
+                                <div class="media-type-card-icon">📋</div>
+                                <div class="media-type-card-label">Πρόγραμμα</div>
+                            </div>
+                            <div class="media-type-card" data-type="pdf">
+                                <div class="media-type-card-icon">📄</div>
+                                <div class="media-type-card-label">PDF</div>
+                            </div>
+                        </div>
+                        <select id="mediaType" name="mediaType" style="display: none;">
                             <option value="text">Μόνο Κείμενο</option>
                             <option value="image">Εικόνα / Φωτογραφία</option>
                             <option value="youtube">YouTube Βίντεο</option>
@@ -448,18 +508,37 @@
 
             <!-- List Section -->
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2>Ενεργές Ανακοινώσεις</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <h2 style="margin: 0;">📋 Ανακοινώσεις</h2>
+                        <span id="statsPill" class="stats-pill">0 Ενεργές • 0 δευτ.</span>
+                    </div>
                 </div>
+
+                <!-- Search and Filter Toolbar -->
+                <div class="list-toolbar">
+                    <div class="search-box">
+                        <span class="search-box-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Αναζήτηση τίτλου ή περιεχομένου...">
+                    </div>
+                    <div class="filter-chips" id="filterChips">
+                        <button type="button" class="filter-chip active" data-filter="all">Όλες</button>
+                        <button type="button" class="filter-chip" data-filter="active">Ενεργές</button>
+                        <button type="button" class="filter-chip" data-filter="paused">Σε Παύση</button>
+                        <button type="button" class="filter-chip" data-filter="alert">Προσοχή 🚨</button>
+                    </div>
+                </div>
+
                 <div id="announcementList" class="announcement-list">
                     <!-- Items will be injected here -->
                 </div>
             </div>
         </div>
     </div>
+    </div> <!-- /mainApp -->
 
     <!-- MAIN SCRIPT (MODULE) -->
-    <script type="module" src="script-admin.js?v=2.0"></script>
+    <script type="module" src="script-admin.js?v=2026_REVAMP_5"></script>
 
     <!-- Preview Modal -->
     <div id="previewModal" style="
@@ -525,6 +604,23 @@
             display: block !important;
         }
     </style>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmModal" class="confirm-modal-overlay" style="display: none;">
+        <div class="confirm-modal-card">
+            <div id="confirmModalIcon" class="confirm-modal-icon">🗑️</div>
+            <h3 id="confirmModalTitle" class="confirm-modal-title">Επιβεβαίωση</h3>
+            <p id="confirmModalMessage" class="confirm-modal-message">Είστε βέβαιοι ότι θέλετε να προχωρήσετε;</p>
+            <div class="confirm-modal-actions">
+                <button id="confirmCancelBtn" type="button" class="btn btn-secondary">Ακύρωση</button>
+                <button id="confirmOkBtn" type="button" class="btn btn-danger">Διαγραφή</button>
+            </div>
+        </div>
+    </div>
+
     <div
         style="position: fixed; bottom: 5px; right: 10px; z-index: 50000; font-size: 0.85rem; color: rgba(255,255,255,0.8); pointer-events: none; font-weight: bold;">
         ΚΑΤΑΣΚΕΥΗ: Ε. ΒΑΛΑΚΟΣ with Antigravity

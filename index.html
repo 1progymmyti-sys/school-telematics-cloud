@@ -4,96 +4,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Σχολική Τηλεματική - Πύλη Εισόδου</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Playfair+Display:wght@400;700&display=swap"
-        rel="stylesheet">
+    <title>Σχολική Τηλεματική Cloud - Πύλη Εισόδου</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #0b1120;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.2);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-            color: white;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 15% 15%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 85% 85%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
+            padding: 2rem 1.5rem;
             text-align: center;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .hero {
+            margin-bottom: 3.5rem;
+            max-width: 650px;
+        }
+
+        .badge-cloud {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 2rem;
+            color: #60a5fa;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1.25rem;
+        }
+
+        .badge-cloud span.dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #60a5fa;
+            box-shadow: 0 0 10px #60a5fa;
+            animation: pulse 2s infinite;
         }
 
         h1 {
-            font-size: 2.5rem;
-            margin-bottom: 3rem;
-            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.15rem;
+            line-height: 1.5;
         }
 
         .btn-container {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
             gap: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
+            width: 100%;
+            max-width: 720px;
         }
 
-        .btn {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            padding: 2rem 3rem;
-            border-radius: 1rem;
+        .portal-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1.25rem;
+            padding: 2.5rem 2rem;
             text-decoration: none;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: var(--transition);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .portal-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 70%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .portal-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--border-hover);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .portal-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-display:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+        }
+
+        .card-admin:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15);
+        }
+
+        .card-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.25rem;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .portal-card:hover .card-icon {
+            transform: scale(1.1);
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: var(--transition);
+        }
+
+        .pill-display {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .card-display:hover .pill-display {
+            background: #10b981;
             color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            min-width: 250px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
         }
 
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+        .pill-admin {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
         }
 
-        .btn-display {
-            border-color: #4ade80;
+        .card-admin:hover .pill-admin {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
         }
 
-        .btn-admin {
-            border-color: #f87171;
+        footer {
+            margin-top: 4rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.6;
         }
 
-        .icon {
-            font-size: 3rem;
-            display: block;
-            margin-bottom: 1rem;
+        footer strong {
+            color: var(--text-primary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 2.25rem; }
+            .btn-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Σχολική Τηλεματική</h1>
+    <div class="hero">
+        <div class="badge-cloud">
+            <span class="dot"></span>
+            Cloud Digital Signage
+        </div>
+        <h1>Σχολική Τηλεματική</h1>
+        <p class="subtitle">Ολοκληρωμένο σύστημα διαχείρισης και προβολής ανακοινώσεων σχολείου σε πραγματικό χρόνο.</p>
+    </div>
 
     <div class="btn-container">
-        <a href="display.html" class="btn btn-display">
-            <span class="icon">📺</span>
-            ΟΘΟΝΗ ΠΡΟΒΟΛΗΣ
-            <br>
-            <span style="font-size: 0.9rem; font-weight: normal;">(Για την Τηλεόραση)</span>
+        <a href="display.html" class="portal-card card-display">
+            <span class="card-icon">📺</span>
+            <div class="card-title">ΟΘΟΝΗ ΠΡΟΒΟΛΗΣ</div>
+            <div class="card-desc">Ζωντανή προβολή διαφανειών, καιρού, προγράμματος και έκτακτων μηνυμάτων.</div>
+            <div class="card-pill pill-display">Άνοιγμα Οθόνης &rarr;</div>
         </a>
 
-        <a href="admin.html" class="btn btn-admin">
-            <span class="icon">⚙️</span>
-            ΔΙΑΧΕΙΡΙΣΗ
-            <br>
-            <span style="font-size: 0.9rem; font-weight: normal;">(Για τον Υπολογιστή/Κινητό)</span>
+        <a href="admin.html" class="portal-card card-admin">
+            <span class="card-icon">⚙️</span>
+            <div class="card-title">ΠΙΝΑΚΑΣ ΔΙΑΧΕΙΡΙΣΗΣ</div>
+            <div class="card-desc">Διαχείριση ανακοινώσεων, ρυθμίσεις σχολείου, θέματα και συναγερμός.</div>
+            <div class="card-pill pill-admin">Είσοδος Διαχειριστή &rarr;</div>
         </a>
     </div>
 
-    <footer style="margin-top: 3rem; opacity: 0.7;">
-        &copy; 1ο Πρότυπο Γυμνασίου Μυτιλήνης
+    <footer>
+        <div>&copy; 1ο Πρότυπο Γυμνάσιο Μυτιλήνης</div>
+        <div style="font-size: 0.8rem; margin-top: 0.25rem; color: #64748b;">ΚΑΤΑΣΚΕΥΗ: <strong>Ε. ΒΑΛΑΚΟΣ</strong> with Antigravity</div>
     </footer>
 
 </body>

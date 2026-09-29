@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Telematics - FIXED</title>
-    <link rel="stylesheet" href="style.css?v=UNDER_CLOCK">
+    <title>School Telematics - Οθόνη Προβολής</title>
+    <link rel="stylesheet" href="style.css?v=2026_REVAMP_5">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 
 <body style="overflow: hidden;">
@@ -20,17 +20,13 @@
             <div class="header-left">
                 <img id="schoolLogo" src="logo.png" alt="School Logo" class="logo">
                 <div>
-                    <div id="schoolNameDisplay" style="font-weight: 700; font-size: 1.5rem;">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
-                    <div id="date" style="color: var(--text-secondary); font-size: 1rem; text-transform: uppercase;">
-                    </div>
-                    <div id="schoolScheduleStatus"
-                        style="color: #ff4545; font-weight: 800; font-size: 1.2rem; margin-top: 4px; text-shadow: 0 0 10px rgba(255, 69, 69, 0.3);">
-                    </div>
+                    <div id="schoolNameDisplay" style="font-weight: 800; font-size: 1.6rem; letter-spacing: -0.02em; color: white;">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
+                    <div id="date" style="color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;"></div>
+                    <div id="schoolScheduleStatus"></div>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <div id="weather"
-                    style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-primary); font-size: 1.2rem;">
+            <div class="header-right">
+                <div id="weather">
                     <!-- Weather injected via JS -->
                 </div>
                 <div id="clock" class="clock">00:00</div>
@@ -52,7 +48,7 @@
     </div>
 
     <!-- MAIN SCRIPT CLOUD VERSION (MODULE) -->
-    <script type="module" src="script-display.js?v=2.0"></script>
+    <script type="module" src="script-display.js?v=2026_REVAMP_5"></script>
 
     <style>
         /* Fix for banner - full width */
@@ -84,45 +80,6 @@
             width: 100% !important;
             height: 100% !important;
         }
-    </style>
-    <style>
-        /* FORCED OVERRIDES TO BYPASS CACHE */
-        #clock {
-            position: fixed !important;
-            top: 25px !important;
-            right: 30px !important;
-            font-family: 'Arial', sans-serif !important;
-            font-size: 2.8rem !important;
-            /* Slightly smaller */
-            font-weight: 700 !important;
-            color: #3b82f6 !important;
-            z-index: 20005 !important;
-            animation: none !important;
-            background: transparent !important;
-            width: auto !important;
-            height: auto !important;
-            line-height: 1 !important;
-            text-align: right !important;
-        }
-
-        #weather {
-            position: fixed !important;
-            top: 85px !important;
-            right: 40px !important;
-            /* MOVED UNDER CLOCK */
-            z-index: 20005 !important;
-            color: #fff !important;
-            font-size: 1.2rem !important;
-            /* Slightly smaller */
-            animation: none !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: flex-end !important;
-            width: auto !important;
-            background: transparent !important;
-        }
-
-        /* Hide original header content partially if needed, but keep logo */
     </style>
 
     <!-- FullScreen Overlay (Large Screen Only) -->

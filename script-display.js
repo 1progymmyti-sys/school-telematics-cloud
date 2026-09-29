@@ -660,10 +660,14 @@ function renderSlide(item) {
         // Countdown Logic
         const target = new Date(item.mediaSource).getTime();
         contentHtml = `
-            <div style="text-align:center;">
-                <h1>${item.title}</h1>
-                <div id="countdown-${item.id}" style="font-size:5rem; font-weight:bold; font-family:monospace;">Loading...</div>
-                <div style="font-size:2rem;">${item.content || ''}</div>
+            <div class="slide-card-container">
+                <div class="slide-card">
+                    <div class="slide-card-badge">⏱️ ΑΝΤΙΣΤΡΟΦΗ ΜΕΤΡΗΣΗ</div>
+                    <h1 class="slide-card-title">${item.title}</h1>
+                    <div class="slide-card-divider"></div>
+                    <div id="countdown-${item.id}" style="font-size: clamp(3rem, 7vw, 5.5rem); font-weight: 800; font-family: 'Inter', monospace; letter-spacing: 2px; color: #60a5fa; margin: 1.5rem 0; text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);">Φόρτωση...</div>
+                    <div class="slide-card-body" style="font-size: 1.6rem;">${item.content || ''}</div>
+                </div>
             </div>
         `;
         // Start detailed ticker for this slide
@@ -751,11 +755,16 @@ function renderSlide(item) {
         }
     }
     else {
-        // Text / Default
+        // Text / Default (Modern Digital Signage Glass Card)
         contentHtml = `
-            <div class="slide-type">${getTypeLabel(item.type)}</div>
-            <h1 class="slide-title">${item.title}</h1>
-            <div class="slide-body">${item.content}</div>
+            <div class="slide-card-container">
+                <div class="slide-card">
+                    <div class="slide-card-badge">${getTypeIcon(item.type)} ${getTypeLabel(item.type)}</div>
+                    <h1 class="slide-card-title">${item.title}</h1>
+                    <div class="slide-card-divider"></div>
+                    <div class="slide-card-body">${item.content || ''}</div>
+                </div>
+            </div>
         `;
     }
 
@@ -828,17 +837,22 @@ function startCountdownTicker(id, targetTime) {
         const minutes = Math.floor((dist % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((dist % (1000 * 60)) / 1000);
 
-        el.innerText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        el.innerText = `${days}ημ. ${hours}ωρ. ${minutes}λεπ. ${seconds}δευτ.`;
     };
 
     update();
     countdownTimerId = setInterval(update, 1000);
 }
 
+function getTypeIcon(type) {
+    if (type === 'alert') return '🚨';
+    if (type === 'event') return '🎉';
+    return '📢';
+}
 
 function getTypeLabel(type) {
-    const labels = { 'info': 'ENHΜΕΡΩΣΗ', 'alert': 'ΠΡΟΣΟΧΗ', 'event': 'ΕΚΔΗΛΩΣΗ' };
-    return labels[type] || 'ANAKOINΩΣΗ';
+    const labels = { 'info': 'ΕΝΗΜΕΡΩΣΗ', 'alert': 'ΠΡΟΣΟΧΗ / ΕΠΕΙΓΟΝ', 'event': 'ΕΚΔΗΛΩΣΗ' };
+    return labels[type] || 'ΑΝΑΚΟΙΝΩΣΗ';
 }
 
 async function fetchAndRenderExamCalendar(slideId, apiUrl) {
