@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics Cloud - Διαχείριση</title>
-    <link rel="stylesheet" href="style.css?v=2026_REVAMP_5">
+    <link rel="stylesheet" href="style.css?v=2026_LAYOUT_SLIDESHOW">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -287,15 +287,87 @@
                         </div>
                     </div>
 
-                    <div class="form-group" style="flex: 1; min-width: 150px;">
-                        <label for="layout">Διάταξη (Layout)</label>
-                        <select id="layout" name="layout">
+                    <div class="form-group">
+                        <label>Διάταξη Οθόνης (Χωρισμός σε 1, 2 ή 3 μέρη)</label>
+                        <div class="layout-grid" id="layoutGrid">
+                            <div class="layout-card active" data-layout="fullscreen">
+                                <div class="layout-wireframe">
+                                    <div style="flex:1; background:var(--accent-color); border-radius:2px; opacity:0.85;"></div>
+                                </div>
+                                <div class="layout-card-label">1 Μέρος (Πλήρης)</div>
+                            </div>
+                            <div class="layout-card" data-layout="split-left">
+                                <div class="layout-wireframe">
+                                    <div style="flex:1; background:#60a5fa; border-radius:2px;"></div>
+                                    <div style="flex:1; background:#94a3b8; border-radius:2px;"></div>
+                                </div>
+                                <div class="layout-card-label">2 Μέρη (Κείμενο | Media)</div>
+                            </div>
+                            <div class="layout-card" data-layout="split-right">
+                                <div class="layout-wireframe">
+                                    <div style="flex:1; background:#94a3b8; border-radius:2px;"></div>
+                                    <div style="flex:1; background:#60a5fa; border-radius:2px;"></div>
+                                </div>
+                                <div class="layout-card-label">2 Μέρη (Media | Κείμενο)</div>
+                            </div>
+                            <div class="layout-card" data-layout="split-top">
+                                <div class="layout-wireframe" style="flex-direction:column;">
+                                    <div style="flex:1; background:#60a5fa; border-radius:2px;"></div>
+                                    <div style="flex:1; background:#94a3b8; border-radius:2px;"></div>
+                                </div>
+                                <div class="layout-card-label">2 Μέρη (Πάνω / Κάτω)</div>
+                            </div>
+                            <div class="layout-card" data-layout="split-3-col">
+                                <div class="layout-wireframe">
+                                    <div style="flex:1; background:#60a5fa; border-radius:2px;"></div>
+                                    <div style="flex:1.2; background:#94a3b8; border-radius:2px;"></div>
+                                    <div style="flex:1; background:#34d399; border-radius:2px;"></div>
+                                </div>
+                                <div class="layout-card-label">3 Στήλες (Κάθετα)</div>
+                            </div>
+                            <div class="layout-card" data-layout="split-3-focus">
+                                <div class="layout-wireframe">
+                                    <div style="flex:1.5; background:#94a3b8; border-radius:2px;"></div>
+                                    <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+                                        <div style="flex:1; background:#60a5fa; border-radius:2px;"></div>
+                                        <div style="flex:1; background:#34d399; border-radius:2px;"></div>
+                                    </div>
+                                </div>
+                                <div class="layout-card-label">3 Μέρη (Κύριο + 2 Πλαϊνά)</div>
+                            </div>
+                            <div class="layout-card" data-layout="split-3-row">
+                                <div class="layout-wireframe" style="flex-direction:column;">
+                                    <div style="flex:1; background:#60a5fa; border-radius:2px;"></div>
+                                    <div style="flex:1.4; background:#94a3b8; border-radius:2px;"></div>
+                                    <div style="flex:1; background:#34d399; border-radius:2px;"></div>
+                                </div>
+                                <div class="layout-card-label">3 Γραμμές (Οριζόντια)</div>
+                            </div>
+                        </div>
+                        <select id="layout" name="layout" style="display: none;">
                             <option value="fullscreen">Πλήρης Οθόνη (Standard)</option>
-                            <option value="split-left">Split: Εικόνα Αριστερά (50%)</option>
-                            <option value="split-right">Split: Εικόνα Δεξιά (50%)</option>
-                            <option value="split-top">Split: Εικόνα Πάνω (50%)</option>
-                            <option value="split-bottom">Split: Εικόνα Κάτω (50%)</option>
+                            <option value="split-left">2 Μέρη: Κείμενο Αριστερά | Media Δεξιά</option>
+                            <option value="split-right">2 Μέρη: Media Αριστερά | Κείμενο Δεξιά</option>
+                            <option value="split-top">2 Μέρη: Κείμενο Πάνω | Media Κάτω</option>
+                            <option value="split-bottom">2 Μέρη: Media Πάνω | Κείμενο Κάτω</option>
+                            <option value="split-3-col">3 Μέρη: 3 Στήλες Κάθετα</option>
+                            <option value="split-3-focus">3 Μέρη: 1 Μεγάλο + 2 Πλαϊνά</option>
+                            <option value="split-3-row">3 Μέρη: 3 Γραμμές Οριζόντια</option>
                         </select>
+                    </div>
+
+                    <div id="thirdZoneGroup" class="form-group" style="display: none; padding: 1.1rem; background: rgba(59,130,246,0.06); border: 1px dashed rgba(59,130,246,0.3); border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+                        <label for="extraInfoText" style="display: flex; justify-content: space-between; align-items: center; color: #93c5fd; font-weight: 700; margin-bottom: 0.4rem;">
+                            <span>📌 3ο Μέρος Οθόνης (Πρόσθετα Στοιχεία / Σημειώσεις)</span>
+                            <small style="color: var(--text-secondary); font-weight: normal;">(Προαιρετικό)</small>
+                        </label>
+                        <input type="text" id="extraInfoText" name="extraInfoText" placeholder="π.χ. Πληροφορίες: Γραφείο Διευθυντή | Τηλέφωνο 22510-12345">
+                        <div style="margin-top: 0.6rem; display: flex; gap: 1rem; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer; font-size: 0.85rem; color: var(--text-secondary);">
+                                <input type="checkbox" id="showQrInThirdZone" name="showQrInThirdZone" style="width: auto;">
+                                <span>Εμφάνιση QR Code στο 3ο μέρος (για σκανάρισμα από κινητό)</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -407,8 +479,32 @@
                     <div id="fileGroup" class="form-group" style="display: none;">
                         <label for="file">Επιλογή Αρχείων (Εικόνα, PDF ή Excel)</label>
                         <input type="file" id="file" name="file" accept="image/*,application/pdf,.xlsx,.xls" multiple>
-                        <small style="color: var(--text-secondary);">Για πρόγραμμα, επιλέξτε αρχείο Excel (.xlsx) ή PDF. Μπορείτε να επιλέξετε πολλαπλές φωτογραφίες ή PDF.</small>
                         <div id="selectedFilesList" style="margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; background: rgba(255,255,255,0.02); padding: 0.5rem; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1); min-height: 40px; display: none;"></div>
+                        <div id="multiFileOptions" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 0.6rem;">
+                            <label style="font-weight: 700; color: #93c5fd; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>🎬 Προβολή Πολλαπλών Αρχείων</span>
+                            </label>
+                            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 180px;">
+                                    <label for="multiDisplayMode" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Τρόπος Εμφάνισης</label>
+                                    <select id="multiDisplayMode" name="multiDisplayMode">
+                                        <option value="slideshow" selected>🔄 Slideshow (Εναλλαγή με εφέ - Προτεινόμενο)</option>
+                                        <option value="grid">🖼️ Κολλάζ / Πλέγμα (Όλες μαζί στην οθόνη)</option>
+                                    </select>
+                                </div>
+                                <div id="transitionEffectGroup" style="flex: 1; min-width: 160px;">
+                                    <label for="transitionEffect" style="font-size: 0.85rem; margin-bottom: 0.3rem;">Εφέ Μετάβασης</label>
+                                    <select id="transitionEffect" name="transitionEffect">
+                                        <option value="fade" selected>✨ Απαλό Σβήσιμο (Cross-Fade)</option>
+                                        <option value="zoom">🔍 Zoom & Fade (Ken Burns)</option>
+                                        <option value="slide">➡️ Ολίσθηση (Slide)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
+                                💡 Ο χρόνος προβολής κάθε φωτογραφίας / εγγράφου υπολογίζεται αυτόματα με βάση τη συνολική διάρκεια της ανακοίνωσης (π.χ. 15 δευτ. / 3 φωτογραφίες = 5 δευτ. ανά εικόνα).
+                            </small>
+                        </div>
                     </div>
 
                     <div id="urlGroup" class="form-group" style="display: none;">
@@ -538,7 +634,7 @@
     </div> <!-- /mainApp -->
 
     <!-- MAIN SCRIPT (MODULE) -->
-    <script type="module" src="script-admin.js?v=2026_REVAMP_5"></script>
+    <script type="module" src="script-admin.js?v=2026_LAYOUT_SLIDESHOW"></script>
 
     <!-- Preview Modal -->
     <div id="previewModal" style="
@@ -547,7 +643,7 @@
         flex-direction: column; align-items: center; justify-content: center;
     ">
         <!-- Close Button -->
-        <button onclick="document.getElementById('previewModal').style.display='none'" style="
+        <button onclick="if(window.closePreviewModal)window.closePreviewModal(); else document.getElementById('previewModal').style.display='none';" style="
             position: absolute; top: 1.5rem; right: 1.5rem;
             background: rgba(255,255,255,0.15); border: none; color: white;
             font-size: 1.5rem; width: 44px; height: 44px; border-radius: 50%;
@@ -555,24 +651,19 @@
             transition: background 0.2s;
         " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">&times;</button>
 
-        <div style="color: rgba(255,255,255,0.5); font-size: 0.9rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 2px;">Προεπισκόπηση Ανακοίνωσης</div>
+        <div style="color: rgba(255,255,255,0.6); font-size: 0.95rem; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">📺 Ζωντανή Προεπισκόπηση Οθόνης</div>
 
         <!-- Slide Preview Container -->
         <div id="previewSlide" style="
-            width: min(90vw, 1100px);
-            height: min(70vh, 620px);
-            background: #0f172a;
-            border-radius: 1rem;
-            border: 1px solid rgba(255,255,255,0.1);
+            width: min(92vw, 1150px);
+            height: min(74vh, 640px);
+            background: #0b1120;
+            border-radius: 1.25rem;
+            border: 1px solid rgba(255,255,255,0.15);
             overflow: hidden;
             position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 3rem;
-            text-align: center;
-            font-family: 'Inter', sans-serif;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+            box-sizing: border-box;
         ">
             <!-- Content injected by JS -->
         </div>

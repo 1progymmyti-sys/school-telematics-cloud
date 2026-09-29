@@ -574,241 +574,377 @@ function startRotation() {
     }, duration);
 }
 
+let slideMediaInterval = null;
+
+function startPhotoSlideshow(containerId, count, totalDurationSec = 10, effect = 'fade') {
+    if (count <= 1) return;
+    if (slideMediaInterval) clearInterval(slideMediaInterval);
+
+    let activeIdx = 0;
+    // Interval per slide: total duration divided by count, min 2500ms
+    const stepMs = Math.max(2500, Math.floor((totalDurationSec * 1000) / count));
+
+    slideMediaInterval = setInterval(() => {
+        const container = document.getElementById(containerId);
+        if (!container) {
+            clearInterval(slideMediaInterval);
+            slideMediaInterval = null;
+            return;
+        }
+
+        const slides = container.querySelectorAll('.photo-slideshow-slide');
+        const dots = container.querySelectorAll('.photo-dot');
+        const counterCur = container.querySelector('.photo-slideshow-cur');
+
+        if (!slides || slides.length === 0) return;
+
+        slides[activeIdx]?.classList.remove('active');
+        dots[activeIdx]?.classList.remove('active');
+
+        activeIdx = (activeIdx + 1) % count;
+
+        slides[activeIdx]?.classList.add('active');
+        dots[activeIdx]?.classList.add('active');
+        if (counterCur) counterCur.textContent = (activeIdx + 1);
+    }, stepMs);
+}
+
+function renderTextBlock(item, compact = false) {
+    const badgeHtml = `<div class="slide-card-badge">${getTypeIcon(item.type)} ${getTypeLabel(item.type)}</div>`;
+    const titleHtml = `<h1 class="slide-card-title">${item.title}</h1>`;
+    const dividerHtml = `<div class="slide-card-divider"></div>`;
+    const bodyHtml = item.content ? `<div class="slide-card-body">${item.content}</div>` : '';
+
+    return `
+        <div class="zone-card zone-card-text">
+            ${badgeHtml}
+            ${titleHtml}
+            ${dividerHtml}
+            ${bodyHtml}
+        </div>
+    `;
+}
+
+function renderThirdZoneBlock(item) {
+    let innerHtml = '';
+
+    if (item.extraInfoText && item.extraInfoText.trim() !== '') {
+        innerHtml += `
+            <div class="zone-extra-title">📌 ΠΛΗΡΟΦΟΡΙΕΣ</div>
+            <div class="zone-extra-text">${item.extraInfoText}</div>
+        `;
+    }
+
+    if (item.showQrInThirdZone) {
+        const qrTarget = item.mediaSource && (item.mediaSource.startsWith('http://') || item.mediaSource.startsWith('https://'))
+            ? item.mediaSource
+            : (currentSettings.hostUrl || window.location.href);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(qrTarget)}`;
+        innerHtml += `
+            <div style="margin-top: 1rem; display: flex; flex-direction: column; align-items: center;">
+                <div class="zone-qr-container">
+                    <img src="${qrUrl}" alt="Scan QR" style="width: 120px; height: 120px; display: block;">
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem; font-weight: 700; letter-spacing: 1px;">ΣΚΑΝΑΡΕΤΕ ΜΕ ΤΟ ΚΙΝΗΤΟ</div>
+            </div>
+        `;
+    }
+
+    if (!innerHtml) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
+        innerHtml = `
+            <div class="zone-extra-title">🏫 ${currentSettings.schoolName || 'ΣΧΟΛΙΚΗ ΤΗΛΕΜΑΤΙΚΗ'}</div>
+            <div class="zone-extra-text" style="font-size: 1.15rem; color: #cbd5e1; margin-top: 0.4rem;">${dateStr}</div>
+            <div style="margin-top: 1.25rem; padding: 0.5rem 1rem; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); border-radius: 2rem; color: #60a5fa; font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                ⏱️ ${item.duration || 10} δευτερόλεπτα
+            </div>
+        `;
+    }
+
+    return `
+        <div class="zone-card zone-card-extra">
+            ${innerHtml}
+        </div>
+    `;
+}
+
+function renderMediaBlock(item, containerId) {
+    const scale = parseFloat(item.mediaScale) || 1.0;
+    let imgScale = scale !== 1.0 ? `transform: scale(${scale}); transform-origin: center center;` : '';
+
+    if (item.mediaType === 'image' || item.mediaType === 'live_image') {
+        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : (item.mediaSource ? [item.mediaSource] : []);
+
+        if (sources.length > 1) {
+            if (item.multiDisplayMode === 'grid') {
+                const n = sources.length;
+                const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
+                const gap = 1;
+                const maxW = `calc(${(100/cols).toFixed(2)}% - ${(gap*(cols-1)/cols).toFixed(2)}rem)`;
+                const maxH = `calc(${(100 / Math.ceil(n/cols)).toFixed(2)}% - ${gap/2}rem)`;
+                return `
+                    <div style="width: 100%; height: 100%; display: flex; flex-wrap: wrap; gap: ${gap}rem; padding: 0.5rem; justify-content: center; align-items: center; overflow: hidden; box-sizing: border-box;">
+                        ${sources.map(src => `
+                            <img src="${src}" style="max-width: ${maxW}; max-height: ${maxH}; object-fit: contain; border-radius: 0.75rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4); flex-shrink: 0; ${imgScale}">
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                const effectClass = item.transitionEffect === 'zoom' ? 'effect-zoom' : (item.transitionEffect === 'slide' ? 'effect-slide' : 'effect-fade');
+                setTimeout(() => {
+                    startPhotoSlideshow(containerId, sources.length, item.duration || 10, item.transitionEffect || 'fade');
+                }, 50);
+
+                return `
+                    <div class="photo-slideshow-container ${effectClass}" id="${containerId}">
+                        ${sources.map((src, i) => `
+                            <div class="photo-slideshow-slide ${i === 0 ? 'active' : ''}" data-index="${i}">
+                                <img src="${src}" class="photo-slideshow-img" style="${imgScale}">
+                            </div>
+                        `).join('')}
+                        <div class="photo-slideshow-counter">
+                            <span>📷</span>
+                            <span class="photo-slideshow-cur">1</span> / <span>${sources.length}</span>
+                        </div>
+                        <div class="photo-slideshow-dots">
+                            ${sources.map((_, i) => `<span class="photo-dot ${i === 0 ? 'active' : ''}"></span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        } else if (sources.length === 1 && sources[0]) {
+            return `
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0.5rem; overflow: hidden; box-sizing: border-box;">
+                    <img src="${sources[0]}" class="slide-image" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 1rem; box-shadow: 0 12px 30px rgba(0,0,0,0.5); ${imgScale}">
+                </div>
+            `;
+        } else {
+            return `<div style="color: #94a3b8; font-size: 1.3rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
+        }
+    }
+    else if (item.mediaType === 'youtube') {
+        const vidId = item.mediaSource?.split('v=')[1]?.split('&')[0] || item.mediaSource?.split('/').pop();
+        return `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0" style="width:100%; height:100%; border-radius: 1rem;"></iframe>`;
+    }
+    else if (item.mediaType === 'countdown') {
+        const target = new Date(item.mediaSource).getTime();
+        setTimeout(() => startCountdownTicker(item.id, target), 50);
+        return `
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.5rem;">
+                <div class="slide-card-badge">⏱️ ΑΝΤΙΣΤΡΟΦΗ ΜΕΤΡΗΣΗ</div>
+                <div id="countdown-${item.id}" style="font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; font-family: 'Inter', monospace; letter-spacing: 2px; color: #60a5fa; margin: 1.5rem 0; text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);">Φόρτωση...</div>
+            </div>
+        `;
+    }
+    else if (item.mediaType === 'website') {
+        let scaleStyle = '';
+        if (scale !== 1.0) {
+            const w = 100 / scale;
+            const h = `calc((100vh - 190px) / ${scale})`;
+            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
+        }
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+        return `
+            <div style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 1rem;">
+                <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
+                <div class="qr-box">
+                    <img src="${qrUrl}" alt="Scan QR">
+                    <div class="qr-label">SCAN ME</div>
+                </div>
+            </div>
+        `;
+    }
+    else if (item.mediaType === 'google_slides') {
+        return `
+            <iframe src="${item.mediaSource}" frameborder="0" allowfullscreen="true" style="width: 100%; height: 100%; border: none; border-radius: 1rem; background: #000;"></iframe>
+        `;
+    }
+    else if (item.mediaType === 'exam_calendar') {
+        setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
+        return `
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column; background: #1e293b; border-radius: 1rem; overflow: hidden;">
+                <div style="background: var(--accent-color); padding: 0.6rem 1.5rem; color: white; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; font-size: 1.2rem;">📅 ${item.title || 'Πρόγραμμα'}</h3>
+                    <div id="exam-month-${item.id}" style="font-size: 1rem; font-weight: bold; text-transform: uppercase;"></div>
+                </div>
+                <div id="exam-grid-${item.id}" style="flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: #e2e8f0; overflow: hidden;">
+                    <div style="grid-column: 1/-1; text-align: center; padding: 2rem; font-size: 1.3rem;">Φόρτωση... ⏳</div>
+                </div>
+            </div>
+        `;
+    }
+    else if (item.mediaType === 'pdf' || item.mediaType === 'schedule') {
+        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : [item.mediaSource];
+        const pdfSources = sources.filter(s => s && (s.startsWith('data:application/pdf') || s.toLowerCase().includes('.pdf')));
+        const imageSources = sources.filter(s => s && (s.startsWith('data:image/') || s.match(/\.(jpeg|jpg|gif|png|webp)/i)));
+
+        if (pdfSources.length > 1) {
+            const isSlideMode = item.multiDisplayMode !== 'grid';
+            if (isSlideMode) {
+                setTimeout(() => {
+                    startPhotoSlideshow(containerId, pdfSources.length, item.duration || 10, 'fade');
+                    pdfSources.forEach((src, idx) => {
+                        renderPDFJS(src, `pdf-container-${item.id}-${idx}`, item.mediaScale || 1.0);
+                    });
+                }, 50);
+
+                return `
+                    <div class="photo-slideshow-container" id="${containerId}">
+                        ${pdfSources.map((src, i) => `
+                            <div class="photo-slideshow-slide ${i === 0 ? 'active' : ''}" data-index="${i}">
+                                <div id="pdf-container-${item.id}-${i}" style="width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 10px;">
+                                    <div style="color: var(--text-primary); font-size: 1.1rem; margin: auto;">Φόρτωση Έγγραφο ${i + 1}... ⏳</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div class="photo-slideshow-counter">
+                            <span>📄</span>
+                            <span class="photo-slideshow-cur">1</span> / <span>${pdfSources.length}</span>
+                        </div>
+                        <div class="photo-slideshow-dots">
+                            ${pdfSources.map((_, i) => `<span class="photo-dot ${i === 0 ? 'active' : ''}"></span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                pdfSources.forEach((src, idx) => {
+                    setTimeout(() => renderPDFJS(src, `pdf-container-${item.id}-${idx}`, item.mediaScale || 1.0), 50 + (idx * 50));
+                });
+                return `
+                    <div style="display: flex; gap: 1rem; width: 100%; height: 100%; justify-content: center; align-items: stretch; padding: 10px; overflow: hidden;">
+                        ${pdfSources.map((src, idx) => `
+                            <div id="pdf-container-${item.id}-${idx}" style="flex: 1; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #1e293b; border-radius: 8px; padding: 10px;">
+                                <div style="color: var(--text-primary); font-size: 1.1rem; margin: auto;">Φόρτωση PDF ${idx + 1}... ⏳</div>
+                            </div>
+                        `).join("")}
+                    </div>
+                `;
+            }
+        } else if (pdfSources.length === 1) {
+            setTimeout(() => renderPDFJS(pdfSources[0], `pdf-container-${item.id}-0`, item.mediaScale || 1.0), 50);
+            return `
+                <div id="pdf-container-${item.id}-0" style="width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #1e293b; border-radius: 8px; padding: 10px;">
+                    <div style="color: var(--text-primary); font-size: 1.2rem; margin: auto;">Φόρτωση PDF... ⏳</div>
+                </div>
+            `;
+        } else if (imageSources.length > 0) {
+            item.mediaSources = imageSources;
+            return renderMediaBlock(item, containerId);
+        } else {
+            return `<div style="color: #94a3b8; font-size: 1.3rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
+        }
+    }
+    else {
+        return `
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 1rem; animation: pulse 2s infinite;">📢</div>
+                <div style="font-size: 1.8rem; font-weight: 700; color: #f8fafc; line-height: 1.4;">${item.content || item.title}</div>
+            </div>
+        `;
+    }
+}
+
 function renderSlide(item) {
     const container = document.getElementById('slideContainer');
-    let contentHtml = '';
-    const layoutClass = `layout-${item.layout || 'fullscreen'}`;
+    const layout = item.layout || 'fullscreen';
 
-    // Layout Checks for Auto-Fullscreen (Hide Header)
-    // NOTE: Removed 'website' so header stays visible for sites!
-    const isFullMedia = (item.layout === 'fullscreen' || !item.layout) &&
-        ['image', 'live_image', 'youtube'].includes(item.mediaType);
+    // Clear any active slideshow or countdown tickers
+    if (slideMediaInterval) {
+        clearInterval(slideMediaInterval);
+        slideMediaInterval = null;
+    }
+    if (countdownTimerId) {
+        clearInterval(countdownTimerId);
+        countdownTimerId = null;
+    }
 
+    // Auto-Fullscreen check (Hide Header only on fullscreen pure media)
+    const isFullMedia = layout === 'fullscreen' && ['image', 'live_image', 'youtube'].includes(item.mediaType);
     if (isFullMedia) {
         document.body.classList.add('fullscreen-mode');
     } else {
         document.body.classList.remove('fullscreen-mode');
     }
 
-    // Media Logic
-    if (item.mediaType === 'image' || item.mediaType === 'live_image') {
-        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : (item.mediaSource ? [item.mediaSource] : []);
-        const scale = parseFloat(item.mediaScale) || 1.0;
-        let imgScale = '';
-        if (scale !== 1.0) {
-            imgScale = `transform: scale(${scale}); transform-origin: center center;`;
-        }
+    const slideshowId = `slideshow-${item.id || Date.now()}`;
 
-        if (sources.length > 0 && sources[0]) {
-            // Calculate max-width per image dynamically
-            const n = sources.length;
-            const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
-            const gap = 1.5; // rem
-            const maxW = cols === 1 ? '100%' : `calc(${(100/cols).toFixed(2)}% - ${(gap*(cols-1)/cols).toFixed(2)}rem)`;
-            const maxH = n <= cols ? '100%' : `calc(${(100 / Math.ceil(n/cols)).toFixed(2)}% - ${gap/2}rem)`;
-
-            contentHtml = `
-                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-                            display: flex; flex-wrap: wrap; gap: ${gap}rem; padding: ${gap}rem;
-                            justify-content: center; align-items: center;
-                            overflow: hidden; box-sizing: border-box; background: transparent;">
-                    ${sources.map(src => `
-                        <img src="${src}"
-                            style="max-width: ${maxW}; max-height: ${maxH};
-                                   object-fit: contain; border-radius: 0.75rem;
-                                   box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-                                   flex-shrink: 0; ${imgScale}">
-                    `).join('')}
-                </div>
-            `;
-            if (item.content && (item.layout === 'fullscreen' || !item.layout)) {
-                contentHtml += `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>`;
-            }
-        } else {
-            contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
-        }
-    }
-    else if (item.mediaType === 'youtube') {
-        const vidId = item.mediaSource.split('v=')[1] || item.mediaSource.split('/').pop();
-        contentHtml = `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0"></iframe>`;
-    }
-    else if (item.mediaType === 'website') {
-        const scale = parseFloat(item.mediaScale) || 1.0;
-        let scaleStyle = '';
-
-        // Apply Zoom (Scale) Logic
-        if (scale !== 1.0) {
-            const w = 100 / scale;
-            const h = `calc((100vh - 190px) / ${scale})`;
-            scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
-        } else {
-            // Default (Fit container) - handled by CSS class .framed-web
-            // CSS: width: 100%, height: calc(100vh - 190px)
-        }
-
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
-        // Add style attribute to iframe if zoomed
-        contentHtml = `
-            <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
-            <div class="qr-box">
-                <img src="${qrUrl}" alt="Scan QR">
-                <div class="qr-label">SCAN ME</div>
-            </div>
-        `;
-    }
-    else if (item.mediaType === 'countdown') {
-        // Countdown Logic
-        const target = new Date(item.mediaSource).getTime();
-        contentHtml = `
-            <div class="slide-card-container">
-                <div class="slide-card">
-                    <div class="slide-card-badge">⏱️ ΑΝΤΙΣΤΡΟΦΗ ΜΕΤΡΗΣΗ</div>
-                    <h1 class="slide-card-title">${item.title}</h1>
-                    <div class="slide-card-divider"></div>
-                    <div id="countdown-${item.id}" style="font-size: clamp(3rem, 7vw, 5.5rem); font-weight: 800; font-family: 'Inter', monospace; letter-spacing: 2px; color: #60a5fa; margin: 1.5rem 0; text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);">Φόρτωση...</div>
-                    <div class="slide-card-body" style="font-size: 1.6rem;">${item.content || ''}</div>
-                </div>
-            </div>
-        `;
-        // Start detailed ticker for this slide
-        startCountdownTicker(item.id, target);
-    }
-    else if (item.mediaType === 'exam_calendar') {
-        contentHtml = `
-            <div style="width:100%; height:88vh; display:flex; flex-direction:column; background:var(--bg-secondary); border-radius:0.5rem; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-                <div style="background:var(--primary); padding:0.5rem 1.5rem; color:white; display:flex; justify-content:space-between; align-items:center;">
-                    <h1 style="margin:0; font-size:1.4rem; font-family:sans-serif;">📅 ${item.title || 'Πρόγραμμα'}</h1>
-                    <div id="exam-month-${item.id}" style="font-size:1.2rem; font-weight:bold; text-transform:uppercase;"></div>
-                </div>
-                <div id="exam-grid-${item.id}" style="flex:1; display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; background:#e2e8f0; overflow:hidden;">
-                    <div style="grid-column:1/-1; text-align:center; padding:2rem; font-size:1.5rem;">Φόρτωση... ⏳</div>
-                </div>
-            </div>
-        `;
-        setTimeout(() => fetchAndRenderExamCalendar(item.id, item.mediaSource), 50);
-    }
-    else if (item.mediaType === 'google_slides') {
-        contentHtml = `
-            <iframe
-                src="${item.mediaSource}"
-                frameborder="0"
-                allowfullscreen="true"
-                mozallowfullscreen="true"
-                webkitallowfullscreen="true"
-                style="width:100%; height:100%; border:none; display:block; background:#000;"
-            ></iframe>
-        `;
-    }
-    else if (item.mediaType === 'pdf' || item.mediaType === 'schedule') {
-        const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : [item.mediaSource];
-        const pdfSources = [];
-        const imageSources = [];
-        
-        sources.forEach(src => {
-            if (src && (src.startsWith('data:application/pdf') || src.toLowerCase().includes('.pdf'))) {
-                pdfSources.push(src);
-            } else if (src && (src.startsWith('data:image/') || src.match(/\.(jpeg|jpg|gif|png|webp)/i))) {
-                imageSources.push(src);
-            } else if (src) {
-                pdfSources.push(src);
-            }
-        });
-        
-        if (pdfSources.length > 0) {
-            contentHtml = `
-                <div style="display: flex; gap: 1rem; width: 100%; height: 100%; justify-content: center; align-items: stretch; padding: 10px; overflow: hidden;">
-                    ${pdfSources.map((src, idx) => `
-                        <div id="pdf-container-${item.id}-${idx}" style="flex: 1; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #1e293b; border-radius: 8px; padding: 10px;">
-                            <div style="color: var(--text-primary); font-size: 1.2rem; margin: auto;">Φόρτωση PDF ${idx + 1}... ⏳</div>
+    // 1. FULLSCREEN (1 Part)
+    if (layout === 'fullscreen') {
+        if (item.mediaType === 'text') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} layout-fullscreen">
+                    <div class="slide-card-container">
+                        <div class="slide-card">
+                            <div class="slide-card-badge">${getTypeIcon(item.type)} ${getTypeLabel(item.type)}</div>
+                            <h1 class="slide-card-title">${item.title}</h1>
+                            <div class="slide-card-divider"></div>
+                            <div class="slide-card-body">${item.content || ''}</div>
                         </div>
-                    `).join("")}
-                </div>
-            `;
-            
-            pdfSources.forEach((src, idx) => {
-                setTimeout(() => renderPDFJS(src, `pdf-container-${item.id}-${idx}`, item.mediaScale || 1.0), 50 + (idx * 50));
-            });
-        } else if (imageSources.length > 0) {
-            const scale = parseFloat(item.mediaScale) || 1.0;
-            let imgScale = scale !== 1.0 ? `transform: scale(${scale}); transform-origin: center center;` : '';
-            const n = imageSources.length;
-            const cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
-            const gap = 1.5;
-            const maxW = cols === 1 ? '100%' : `calc(${(100/cols).toFixed(2)}% - ${(gap*(cols-1)/cols).toFixed(2)}rem)`;
-            const maxH = n <= cols ? '100%' : `calc(${(100 / Math.ceil(n/cols)).toFixed(2)}% - ${gap/2}rem)`;
-            contentHtml = `
-                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-                            display: flex; flex-wrap: wrap; gap: ${gap}rem; padding: ${gap}rem;
-                            justify-content: center; align-items: center;
-                            overflow: hidden; box-sizing: border-box; background: transparent;">
-                    ${imageSources.map(src => `
-                        <img src="${src}"
-                            style="max-width: ${maxW}; max-height: ${maxH};
-                                   object-fit: contain; border-radius: 0.75rem;
-                                   box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-                                   flex-shrink: 0; ${imgScale}">
-                    `).join('')}
+                    </div>
                 </div>
             `;
         } else {
-            contentHtml = `<div style="color:#94a3b8;font-size:1.5rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
+            const mediaHtml = renderMediaBlock(item, slideshowId);
+            container.innerHTML = `
+                <div class="slide active type-${item.type} layout-fullscreen media-${item.mediaType}" style="width:100%; height:100%; position:relative;">
+                    ${mediaHtml}
+                    ${item.content ? `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>` : ''}
+                </div>
+            `;
         }
     }
-    else {
-        // Text / Default (Modern Digital Signage Glass Card)
-        contentHtml = `
-            <div class="slide-card-container">
-                <div class="slide-card">
-                    <div class="slide-card-badge">${getTypeIcon(item.type)} ${getTypeLabel(item.type)}</div>
-                    <h1 class="slide-card-title">${item.title}</h1>
-                    <div class="slide-card-divider"></div>
-                    <div class="slide-card-body">${item.content || ''}</div>
-                </div>
-            </div>
-        `;
-    }
+    // 2. TWO PARTS (Split Left, Split Right, Split Top, Split Bottom)
+    else if (['split-left', 'split-right', 'split-top', 'split-bottom'].includes(layout)) {
+        const textHtml = renderTextBlock(item);
+        const mediaHtml = `<div class="zone-card zone-card-media">${renderMediaBlock(item, slideshowId)}</div>`;
 
-    // Wrap and layout rendering
-    if (['split-left', 'split-right', 'split-top', 'split-bottom'].includes(item.layout)) {
-        let gridStyle = 'display: grid; gap: 2rem; padding: 2rem; width: 100%; height: 100%; box-sizing: border-box;';
-        let textOrder = 1;
-        let mediaOrder = 2;
-        
-        if (item.layout === 'split-left') {
-            gridStyle += 'grid-template-columns: 1fr 1fr;';
-            textOrder = 1;
-            mediaOrder = 2;
-        } else if (item.layout === 'split-right') {
-            gridStyle += 'grid-template-columns: 1fr 1fr;';
-            textOrder = 2;
-            mediaOrder = 1;
-        } else if (item.layout === 'split-top') {
-            gridStyle += 'grid-template-rows: 1fr 1.2fr;';
-            textOrder = 1;
-            mediaOrder = 2;
-        } else if (item.layout === 'split-bottom') {
-            gridStyle += 'grid-template-rows: 1.2fr 1fr;';
-            textOrder = 2;
-            mediaOrder = 1;
+        let part1 = textHtml;
+        let part2 = mediaHtml;
+
+        if (layout === 'split-right' || layout === 'split-bottom') {
+            part1 = mediaHtml;
+            part2 = textHtml;
         }
-        
+
         container.innerHTML = `
-            <div class="slide active type-${item.type} ${layoutClass}" style="${gridStyle}">
-                <div style="order:${textOrder}; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding: 1rem; overflow: hidden;">
-                    <h1 style="font-size:3.5rem; margin-bottom:1.5rem; background:linear-gradient(to right,#fff,#94a3b8);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent; font-weight: 800; line-height: 1.2;">${item.title}</h1>
-                    <div style="font-size:1.8rem; color:var(--text-secondary); max-width:90%; line-height: 1.5; max-height: 60%; overflow-y: auto;">${item.content || ''}</div>
-                </div>
-                <div style="order:${mediaOrder}; overflow:hidden; border-radius:1rem; width:100%; height:100%; display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
-                    ${contentHtml}
-                </div>
+            <div class="slide active type-${item.type} multi-zone-container layout-${layout}">
+                ${part1}
+                ${part2}
             </div>
         `;
-    } else {
-        container.innerHTML = `
-            <div class="slide active type-${item.type} ${layoutClass} media-${item.mediaType}">
-                ${contentHtml}
-            </div>
-        `;
+    }
+    // 3. THREE PARTS (split-3-col, split-3-focus, split-3-row)
+    else if (['split-3-col', 'split-3-focus', 'split-3-row'].includes(layout)) {
+        const textHtml = renderTextBlock(item, true);
+        const mediaHtml = `<div class="zone-card zone-card-media ${layout === 'split-3-focus' ? 'zone-media-focus' : ''}">${renderMediaBlock(item, slideshowId)}</div>`;
+        const thirdHtml = renderThirdZoneBlock(item);
+
+        if (layout === 'split-3-focus') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} multi-zone-container layout-split-3-focus">
+                    ${mediaHtml}
+                    ${textHtml}
+                    ${thirdHtml}
+                </div>
+            `;
+        } else if (layout === 'split-3-col') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} multi-zone-container layout-split-3-col">
+                    ${textHtml}
+                    ${mediaHtml}
+                    ${thirdHtml}
+                </div>
+            `;
+        } else if (layout === 'split-3-row') {
+            container.innerHTML = `
+                <div class="slide active type-${item.type} multi-zone-container layout-split-3-row">
+                    ${textHtml}
+                    ${mediaHtml}
+                    ${thirdHtml}
+                </div>
+            `;
+        }
     }
 }
 

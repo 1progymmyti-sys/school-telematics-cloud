@@ -1662,3 +1662,315 @@ body.fullscreen-mode .display-header {
         transform: scale(1) translateY(0);
     }
 }
+
+/* ===================================================
+   VISUAL LAYOUT SELECTOR & MULTI-ZONE ENGINE
+   =================================================== */
+
+.layout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+}
+
+.layout-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.layout-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.layout-card.active {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+}
+
+.layout-wireframe {
+    width: 64px;
+    height: 38px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    overflow: hidden;
+    padding: 3px;
+    gap: 3px;
+    box-sizing: border-box;
+}
+
+.layout-card-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+/* ===================================================
+   PHOTO & DOCUMENT SLIDESHOW / CAROUSEL
+   =================================================== */
+
+.photo-slideshow-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.photo-slideshow-slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.97);
+}
+
+.photo-slideshow-slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+    z-index: 2;
+}
+
+/* Ken Burns Zoom Effect */
+.effect-zoom .photo-slideshow-slide.active {
+    animation: kenBurnsZoom 6s ease-out forwards;
+}
+
+@keyframes kenBurnsZoom {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.06); }
+}
+
+/* Slide Left Effect */
+.effect-slide .photo-slideshow-slide {
+    transform: translateX(30px);
+}
+.effect-slide .photo-slideshow-slide.active {
+    transform: translateX(0);
+}
+
+.photo-slideshow-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 1rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+}
+
+/* Slideshow Pill Counter (e.g. 📷 2 / 5) */
+.photo-slideshow-counter {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 2rem;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f8fafc;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Slideshow Dots Indicator */
+.photo-slideshow-dots {
+    position: absolute;
+    bottom: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    padding: 0.35rem 0.75rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.photo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transition: all 0.3s ease;
+}
+
+.photo-dot.active {
+    width: 22px;
+    border-radius: 4px;
+    background: var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color);
+}
+
+/* ===================================================
+   MULTI-ZONE LAYOUT CONTAINERS (DISPLAY)
+   =================================================== */
+
+.multi-zone-container {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    box-sizing: border-box;
+    padding: 1.75rem;
+    gap: 1.5rem;
+    overflow: hidden;
+}
+
+/* 2 Columns: 50% - 50% */
+.layout-split-left {
+    grid-template-columns: 1fr 1fr;
+}
+
+.layout-split-right {
+    grid-template-columns: 1fr 1fr;
+}
+
+/* 2 Rows: 50% - 50% */
+.layout-split-top {
+    grid-template-rows: 1fr 1.2fr;
+}
+
+.layout-split-bottom {
+    grid-template-rows: 1.2fr 1fr;
+}
+
+/* 3 Columns: 33% - 33% - 33% */
+.layout-split-3-col {
+    grid-template-columns: 1fr 1.25fr 0.85fr;
+}
+
+/* 3-Zone Focus: 1 Large Left (60%) + 2 Stacked Right (40%) */
+.layout-split-3-focus {
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.layout-split-3-focus .zone-media-focus {
+    grid-row: 1 / span 2;
+}
+
+/* 3 Rows: Top / Middle / Bottom */
+.layout-split-3-row {
+    grid-template-rows: 0.9fr 1.4fr 0.7fr;
+}
+
+/* Zone Card Common Styling */
+.zone-card {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1.5rem;
+    padding: 2.25rem 2.5rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.zone-card-text {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.zone-card-text .slide-card-title {
+    font-size: clamp(2rem, 3.5vw, 3.2rem);
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.zone-card-text .slide-card-body {
+    font-size: clamp(1.2rem, 2vw, 1.7rem);
+    color: #e2e8f0;
+    line-height: 1.5;
+    max-height: 55vh;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.zone-card-media {
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.zone-card-extra {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.zone-extra-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #60a5fa;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.zone-extra-text {
+    font-size: 1.25rem;
+    color: #f1f5f9;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.zone-qr-container {
+    margin-top: 1rem;
+    background: white;
+    padding: 0.5rem;
+    border-radius: 0.6rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    display: inline-flex;
+}
