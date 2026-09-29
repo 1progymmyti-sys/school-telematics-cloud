@@ -1159,62 +1159,66 @@ body.fullscreen-mode .display-header {
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 70px !important;
-    background: #1e293b;
-    border-top: 4px solid #3b82f6;
+    height: 72px !important;
+    background: #0f172a !important;
+    border-top: 4px solid #3b82f6 !important;
     z-index: 20000 !important;
     display: flex;
     align-items: center !important;
-    box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.6);
-    transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.7) !important;
+    transition: all 0.4s ease;
 }
 
 .ticker-label {
-    background: #1e40af;
-    color: #fff !important;
-    font-weight: 800 !important;
+    background: #1e40af !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
     font-size: 1.35rem !important;
-    padding: 0 25px !important;
+    padding: 0 28px !important;
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     white-space: nowrap !important;
     z-index: 20001;
-    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
-    letter-spacing: 0.5px;
-    transition: background 0.4s ease, box-shadow 0.4s ease;
+    letter-spacing: 1px;
+    box-shadow: 6px 0 20px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.4s ease;
 }
 
 /* 👑 Official Director Mode: Gold Accent & Deep Royal Navy (Distinct & Prestigious) */
-#tickerContainer.ticker-mode-director {
-    background: linear-gradient(90deg, #0b1120 0%, #1e293b 50%, #0b1120 100%) !important;
-    border-top: 4px solid #f59e0b !important;
-    box-shadow: 0 -6px 30px rgba(245, 158, 11, 0.35) !important;
+#tickerContainer.ticker-mode-director,
+#tickerContainer.ticker-mode-gold {
+    background: linear-gradient(90deg, #090d16 0%, #172554 45%, #1e1b4b 75%, #090d16 100%) !important;
+    border-top: 5px solid #f59e0b !important;
+    box-shadow: 0 -8px 35px rgba(245, 158, 11, 0.45) !important;
 }
 
-#tickerContainer.ticker-mode-director .ticker-label {
-    background: linear-gradient(135deg, #b45309, #d97706, #f59e0b) !important;
+#tickerContainer.ticker-mode-director .ticker-label,
+#tickerContainer.ticker-mode-gold .ticker-label {
+    background: linear-gradient(135deg, #b45309 0%, #d97706 40%, #f59e0b 100%) !important;
     color: #ffffff !important;
     font-size: 1.35rem !important;
     font-weight: 900 !important;
-    letter-spacing: 1.2px !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6) !important;
-    box-shadow: 4px 0 20px rgba(217, 119, 6, 0.5) !important;
+    letter-spacing: 1.5px !important;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7) !important;
+    box-shadow: 6px 0 25px rgba(217, 119, 6, 0.6) !important;
+    border-right: 2px solid rgba(254, 240, 138, 0.4);
 }
 
 /* 🚨 Alert Mode: Crimson Notice */
 #tickerContainer.ticker-mode-alert {
     background: linear-gradient(90deg, #450a0a 0%, #7f1d1d 50%, #450a0a 100%) !important;
-    border-top: 4px solid #ef4444 !important;
-    box-shadow: 0 -6px 30px rgba(239, 68, 68, 0.45) !important;
+    border-top: 5px solid #ef4444 !important;
+    box-shadow: 0 -8px 35px rgba(239, 68, 68, 0.5) !important;
 }
 
 #tickerContainer.ticker-mode-alert .ticker-label {
-    background: linear-gradient(135deg, #991b1b, #dc2626) !important;
+    background: linear-gradient(135deg, #991b1b 0%, #dc2626 50%, #ef4444 100%) !important;
     color: #ffffff !important;
     font-weight: 900 !important;
     letter-spacing: 1.5px !important;
+    box-shadow: 6px 0 25px rgba(220, 38, 38, 0.6) !important;
 }
 
 /* 🗞️ RSS Mode: Professional Blue */
@@ -1224,45 +1228,71 @@ body.fullscreen-mode .display-header {
 }
 
 #tickerContainer.ticker-mode-rss .ticker-label {
-    background: #2563eb !important;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6) !important;
+    color: #ffffff !important;
 }
 
 /* Direction Message Badges & Typography inside ticker */
 .ticker-director-pill {
-    background: rgba(245, 158, 11, 0.25);
-    border: 1px solid #f59e0b;
-    color: #fbbf24;
-    padding: 0.25rem 0.85rem;
-    border-radius: 2rem;
-    font-size: 1.3rem;
-    font-weight: 900;
-    margin-right: 0.85rem;
-    letter-spacing: 0.5px;
-    display: inline-flex;
-    align-items: center;
-    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.25) !important;
+    border: 1.5px solid #f59e0b !important;
+    color: #fef08a !important;
+    padding: 0.35rem 1rem !important;
+    border-radius: 2rem !important;
+    font-size: 1.35rem !important;
+    font-weight: 900 !important;
+    margin-right: 1rem !important;
+    letter-spacing: 0.8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4) !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
 }
 
 .ticker-director-message {
-    font-size: 1.75rem !important;
+    font-size: 1.85rem !important;
     font-weight: 800 !important;
     color: #ffffff !important;
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-    letter-spacing: 0.5px;
-    margin-right: 90px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7) !important;
+    letter-spacing: 0.6px !important;
+    margin-right: 80px !important;
 }
 
 .ticker-rss-pill {
-    background: rgba(59, 130, 246, 0.25);
-    border: 1px solid #3b82f6;
-    color: #93c5fd;
-    padding: 0.2rem 0.8rem;
-    border-radius: 2rem;
-    font-size: 1.25rem;
-    font-weight: 800;
-    margin-right: 0.75rem;
-    display: inline-flex;
-    align-items: center;
+    background: rgba(59, 130, 246, 0.25) !important;
+    border: 1.5px solid #3b82f6 !important;
+    color: #bfdbfe !important;
+    padding: 0.3rem 0.9rem !important;
+    border-radius: 2rem !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    margin-right: 0.8rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.ticker-rss-item {
+    margin-right: 80px !important;
+    font-size: 1.6rem !important;
+    font-weight: 600 !important;
+    color: #e2e8f0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.ticker-rss-bullet {
+    color: #60a5fa !important;
+    margin-right: 10px !important;
+    font-size: 1.3em !important;
+    line-height: 1 !important;
+}
+
+.ticker-divider {
+    margin: 0 50px !important;
+    color: #f59e0b !important;
+    font-size: 1.4rem !important;
+    letter-spacing: 3px !important;
+    opacity: 0.85 !important;
 }
 
 #tickerContent {

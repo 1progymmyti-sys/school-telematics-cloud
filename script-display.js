@@ -114,48 +114,81 @@ async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
     }
 }
 
-// Helper: Fetch RSS Feed directly (with optional Director message combination)
+// Helper: Fetch RSS Feed reliably (with CORS proxy fallbacks & Director message combination)
 async function fetchRSS(url, dirMsg = '', dirBadge = '🏛️ ΔΙΕΥΘΥΝΣΗ', dirStyle = 'gold') {
     if (!url) return;
+    let items = [];
+
+    // Method 1: rss2json API (CORS enabled, clean JSON)
     try {
-        const res = await fetch(url);
-        const xmlText = await res.text();
-
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-        const items = xmlDoc.querySelectorAll("item");
-
-        let parts = [];
-        if (dirMsg) {
-            parts.push(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`);
+        const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}&api_key=&nocache=${Date.now()}`;
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+        if (data.status === 'ok' && data.items && data.items.length > 0) {
+            items = data.items.slice(0, 7).map(i => i.title).filter(Boolean);
         }
+    } catch (e1) {
+        console.warn("rss2json attempt failed:", e1);
+    }
 
-        if (items && items.length > 0) {
-            let rssParts = [];
-            items.forEach((item, index) => {
-                if (index >= 5) return; // Keep latest 5
-                const title = item.querySelector("title")?.textContent;
-                if (title) {
-                    rssParts.push(`<span style="margin-right: 80px; font-size: 1.55rem; font-weight:600; display:inline-flex; align-items:center;"><span style="color:#60a5fa; font-size:1.3em; margin-right:8px; line-height:1;">&bull;</span> ${title}</span>`);
+    // Method 2: allorigins raw proxy (XML fallback)
+    if (items.length === 0) {
+        try {
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}&nocache=${Date.now()}`;
+            const res = await fetch(proxyUrl);
+            const xmlText = await res.text();
+            const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+            const xmlItems = xmlDoc.querySelectorAll("item");
+            xmlItems.forEach((it, idx) => {
+                if (idx < 7) {
+                    const t = it.querySelector("title")?.textContent;
+                    if (t) items.push(t.trim());
                 }
             });
-            if (rssParts.length > 0) {
-                const rssHeader = dirMsg ? `<span class="ticker-rss-pill">🗞️ ΕΙΔΗΣΕΙΣ:</span> ` : '';
-                parts.push(rssHeader + rssParts.join(''));
-            }
+        } catch (e2) {
+            console.warn("allorigins fallback failed:", e2);
         }
+    }
 
-        if (parts.length > 0) {
-            const separator = dirMsg ? ' <span style="margin: 0 40px; color:#f59e0b; opacity:0.7; font-size:1.3rem;">✦✦✦</span> ' : '';
-            showTickerText(parts.join(separator), dirMsg ? dirBadge : '🗞️ ΕΙΔΗΣΕΙΣ', dirMsg ? dirStyle : 'rss');
-        } else if (dirMsg) {
-            showTickerText(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
+    // Method 3: Direct fetch (if server supports CORS)
+    if (items.length === 0) {
+        try {
+            const res = await fetch(url);
+            const xmlText = await res.text();
+            const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+            const xmlItems = xmlDoc.querySelectorAll("item");
+            xmlItems.forEach((it, idx) => {
+                if (idx < 7) {
+                    const t = it.querySelector("title")?.textContent;
+                    if (t) items.push(t.trim());
+                }
+            });
+        } catch (e3) {
+            console.warn("Direct RSS fetch failed:", e3);
         }
-    } catch (e) {
-        console.error("RSS Error:", e);
-        if (dirMsg) {
-            showTickerText(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
-        }
+    }
+
+    // Combine Director Message and RSS Feed Headlines
+    let parts = [];
+    if (dirMsg) {
+        parts.push(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`);
+    }
+
+    if (items.length > 0) {
+        const rssSpans = items.map(title => `
+            <span class="ticker-rss-item">
+                <span class="ticker-rss-bullet">✦</span> ${title}
+            </span>
+        `).join('');
+        const rssHeader = dirMsg ? `<span class="ticker-rss-pill">🗞️ ΕΙΔΗΣΕΙΣ:</span> ` : '';
+        parts.push(rssHeader + rssSpans);
+    }
+
+    if (parts.length > 0) {
+        const separator = dirMsg ? ' <span class="ticker-divider">❖❖❖</span> ' : '';
+        showTickerText(parts.join(separator), dirMsg ? dirBadge : '🗞️ ΕΙΔΗΣΕΙΣ', dirMsg ? dirStyle : 'rss');
+    } else if (dirMsg) {
+        showTickerText(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
     }
 }
 
@@ -194,7 +227,7 @@ function showTickerText(htmlContent, labelText, styleClass = 'director') {
 function startTickerAnim(element) {
     if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
     tickerOffset = window.innerWidth; // Reset start pos
-    const elementWidth = element.offsetWidth || 1200; // Cache width to prevent 60 FPS layout thrashing
+    let elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 1200);
 
     function loop() {
         tickerOffset -= 1.8; // Smooth Speed
@@ -202,6 +235,7 @@ function startTickerAnim(element) {
         // If fully off-screen left, reset to right
         if (tickerOffset < -elementWidth) {
             tickerOffset = window.innerWidth;
+            elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 1200);
         }
 
         // Apply transform (0 on Y so flex centering takes over)
