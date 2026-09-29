@@ -114,8 +114,8 @@ async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
     }
 }
 
-// Helper: Fetch RSS Feed directly (now that CORS is enabled)
-async function fetchRSS(url) {
+// Helper: Fetch RSS Feed directly (with optional Director message combination)
+async function fetchRSS(url, dirMsg = '', dirBadge = '🏛️ ΔΙΕΥΘΥΝΣΗ', dirStyle = 'gold') {
     if (!url) return;
     try {
         const res = await fetch(url);
@@ -125,44 +125,64 @@ async function fetchRSS(url) {
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
         const items = xmlDoc.querySelectorAll("item");
 
+        let parts = [];
+        if (dirMsg) {
+            parts.push(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`);
+        }
+
         if (items && items.length > 0) {
-            let htmlItems = [];
+            let rssParts = [];
             items.forEach((item, index) => {
-                if (index >= 5) return; // Keep only the latest 5 to avoid enormous text
+                if (index >= 5) return; // Keep latest 5
                 const title = item.querySelector("title")?.textContent;
                 if (title) {
-                    htmlItems.push(`<span style="margin-right: 100px; font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight:600; line-height: 1.2; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); display:inline-flex; align-items:center;"><span style="color:#fbbf24; font-size:1.5em; margin-right:10px; line-height:1;">&bull;</span> ${title}</span>`);
+                    rssParts.push(`<span style="margin-right: 80px; font-size: 1.55rem; font-weight:600; display:inline-flex; align-items:center;"><span style="color:#60a5fa; font-size:1.3em; margin-right:8px; line-height:1;">&bull;</span> ${title}</span>`);
                 }
             });
-            showTickerText(htmlItems.join(''), "ΕΝΗΜΕΡΩΣΗ");
-        } else {
-            console.warn("No items found in RSS feed");
+            if (rssParts.length > 0) {
+                const rssHeader = dirMsg ? `<span class="ticker-rss-pill">🗞️ ΕΙΔΗΣΕΙΣ:</span> ` : '';
+                parts.push(rssHeader + rssParts.join(''));
+            }
+        }
+
+        if (parts.length > 0) {
+            const separator = dirMsg ? ' <span style="margin: 0 40px; color:#f59e0b; opacity:0.7; font-size:1.3rem;">✦✦✦</span> ' : '';
+            showTickerText(parts.join(separator), dirMsg ? dirBadge : '🗞️ ΕΙΔΗΣΕΙΣ', dirMsg ? dirStyle : 'rss');
+        } else if (dirMsg) {
+            showTickerText(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
         }
     } catch (e) {
         console.error("RSS Error:", e);
+        if (dirMsg) {
+            showTickerText(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
+        }
     }
 }
 
 
-function showTickerText(htmlContent, labelText) {
+function showTickerText(htmlContent, labelText, styleClass = 'director') {
     const tickerContainer = document.getElementById('tickerContainer');
     const tickerContent = document.getElementById('tickerContent');
 
     // Update label if provided
     if (tickerContainer && labelText) {
         const labelEl = tickerContainer.querySelector('.ticker-label');
-        if (labelEl) labelEl.innerText = labelText;
+        if (labelEl) labelEl.innerHTML = labelText;
+    }
+
+    if (tickerContainer) {
+        tickerContainer.classList.remove('ticker-mode-director', 'ticker-mode-alert', 'ticker-mode-rss');
+        if (styleClass === 'alert') tickerContainer.classList.add('ticker-mode-alert');
+        else if (styleClass === 'rss') tickerContainer.classList.add('ticker-mode-rss');
+        else tickerContainer.classList.add('ticker-mode-director');
     }
 
     // Check if changed to avoid reset
     if (lastTickerContent === htmlContent && tickerAnimId) return;
     lastTickerContent = htmlContent;
 
-    console.log("Showing New Ticker Content");
-
     if (tickerContainer && tickerContent) {
         tickerContainer.style.display = 'flex';
-        // Use clean class based logic
         tickerContent.innerHTML = `<div class="ticker-text" id="movingTicker">${htmlContent}</div>`;
 
         // Start JS Animation
@@ -396,7 +416,7 @@ function applySettings(s) {
         }, 1800000); // 30 mins
     }
 
-    // Ticker Logic (Text Priority, then RSS)
+    // Ticker Logic (Modes: 'director', 'rss', 'both', 'none')
     const tickerContainer = document.getElementById('tickerContainer');
 
     // Clear previous interval
@@ -405,18 +425,45 @@ function applySettings(s) {
         rssInterval = null;
     }
 
-    if (s.tickerMessage && s.tickerMessage.trim() !== "") {
-        // 1. Text Message (Highest Priority)
-        showTickerText(`<span>📢 ${s.tickerMessage}</span>`, "ΔΙΕΥΘΥΝΣΗ");
+    let mode = s.tickerMode;
+    if (!mode) {
+        if (s.tickerMessage && s.tickerMessage.trim() !== '') mode = 'director';
+        else if (s.rssUrl && s.rssUrl.trim() !== '') mode = 'rss';
+        else mode = 'none';
     }
-    else if (s.rssUrl && s.rssUrl.trim() !== "") {
-        // 2. RSS Feed (If text is empty)
-        fetchRSS(s.rssUrl);
-        rssInterval = setInterval(() => fetchRSS(s.rssUrl), 600000);
-    }
-    else {
-        // 3. Nothing -> Hide
+
+    const dirMsg = s.tickerMessage ? s.tickerMessage.trim() : '';
+    const dirBadge = s.tickerBadgeLabel || '🏛️ ΔΙΕΥΘΥΝΣΗ';
+    const dirStyle = s.tickerStyle || 'gold';
+    const rssUrl = s.rssUrl ? s.rssUrl.trim() : '';
+
+    if (mode === 'none') {
         if (tickerContainer) tickerContainer.style.display = 'none';
+        if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
+    } else if (mode === 'director') {
+        if (dirMsg) {
+            const html = `<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`;
+            showTickerText(html, dirBadge, dirStyle);
+        } else {
+            if (tickerContainer) tickerContainer.style.display = 'none';
+        }
+    } else if (mode === 'rss') {
+        if (rssUrl) {
+            fetchRSS(rssUrl);
+            rssInterval = setInterval(() => fetchRSS(rssUrl), 600000);
+        } else {
+            if (tickerContainer) tickerContainer.style.display = 'none';
+        }
+    } else if (mode === 'both') {
+        if (rssUrl) {
+            fetchRSS(rssUrl, dirMsg, dirBadge, dirStyle);
+            rssInterval = setInterval(() => fetchRSS(rssUrl, dirMsg, dirBadge, dirStyle), 600000);
+        } else if (dirMsg) {
+            const html = `<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`;
+            showTickerText(html, dirBadge, dirStyle);
+        } else {
+            if (tickerContainer) tickerContainer.style.display = 'none';
+        }
     }
 
     // Theme - Remove old theme classes first

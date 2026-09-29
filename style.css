@@ -1153,30 +1153,27 @@ body.fullscreen-mode .display-header {
     }
 }
 
-/* --- FINAL TICKER STYLES (BLUE EDITION) --- */
+/* --- TICKER STYLES & THEMATIC MODES --- */
 #tickerContainer {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
     height: 70px !important;
-    background: #3b82f6 !important;
-    /* BLUE BACKGROUND */
-    border-top: 4px solid #1e40af !important;
-    /* Darker Blue Border */
+    background: #1e293b;
+    border-top: 4px solid #3b82f6;
     z-index: 20000 !important;
     display: flex;
-    /* NO !important here, so JS can hide it */
     align-items: center !important;
-    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.6);
+    transition: background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 .ticker-label {
-    background: #1e40af !important;
-    /* Darker Blue Label */
+    background: #1e40af;
     color: #fff !important;
     font-weight: 800 !important;
-    font-size: 1.4rem !important;
+    font-size: 1.35rem !important;
     padding: 0 25px !important;
     height: 100% !important;
     display: flex !important;
@@ -1184,7 +1181,88 @@ body.fullscreen-mode .display-header {
     justify-content: center !important;
     white-space: nowrap !important;
     z-index: 20001;
-    box-shadow: 5px 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.5px;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* 👑 Official Director Mode: Gold Accent & Deep Royal Navy (Distinct & Prestigious) */
+#tickerContainer.ticker-mode-director {
+    background: linear-gradient(90deg, #0b1120 0%, #1e293b 50%, #0b1120 100%) !important;
+    border-top: 4px solid #f59e0b !important;
+    box-shadow: 0 -6px 30px rgba(245, 158, 11, 0.35) !important;
+}
+
+#tickerContainer.ticker-mode-director .ticker-label {
+    background: linear-gradient(135deg, #b45309, #d97706, #f59e0b) !important;
+    color: #ffffff !important;
+    font-size: 1.35rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 1.2px !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 4px 0 20px rgba(217, 119, 6, 0.5) !important;
+}
+
+/* 🚨 Alert Mode: Crimson Notice */
+#tickerContainer.ticker-mode-alert {
+    background: linear-gradient(90deg, #450a0a 0%, #7f1d1d 50%, #450a0a 100%) !important;
+    border-top: 4px solid #ef4444 !important;
+    box-shadow: 0 -6px 30px rgba(239, 68, 68, 0.45) !important;
+}
+
+#tickerContainer.ticker-mode-alert .ticker-label {
+    background: linear-gradient(135deg, #991b1b, #dc2626) !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    letter-spacing: 1.5px !important;
+}
+
+/* 🗞️ RSS Mode: Professional Blue */
+#tickerContainer.ticker-mode-rss {
+    background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%) !important;
+    border-top: 4px solid #3b82f6 !important;
+}
+
+#tickerContainer.ticker-mode-rss .ticker-label {
+    background: #2563eb !important;
+}
+
+/* Direction Message Badges & Typography inside ticker */
+.ticker-director-pill {
+    background: rgba(245, 158, 11, 0.25);
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+    padding: 0.25rem 0.85rem;
+    border-radius: 2rem;
+    font-size: 1.3rem;
+    font-weight: 900;
+    margin-right: 0.85rem;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+}
+
+.ticker-director-message {
+    font-size: 1.75rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.5px;
+    margin-right: 90px;
+}
+
+.ticker-rss-pill {
+    background: rgba(59, 130, 246, 0.25);
+    border: 1px solid #3b82f6;
+    color: #93c5fd;
+    padding: 0.2rem 0.8rem;
+    border-radius: 2rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-right: 0.75rem;
+    display: inline-flex;
+    align-items: center;
 }
 
 #tickerContent {
@@ -1195,7 +1273,6 @@ body.fullscreen-mode .display-header {
     display: flex !important;
     align-items: center !important;
     background: transparent !important;
-    /* Transparent to show blue */
 }
 
 /* The scanning text element - perfectly centered vertically */
@@ -1209,7 +1286,7 @@ body.fullscreen-mode .display-header {
     font-size: 1.6rem !important;
     font-weight: 700 !important;
     line-height: 1 !important;
-    font-family: 'Arial', 'Helvetica', sans-serif !important;
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     will-change: transform;
 }

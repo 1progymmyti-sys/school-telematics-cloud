@@ -448,11 +448,21 @@ window.onload = async () => {
 function updateSettingsUI(s) {
     if (document.getElementById('schoolName')) document.getElementById('schoolName').value = s.schoolName || '';
     if (document.getElementById('tickerMessage')) document.getElementById('tickerMessage').value = s.tickerMessage || '';
+    if (document.getElementById('tickerBadgeLabel')) document.getElementById('tickerBadgeLabel').value = s.tickerBadgeLabel || '🏛️ ΔΙΕΥΘΥΝΣΗ';
+    if (document.getElementById('tickerStyle')) document.getElementById('tickerStyle').value = s.tickerStyle || 'gold';
     if (document.getElementById('hostUrl')) document.getElementById('hostUrl').value = s.hostUrl || '';
     if (document.getElementById('rssUrl')) document.getElementById('rssUrl').value = s.rssUrl || '';
     if (document.getElementById('weatherCity')) document.getElementById('weatherCity').value = s.weatherCity || '';
     if (document.getElementById('weatherUrl')) document.getElementById('weatherUrl').value = s.weatherUrl || '';
     if (document.getElementById('adminPin')) document.getElementById('adminPin').value = s.adminPin || '';
+
+    let tMode = s.tickerMode;
+    if (!tMode) {
+        if (s.tickerMessage && s.tickerMessage.trim() !== '') tMode = 'director';
+        else if (s.rssUrl && s.rssUrl.trim() !== '') tMode = 'rss';
+        else tMode = 'director';
+    }
+    setTickerModeUI(tMode);
 
     if (s.logo) {
         document.getElementById('logoPreview').src = s.logo;
@@ -836,7 +846,41 @@ function initForm() {
     };
 }
 
+function setTickerModeUI(mode) {
+    const input = document.getElementById('tickerMode');
+    if (input) input.value = mode;
+
+    document.querySelectorAll('#tickerModeChips .filter-chip').forEach(chip => {
+        if (chip.dataset.mode === mode) chip.classList.add('active');
+        else chip.classList.remove('active');
+    });
+
+    const dirGroup = document.getElementById('tickerDirectorGroup');
+    const rssGroup = document.getElementById('tickerRssGroup');
+
+    if (mode === 'director') {
+        if (dirGroup) dirGroup.style.display = 'block';
+        if (rssGroup) rssGroup.style.display = 'none';
+    } else if (mode === 'rss') {
+        if (dirGroup) dirGroup.style.display = 'none';
+        if (rssGroup) rssGroup.style.display = 'block';
+    } else if (mode === 'both') {
+        if (dirGroup) dirGroup.style.display = 'block';
+        if (rssGroup) rssGroup.style.display = 'block';
+    } else if (mode === 'none') {
+        if (dirGroup) dirGroup.style.display = 'none';
+        if (rssGroup) rssGroup.style.display = 'none';
+    }
+}
+
 function initSettingsForm() {
+    // Mode chip selectors
+    document.querySelectorAll('#tickerModeChips .filter-chip').forEach(chip => {
+        chip.onclick = () => {
+            setTickerModeUI(chip.dataset.mode);
+        };
+    });
+
     // School Settings
     document.getElementById('settingsForm').onsubmit = async (e) => {
         e.preventDefault();
@@ -852,9 +896,12 @@ function initSettingsForm() {
         const updates = {
             schoolName: fd.get('schoolName'),
             adminPin: fd.get('adminPin'),
-            tickerMessage: fd.get('tickerMessage'),
+            tickerMode: fd.get('tickerMode') || 'director',
+            tickerMessage: fd.get('tickerMessage') || '',
+            tickerBadgeLabel: fd.get('tickerBadgeLabel') || '🏛️ ΔΙΕΥΘΥΝΣΗ',
+            tickerStyle: fd.get('tickerStyle') || 'gold',
             hostUrl: fd.get('hostUrl'),
-            rssUrl: fd.get('rssUrl'),
+            rssUrl: fd.get('rssUrl') || '',
             weatherCity: fd.get('weatherCity'),
             weatherUrl: fd.get('weatherUrl'),
             logo: logo
