@@ -701,7 +701,13 @@ function initForm() {
         if (type === 'live_image') els.live.style.display = 'block';
         if (type === 'youtube') els.youtube.style.display = 'block';
         if (type === 'countdown') els.countdown.style.display = 'block';
-        if (type === 'exam_calendar') els.examcal.style.display = 'block';
+        if (type === 'exam_calendar') {
+            if (els.examcal) els.examcal.style.display = 'block';
+            const exInput = document.getElementById('examCalendarUrl');
+            if (exInput && !exInput.value) {
+                exInput.value = 'https://script.google.com/macros/s/AKfycbz3vb-NXex6F10juj_tWOozgHlczNCLJPLqFapUQ4mb3b3hCgUZBdUzKeLRej2NBroQdQ/exec';
+            }
+        }
         if (type === 'google_slides') els.googleSlides.style.display = 'block';
         if (['website', 'pdf', 'image'].includes(type)) { if (els.scale) els.scale.style.display = 'block'; }
 
@@ -1185,6 +1191,21 @@ window.previewAnnouncement = async () => {
             } else {
                 return `<div style="color:#94a3b8;font-size:1.2rem;">📁 Δεν έχει επιλεγεί αρχείο PDF</div>`;
             }
+        } else if (mediaType === 'exam_calendar') {
+            return `
+                <div style="width:100%;height:100%;display:flex;flex-direction:column;background:#1e293b;border-radius:1rem;overflow:hidden;box-shadow:0 8px 25px rgba(0,0,0,0.4);">
+                    <div style="background:var(--accent-color);padding:0.6rem 1.5rem;color:white;display:flex;justify-content:space-between;align-items:center;">
+                        <h3 style="margin:0;font-size:1.1rem;">📅 ${title || 'Πρόγραμμα Διαγωνισμάτων'}</h3>
+                        <div style="font-size:0.9rem;font-weight:bold;">ΕΒΔΟΜΑΔΙΑΙΟ ΠΡΟΓΡΑΜΜΑ</div>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;">
+                        <div style="font-size:3.5rem;margin-bottom:0.75rem;">📅</div>
+                        <div style="font-size:1.2rem;font-weight:700;color:#f8fafc;margin-bottom:0.5rem;">Ζωντανό Ημερολόγιο Διαγωνισμάτων</div>
+                        <div style="font-size:0.9rem;color:#94a3b8;max-width:450px;">Αντλείται αυτόματα και προβάλλεται το εβδομαδιαίο πρόγραμμα ανά τμήμα και ώρα από το Exam Scheduler.</div>
+                        <div style="margin-top:1rem;padding:0.4rem 1rem;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:2rem;color:#60a5fa;font-size:0.8rem;font-family:monospace;">API Σύνδεσης: Ενεργό ✅</div>
+                    </div>
+                </div>
+            `;
         } else {
             return `
                 <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;text-align:center;">

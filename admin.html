@@ -589,10 +589,14 @@
 
 
                     <div id="examCalendarGroup" class="form-group" style="display: none;">
-                        <label for="examCalendarUrl">URL του Exam Scheduler (Web App)</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                            <label for="examCalendarUrl" style="margin-bottom: 0;">📅 URL του Exam Scheduler (Web App)</label>
+                            <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="document.getElementById('examCalendarUrl').value='https://script.google.com/macros/s/AKfycbz3vb-NXex6F10juj_tWOozgHlczNCLJPLqFapUQ4mb3b3hCgUZBdUzKeLRej2NBroQdQ/exec'">🔄 Συμπλήρωση Σχολικού Link</button>
+                        </div>
                         <input type="url" id="examCalendarUrl" name="examCalendarUrl"
-                            placeholder="π.χ. https://script.google.com/macros/s/.../exec">
-                        <small style="color: var(--text-secondary);">Βάλτε το link του Exam Scheduler Google Apps Script Web App.</small>
+                            value="https://script.google.com/macros/s/AKfycbz3vb-NXex6F10juj_tWOozgHlczNCLJPLqFapUQ4mb3b3hCgUZBdUzKeLRej2NBroQdQ/exec"
+                            placeholder="https://script.google.com/macros/s/.../exec">
+                        <small style="color: var(--text-secondary);">Το link του Google Apps Script Web App του σχολικού Exam Scheduler (είναι ήδη προσυμπληρωμένο).</small>
                     </div>
 
                     <div id="formActions" style="display: flex; gap: 1rem;">
