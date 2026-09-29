@@ -114,6 +114,17 @@ async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
     }
 }
 
+// Helper: Extract icon/emoji from badge label so only the icon appears in the moving ticker
+function getBadgeIcon(badgeText) {
+    if (!badgeText) return '📢';
+    const trimmed = badgeText.trim();
+    const match = trimmed.match(/^([\p{Extended_Pictographic}\uFE0F\u200D\u2600-\u27BF\uE000-\uF8FF]+|[^\p{L}\p{N}\s]+)/u);
+    if (match && match[0]) return match[0].trim();
+    const firstWord = trimmed.split(/\s+/)[0];
+    if (firstWord && !/^[A-Za-zΑ-Ωα-ω0-9]+$/.test(firstWord)) return firstWord;
+    return '📢';
+}
+
 // Helper: Fetch RSS Feed reliably (with CORS proxy fallbacks & Director message combination)
 async function fetchRSS(url, dirMsg = '', dirBadge = '🏛️ ΔΙΕΥΘΥΝΣΗ', dirStyle = 'gold') {
     if (!url) return;
@@ -171,7 +182,8 @@ async function fetchRSS(url, dirMsg = '', dirBadge = '🏛️ ΔΙΕΥΘΥΝΣΗ
     // Combine Director Message and RSS Feed Headlines
     let parts = [];
     if (dirMsg) {
-        parts.push(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`);
+        const badgeIcon = getBadgeIcon(dirBadge);
+        parts.push(`<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`);
     }
 
     if (items.length > 0) {
@@ -180,7 +192,7 @@ async function fetchRSS(url, dirMsg = '', dirBadge = '🏛️ ΔΙΕΥΘΥΝΣΗ
                 <span class="ticker-rss-bullet">✦</span> ${title}
             </span>
         `).join('');
-        const rssHeader = dirMsg ? `<span class="ticker-rss-pill">🗞️ ΕΙΔΗΣΕΙΣ:</span> ` : '';
+        const rssHeader = dirMsg ? `<span class="ticker-rss-pill">🗞️ ΕΙΔΗΣΕΙΣ</span> ` : '';
         parts.push(rssHeader + rssSpans);
     }
 
@@ -188,7 +200,8 @@ async function fetchRSS(url, dirMsg = '', dirBadge = '🏛️ ΔΙΕΥΘΥΝΣΗ
         const separator = dirMsg ? ' <span class="ticker-divider">❖❖❖</span> ' : '';
         showTickerText(parts.join(separator), dirMsg ? dirBadge : '🗞️ ΕΙΔΗΣΕΙΣ', dirMsg ? dirStyle : 'rss');
     } else if (dirMsg) {
-        showTickerText(`<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
+        const badgeIcon = getBadgeIcon(dirBadge);
+        showTickerText(`<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`, dirBadge, dirStyle);
     }
 }
 
@@ -476,7 +489,8 @@ function applySettings(s) {
         if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
     } else if (mode === 'director') {
         if (dirMsg) {
-            const html = `<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`;
+            const badgeIcon = getBadgeIcon(dirBadge);
+            const html = `<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`;
             showTickerText(html, dirBadge, dirStyle);
         } else {
             if (tickerContainer) tickerContainer.style.display = 'none';
@@ -493,7 +507,8 @@ function applySettings(s) {
             fetchRSS(rssUrl, dirMsg, dirBadge, dirStyle);
             rssInterval = setInterval(() => fetchRSS(rssUrl, dirMsg, dirBadge, dirStyle), 600000);
         } else if (dirMsg) {
-            const html = `<span class="ticker-director-pill">${dirBadge}:</span> <span class="ticker-director-message">${dirMsg}</span>`;
+            const badgeIcon = getBadgeIcon(dirBadge);
+            const html = `<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`;
             showTickerText(html, dirBadge, dirStyle);
         } else {
             if (tickerContainer) tickerContainer.style.display = 'none';

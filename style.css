@@ -1234,19 +1234,34 @@ body.fullscreen-mode .display-header {
 
 /* Direction Message Badges & Typography inside ticker */
 .ticker-director-pill {
-    background: rgba(245, 158, 11, 0.25) !important;
+    background: rgba(245, 158, 11, 0.22) !important;
     border: 1.5px solid #f59e0b !important;
     color: #fef08a !important;
-    padding: 0.35rem 1rem !important;
-    border-radius: 2rem !important;
-    font-size: 1.35rem !important;
-    font-weight: 900 !important;
-    margin-right: 1rem !important;
-    letter-spacing: 0.8px !important;
+    padding: 0.2rem 0.65rem !important;
+    border-radius: 50px !important;
+    font-size: 1.55rem !important;
+    line-height: 1 !important;
+    margin-right: 0.85rem !important;
     display: inline-flex !important;
     align-items: center !important;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4) !important;
+    justify-content: center !important;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35) !important;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+    vertical-align: middle !important;
+}
+
+#tickerContainer.ticker-mode-alert .ticker-director-pill {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border-color: #ef4444 !important;
+    color: #fecaca !important;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.45) !important;
+}
+
+#tickerContainer.ticker-mode-rss .ticker-director-pill {
+    background: rgba(59, 130, 246, 0.25) !important;
+    border-color: #3b82f6 !important;
+    color: #bfdbfe !important;
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.45) !important;
 }
 
 .ticker-director-message {
