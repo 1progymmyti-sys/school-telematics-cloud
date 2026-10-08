@@ -32,8 +32,11 @@ function base64ToUint8Array(base64) {
 
 // Helper: Render PDF using PDF.js with fallback to native embed
 async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    let container = document.getElementById(containerId);
+    if (!container) {
+        setTimeout(() => renderPDFJS(pdfSource, containerId, userScale), 80);
+        return;
+    }
 
     const fallback = () => {
         const scale = parseFloat(userScale) || 1.0;
@@ -42,11 +45,11 @@ async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
             scaleStyle = `transform: scale(${scale}) !important; transform-origin: top center !important; width: ${100/scale}% !important; height: ${100/scale}% !important;`;
         }
         container.innerHTML = `
-            <embed
-                src="${pdfSource}"
-                type="application/pdf"
-                style="width:100%; height:100%; border:none; display:block; ${scaleStyle}"
-            >
+            <embed 
+                src="${pdfSource}" 
+                type="application/pdf" 
+                style="width: 100%; height: 100%; max-width: 100%; max-height: 100%; border: none; display: block; ${scaleStyle}"
+            />
         `;
     };
 
@@ -73,43 +76,132 @@ async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
             }
         }
 
-        const loadingTask = pdfjsLib.getDocument(pdfData);
+        const loadingTask = pdfjsLib.getDocument(pdfData instanceof Uint8Array ? { data: pdfData } : pdfData);
         const pdf = await loadingTask.promise;
 
         container.innerHTML = ''; // Clear loading message
 
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        // Determine available dimensions robustly
+        let w = container.clientWidth;
+        let h = container.clientHeight;
+        if (!w || !h) {
+            const rect = container.getBoundingClientRect();
+            w = rect.width;
+            h = rect.height;
+        }
+        if (!w || !h) {
+            const parentBox = container.closest('.zone-card') || container.closest('.photo-slideshow-container') || container.parentElement;
+            if (parentBox) {
+                const pRect = parentBox.getBoundingClientRect();
+                w = pRect.width || parentBox.clientWidth;
+                h = pRect.height || parentBox.clientHeight;
+            }
+        }
+        const slideMain = document.getElementById('slideContainer');
+        const safeW = slideMain ? slideMain.clientWidth : window.innerWidth;
+        const safeH = slideMain ? slideMain.clientHeight : (window.innerHeight - 192);
+
+        const availW = Math.max((w || safeW) - 16, 120);
+        const availH = Math.max((h || safeH) - 16, 120);
+
+        const userScaleNum = parseFloat(userScale) || 1.0;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+
+        // Helper: render a single PDF page to a canvas
+        const renderPageCanvas = async (pageNum) => {
             const page = await pdf.getPage(pageNum);
+            const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+            const scaleX = availW / unscaledViewport.width;
+            const scaleY = availH / unscaledViewport.height;
+            // Math.min strictly ensures the page fits BOTH width AND height
+            const fitScale = Math.min(scaleX, scaleY);
+
+            const displayW = Math.max(10, Math.round(unscaledViewport.width * fitScale * userScaleNum));
+            const displayH = Math.max(10, Math.round(unscaledViewport.height * fitScale * userScaleNum));
+
+            // High-DPI buffer for crisp text
+            const renderScale = fitScale * userScaleNum * dpr;
+            const renderViewport = page.getViewport({ scale: renderScale });
+
             const canvas = document.createElement('canvas');
+            canvas.className = 'pdf-canvas';
+            canvas.width = renderViewport.width;
+            canvas.height = renderViewport.height;
+
+            canvas.style.width = `${displayW}px`;
+            canvas.style.height = `${displayH}px`;
+            canvas.style.maxWidth = userScaleNum > 1.0 ? 'none' : '100%';
+            canvas.style.maxHeight = userScaleNum > 1.0 ? 'none' : '100%';
+            canvas.style.objectFit = 'contain';
             canvas.style.display = 'block';
-            canvas.style.margin = '0 auto 15px auto';
-            canvas.style.maxWidth = parseFloat(userScale) > 1.0 ? 'none' : '100%';
-            canvas.style.boxShadow = '0 8px 24px rgba(0,0,0,0.2)';
-            canvas.style.borderRadius = '8px';
-            container.appendChild(canvas);
+            canvas.style.margin = 'auto';
 
             const context = canvas.getContext('2d');
-            const viewport = page.getViewport({ scale: 1.0 });
-
-            // Calculate scaling to fit slide container perfectly
-            const containerWidth = container.clientWidth || window.innerWidth;
-            const containerHeight = (container.clientHeight || window.innerHeight) - 40;
-
-            const scaleWidth = containerWidth / viewport.width;
-            const scaleHeight = containerHeight / viewport.height;
-            // Use slightly smaller scale to fit with margins nicely, capped at 2.0x for quality
-            const fitScale = Math.min(scaleWidth, scaleHeight, 2.0) * 0.95;
-            const scale = fitScale * parseFloat(userScale);
-
-            const scaledViewport = page.getViewport({ scale: scale });
-            canvas.width = scaledViewport.width;
-            canvas.height = scaledViewport.height;
-
             const renderContext = {
                 canvasContext: context,
-                viewport: scaledViewport
+                viewport: renderViewport
             };
-            await page.render(renderContext).promise;
+            try {
+                await page.render(renderContext).promise;
+            } catch (renderErr) {
+                if (renderErr && renderErr.name !== 'RenderingCancelledException') {
+                    console.warn("PDF page render warning:", renderErr);
+                }
+            }
+            return canvas;
+        };
+
+        if (pdf.numPages === 1) {
+            const canvas = await renderPageCanvas(1);
+            container.appendChild(canvas);
+        } else {
+            // Multi-page PDF: cycle pages smoothly
+            const pagesWrapper = document.createElement('div');
+            pagesWrapper.className = 'pdf-pages-carousel';
+
+            const pageCanvases = [];
+            for (let p = 1; p <= pdf.numPages; p++) {
+                const canvas = await renderPageCanvas(p);
+                canvas.style.position = 'absolute';
+                canvas.style.transition = 'opacity 0.6s ease';
+                canvas.style.opacity = p === 1 ? '1' : '0';
+                canvas.style.pointerEvents = p === 1 ? 'auto' : 'none';
+                pagesWrapper.appendChild(canvas);
+                pageCanvases.push(canvas);
+            }
+
+            const badge = document.createElement('div');
+            badge.style.position = 'absolute';
+            badge.style.bottom = '8px';
+            badge.style.right = '8px';
+            badge.style.background = 'rgba(15, 23, 42, 0.85)';
+            badge.style.backdropFilter = 'blur(6px)';
+            badge.style.color = '#fff';
+            badge.style.padding = '4px 10px';
+            badge.style.borderRadius = '12px';
+            badge.style.fontSize = '0.8rem';
+            badge.style.fontWeight = 'bold';
+            badge.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)';
+            badge.style.zIndex = '5';
+            badge.textContent = `📄 Σελίδα 1 / ${pdf.numPages}`;
+            pagesWrapper.appendChild(badge);
+
+            container.appendChild(pagesWrapper);
+
+            let curPage = 0;
+            const pageInterval = setInterval(() => {
+                if (!document.body.contains(container)) {
+                    clearInterval(pageInterval);
+                    return;
+                }
+                pageCanvases[curPage].style.opacity = '0';
+                pageCanvases[curPage].style.pointerEvents = 'none';
+                curPage = (curPage + 1) % pdf.numPages;
+                pageCanvases[curPage].style.opacity = '1';
+                pageCanvases[curPage].style.pointerEvents = 'auto';
+                badge.textContent = `📄 Σελίδα ${curPage + 1} / ${pdf.numPages}`;
+            }, 6000);
         }
     } catch (err) {
         console.error("PDF.js render failed, executing fallback:", err);
@@ -314,11 +406,14 @@ function updateTickerSequence() {
     const tickerContainer = document.getElementById('tickerContainer');
     if (tickerSequence.length === 0) {
         if (tickerContainer) tickerContainer.style.display = 'none';
+        document.body.classList.add('no-ticker');
         if (tickerAnimId) {
             cancelAnimationFrame(tickerAnimId);
             tickerAnimId = null;
         }
         return;
+    } else {
+        document.body.classList.remove('no-ticker');
     }
 
     // If ticker was not already playing, start it
@@ -929,7 +1024,7 @@ function renderMediaBlock(item, containerId) {
                     <div class="photo-slideshow-container" id="${containerId}">
                         ${pdfSources.map((src, i) => `
                             <div class="photo-slideshow-slide ${i === 0 ? 'active' : ''}" data-index="${i}">
-                                <div id="pdf-container-${item.id}-${i}" style="width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 10px;">
+                                <div id="pdf-container-${item.id}-${i}" class="pdf-display-wrapper">
                                     <div style="color: var(--text-primary); font-size: 1.1rem; margin: auto;">Φόρτωση Έγγραφο ${i + 1}... ⏳</div>
                                 </div>
                             </div>
@@ -948,9 +1043,9 @@ function renderMediaBlock(item, containerId) {
                     setTimeout(() => renderPDFJS(src, `pdf-container-${item.id}-${idx}`, item.mediaScale || 1.0), 50 + (idx * 50));
                 });
                 return `
-                    <div style="display: flex; gap: 1rem; width: 100%; height: 100%; justify-content: center; align-items: stretch; padding: 10px; overflow: hidden;">
+                    <div style="display: flex; gap: 1rem; width: 100%; height: 100%; justify-content: center; align-items: stretch; padding: 4px; overflow: hidden; box-sizing: border-box;">
                         ${pdfSources.map((src, idx) => `
-                            <div id="pdf-container-${item.id}-${idx}" style="flex: 1; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #1e293b; border-radius: 8px; padding: 10px;">
+                            <div id="pdf-container-${item.id}-${idx}" class="pdf-display-wrapper" style="flex: 1; height: 100%;">
                                 <div style="color: var(--text-primary); font-size: 1.1rem; margin: auto;">Φόρτωση PDF ${idx + 1}... ⏳</div>
                             </div>
                         `).join("")}
@@ -960,7 +1055,7 @@ function renderMediaBlock(item, containerId) {
         } else if (pdfSources.length === 1) {
             setTimeout(() => renderPDFJS(pdfSources[0], `pdf-container-${item.id}-0`, item.mediaScale || 1.0), 50);
             return `
-                <div id="pdf-container-${item.id}-0" style="width: 100%; height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: #1e293b; border-radius: 8px; padding: 10px;">
+                <div id="pdf-container-${item.id}-0" class="pdf-display-wrapper">
                     <div style="color: var(--text-primary); font-size: 1.2rem; margin: auto;">Φόρτωση PDF... ⏳</div>
                 </div>
             `;
