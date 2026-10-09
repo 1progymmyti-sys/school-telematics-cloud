@@ -1351,3 +1351,34 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
         gridEl.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:3rem; font-size:2rem; color:red;">Αποτυχία Απεικόνισης Δεδομένων 🤔<br><small>${err.message}</small></div>`;
     }
 }
+
+// ===================================================
+// AUTO-UPDATE: Screens (TVs) reload themselves when a new version is published.
+// Checks version.json every 5 minutes. If its version differs from APP_VERSION,
+// the page reloads with a cache-busting URL. A localStorage guard prevents
+// repeated reloads if version.json was updated but script files were not.
+// ===================================================
+const APP_VERSION = '2026_PDF_FIT_V7';
+
+async function checkForAppUpdate() {
+    try {
+        const res = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const remote = data && data.version ? String(data.version).trim() : '';
+        if (!remote || remote === APP_VERSION) return;
+
+        if (localStorage.getItem('stc_reloaded_for') === remote) return; // already tried once
+        localStorage.setItem('stc_reloaded_for', remote);
+
+        console.log(`🔄 New version ${remote} found (running ${APP_VERSION}). Reloading...`);
+        const url = new URL(window.location.href);
+        url.searchParams.set('v', remote);
+        window.location.replace(url.toString());
+    } catch (e) {
+        // Offline or version.json missing: ignore silently
+    }
+}
+
+setTimeout(checkForAppUpdate, 30000);
+setInterval(checkForAppUpdate, 5 * 60 * 1000);
