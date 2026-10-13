@@ -531,19 +531,46 @@ function resolveVideoSource(raw) {
     if (!s) return null;
     // Google Drive -> embedded preview player
     const drive = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([a-zA-Z0-9_-]+)/);
-    if (drive) return { kind: 'iframe', src: `https://drive.google.com/file/d/${drive[1]}/preview` };
+    if (drive) return { kind: 'iframe', src: `https://drive.google.com/file/d/${drive[1]}/preview`, fallback: null };
     // Dropbox share link -> direct stream
     if (/dropbox\.com/i.test(s)) {
         s = s.replace(/([?&])dl=0/, '$1raw=1');
         if (!/[?&](raw|dl)=1/.test(s)) s += (s.includes('?') ? '&' : '?') + 'raw=1';
-        return { kind: 'video', src: s };
+        return { kind: 'video', src: s, fallback: null };
     }
-    if (/^https?:\/\//i.test(s)) return { kind: 'video', src: s };
+    if (/^https?:\/\//i.test(s)) return { kind: 'video', src: s, fallback: null };
     // Plain filename or relative path -> videos/ folder on GitHub
     s = s.replace(/\\/g, '/').replace(/^\.?\//, '');
     if (!/^videos\//i.test(s)) s = 'videos/' + s;
-    return { kind: 'video', src: s.split('/').map(encodeURIComponent).join('/') };
+    const cleanPath = s.split('/').map(encodeURIComponent).join('/');
+    const fallbackUrl = `https://1progymmyti-sys.github.io/school-telematics-cloud/${cleanPath}`;
+    return { kind: 'video', src: cleanPath, fallback: fallbackUrl };
 }
+
+// Resilient video preview error recovery for admin modal
+window.handleAdminVideoError = function(vid) {
+    if (!vid) return;
+    const fallback = vid.dataset.fallback;
+    if (fallback && !vid.dataset.triedFallback && vid.src !== fallback) {
+        vid.dataset.triedFallback = 'true';
+        vid.src = fallback;
+        vid.load();
+        const p = vid.play();
+        if (p && p.catch) p.catch(() => {});
+        return;
+    }
+    const retries = parseInt(vid.dataset.retries || '0', 10);
+    if (retries < 2) {
+        vid.dataset.retries = (retries + 1).toString();
+        setTimeout(() => {
+            vid.load();
+            const p = vid.play();
+            if (p && p.catch) p.catch(() => {});
+        }, 3000);
+        return;
+    }
+    vid.outerHTML = '<div style="color:#fca5a5;font-size:1.1rem;text-align:center;padding:1.5rem;background:rgba(15,23,42,0.95);border-radius:0.75rem;">⚠️ Δεν βρέθηκε το βίντεο.<br><small style="color:#94a3b8;font-size:0.9rem;display:block;margin-top:0.4rem;">Εάν μόλις το ανεβάσατε στο GitHub, περιμένετε 1-2 λεπτά για την ολοκλήρωση της δημοσίευσης (Pages deployment).</small></div>';
+};
 
 function renderList(list) {
     const listContainer = document.getElementById("announcementList");
@@ -1239,10 +1266,11 @@ window.previewAnnouncement = async () => {
             if (v.kind === 'iframe') {
                 return `<iframe src="${v.src}" allow="autoplay" style="width:100%;height:100%;border:none;border-radius:0.75rem;background:#000;"></iframe>`;
             }
+            const fallbackAttr = v.fallback ? `data-fallback="${v.fallback}"` : '';
             return `
-                <video src="${v.src}" autoplay muted loop playsinline controls
+                <video src="${v.src}" ${fallbackAttr} autoplay muted loop playsinline controls
                     style="width:100%;height:100%;object-fit:contain;background:#000;border-radius:0.75rem;"
-                    onerror="this.outerHTML='<div style=&quot;color:#fca5a5;font-size:1.1rem;text-align:center;padding:1rem;&quot;>⚠️ Δεν βρέθηκε το βίντεο.<br><small>Ελέγξτε ότι ανέβηκε στον φάκελο videos του GitHub και ότι το όνομα είναι ακριβώς ίδιο.</small></div>'"></video>
+                    onerror="window.handleAdminVideoError && window.handleAdminVideoError(this)"></video>
             `;
         } else if (mediaType === 'google_slides') {
             const match = slidesUrl.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);

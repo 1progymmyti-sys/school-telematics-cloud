@@ -37,19 +37,53 @@ function resolveVideoSource(raw) {
     if (!s) return null;
     // Google Drive -> embedded preview player
     const drive = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([a-zA-Z0-9_-]+)/);
-    if (drive) return { kind: 'iframe', src: `https://drive.google.com/file/d/${drive[1]}/preview` };
+    if (drive) return { kind: 'iframe', src: `https://drive.google.com/file/d/${drive[1]}/preview`, fallback: null };
     // Dropbox share link -> direct stream
     if (/dropbox\.com/i.test(s)) {
         s = s.replace(/([?&])dl=0/, '$1raw=1');
         if (!/[?&](raw|dl)=1/.test(s)) s += (s.includes('?') ? '&' : '?') + 'raw=1';
-        return { kind: 'video', src: s };
+        return { kind: 'video', src: s, fallback: null };
     }
-    if (/^https?:\/\//i.test(s)) return { kind: 'video', src: s };
+    if (/^https?:\/\//i.test(s)) return { kind: 'video', src: s, fallback: null };
     // Plain filename or relative path -> videos/ folder on GitHub
     s = s.replace(/\\/g, '/').replace(/^\.?\//, '');
     if (!/^videos\//i.test(s)) s = 'videos/' + s;
-    return { kind: 'video', src: s.split('/').map(encodeURIComponent).join('/') };
+    const cleanPath = s.split('/').map(encodeURIComponent).join('/');
+    const fallbackUrl = `https://1progymmyti-sys.github.io/school-telematics-cloud/${cleanPath}`;
+    return { kind: 'video', src: cleanPath, fallback: fallbackUrl };
 }
+
+// Resilient video error recovery with automatic fallback to GitHub Pages and retry logic
+window.handleSlideVideoError = function(vid) {
+    if (!vid) return;
+    const fallback = vid.dataset.fallback;
+    // Step 1: Try absolute GitHub Pages fallback if relative load failed
+    if (fallback && !vid.dataset.triedFallback && vid.src !== fallback) {
+        vid.dataset.triedFallback = 'true';
+        console.warn('Primary video failed, falling back to absolute GitHub Pages URL:', fallback);
+        vid.src = fallback;
+        vid.load();
+        const p = vid.play();
+        if (p && p.catch) p.catch(() => {});
+        return;
+    }
+    // Step 2: Retry up to 2 times after 3 seconds (handles in-progress GitHub Pages deployments)
+    const retries = parseInt(vid.dataset.retries || '0', 10);
+    if (retries < 2) {
+        vid.dataset.retries = (retries + 1).toString();
+        console.warn(`Video load retry ${retries + 1}/2 in 3 seconds...`);
+        setTimeout(() => {
+            vid.load();
+            const p = vid.play();
+            if (p && p.catch) p.catch(() => {});
+        }, 3000);
+        return;
+    }
+    // Step 3: All retries exhausted, show friendly error overlay
+    vid.style.display = 'none';
+    const errBox = vid.nextElementSibling;
+    if (errBox) errBox.style.display = 'flex';
+};
 
 // Helper: Render PDF using PDF.js with fallback to native embed
 async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
@@ -993,14 +1027,16 @@ function renderMediaBlock(item, containerId) {
                 if (p && p.catch) p.catch(() => {});
             });
         }, 100);
+        const fallbackAttr = v.fallback ? `data-fallback="${v.fallback}"` : '';
         return `
             <div style="width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                <video class="slide-video" src="${v.src}" autoplay muted loop playsinline preload="auto" disablepictureinpicture
+                <video class="slide-video" src="${v.src}" ${fallbackAttr} autoplay muted loop playsinline preload="auto" disablepictureinpicture
                     style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; background:#000; border-radius:1rem; display:block;"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"></video>
-                <div style="display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#fca5a5; font-size:1.4rem; padding:2rem;">
+                    onerror="window.handleSlideVideoError && window.handleSlideVideoError(this)"></video>
+                <div style="display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#fca5a5; font-size:1.4rem; padding:2rem; background:rgba(15,23,42,0.95); border-radius:1rem;">
                     ⚠️ Το βίντεο δεν βρέθηκε
                     <small style="color:#94a3b8; font-size:1rem; margin-top:0.5rem;">${(item.mediaSource || '').replace(/</g, '&lt;')}</small>
+                    <span style="font-size:0.85rem; color:#64748b; margin-top:0.6rem; max-width:480px;">Εάν το ανεβάσατε πρόσφατα στο GitHub, ενδέχεται να χρειάζεται 1-2 λεπτά για να ολοκληρωθεί η δημοσίευση. Η αναπαραγωγή θα ξεκινήσει αυτόματα.</span>
                 </div>
             </div>
         `;
@@ -1405,7 +1441,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_VIDEO_V8';
+const APP_VERSION = '2026_VIDEO_V9';
 
 async function checkForAppUpdate() {
     try {

@@ -2180,6 +2180,18 @@ body.fullscreen-mode .display-header {
     overflow: hidden !important;
 }
 
+.slide.media-video,
+.slide.media-youtube {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    background: #000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+}
+
 .slide-overlay {
     position: absolute;
     bottom: 2rem;
