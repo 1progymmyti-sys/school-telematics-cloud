@@ -612,7 +612,9 @@ body.fullscreen-mode .display-content {
 .slide.media-image,
 .slide.media-live_image,
 .slide.media-website,
-.slide.media-pdf {
+.slide.media-pdf,
+.slide.media-video,
+.slide.media-youtube {
     padding: 0 !important;
     background: #000;
     overflow: hidden;

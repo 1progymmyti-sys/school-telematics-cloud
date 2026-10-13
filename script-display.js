@@ -30,6 +30,27 @@ function base64ToUint8Array(base64) {
     return array;
 }
 
+// Helper: Turn the saved video value (filename, path or link) into a playable source.
+// Keep in sync with resolveVideoSource() in script-admin.js.
+function resolveVideoSource(raw) {
+    let s = (raw || '').trim();
+    if (!s) return null;
+    // Google Drive -> embedded preview player
+    const drive = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([a-zA-Z0-9_-]+)/);
+    if (drive) return { kind: 'iframe', src: `https://drive.google.com/file/d/${drive[1]}/preview` };
+    // Dropbox share link -> direct stream
+    if (/dropbox\.com/i.test(s)) {
+        s = s.replace(/([?&])dl=0/, '$1raw=1');
+        if (!/[?&](raw|dl)=1/.test(s)) s += (s.includes('?') ? '&' : '?') + 'raw=1';
+        return { kind: 'video', src: s };
+    }
+    if (/^https?:\/\//i.test(s)) return { kind: 'video', src: s };
+    // Plain filename or relative path -> videos/ folder on GitHub
+    s = s.replace(/\\/g, '/').replace(/^\.?\//, '');
+    if (!/^videos\//i.test(s)) s = 'videos/' + s;
+    return { kind: 'video', src: s.split('/').map(encodeURIComponent).join('/') };
+}
+
 // Helper: Render PDF using PDF.js with fallback to native embed
 async function renderPDFJS(pdfSource, containerId, userScale = 1.0) {
     let container = document.getElementById(containerId);
@@ -958,6 +979,32 @@ function renderMediaBlock(item, containerId) {
         const vidId = item.mediaSource?.split('v=')[1]?.split('&')[0] || item.mediaSource?.split('/').pop();
         return `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=1&mute=1&controls=0&loop=1" class="slide-iframe" frameborder="0" style="width:100%; height:100%; border-radius: 1rem;"></iframe>`;
     }
+    else if (item.mediaType === 'video') {
+        const v = resolveVideoSource(item.mediaSource);
+        if (!v) return `<div style="color: #94a3b8; font-size: 1.3rem;">🎬 Δεν έχει οριστεί βίντεο</div>`;
+        if (v.kind === 'iframe') {
+            return `<iframe src="${v.src}" allow="autoplay" frameborder="0" style="width:100%; height:100%; border:none; border-radius: 1rem; background:#000;"></iframe>`;
+        }
+        // Some TV browsers ignore the autoplay attribute: force muted play() after insertion
+        setTimeout(() => {
+            document.querySelectorAll('video.slide-video').forEach(vid => {
+                vid.muted = true;
+                const p = vid.play();
+                if (p && p.catch) p.catch(() => {});
+            });
+        }, 100);
+        return `
+            <div style="width:100%; height:100%; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <video class="slide-video" src="${v.src}" autoplay muted loop playsinline preload="auto" disablepictureinpicture
+                    style="width:100%; height:100%; max-width:100%; max-height:100%; object-fit:contain; background:#000; border-radius:1rem; display:block;"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"></video>
+                <div style="display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#fca5a5; font-size:1.4rem; padding:2rem;">
+                    ⚠️ Το βίντεο δεν βρέθηκε
+                    <small style="color:#94a3b8; font-size:1rem; margin-top:0.5rem;">${(item.mediaSource || '').replace(/</g, '&lt;')}</small>
+                </div>
+            </div>
+        `;
+    }
     else if (item.mediaType === 'countdown') {
         const target = new Date(item.mediaSource).getTime();
         setTimeout(() => startCountdownTicker(item.id, target), 50);
@@ -1091,7 +1138,7 @@ function renderSlide(item) {
     }
 
     // Auto-Fullscreen check (Hide Header only on fullscreen pure media)
-    const isFullMedia = layout === 'fullscreen' && ['image', 'live_image', 'youtube'].includes(item.mediaType);
+    const isFullMedia = layout === 'fullscreen' && ['image', 'live_image', 'youtube', 'video'].includes(item.mediaType);
     if (isFullMedia) {
         document.body.classList.add('fullscreen-mode');
     } else {
@@ -1358,7 +1405,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_PDF_FIT_V7';
+const APP_VERSION = '2026_VIDEO_V8';
 
 async function checkForAppUpdate() {
     try {

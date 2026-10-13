@@ -514,6 +514,7 @@ const mediaTypeLabels = {
     text: '📝 Κείμενο',
     image: '🖼️ Εικόνα',
     youtube: '📺 YouTube',
+    video: '🎬 Βίντεο',
     countdown: '⏱️ Αντίστροφη',
     exam_calendar: '📅 Διαγωνίσματα',
     live_image: '📷 Live Εικόνα',
@@ -522,6 +523,27 @@ const mediaTypeLabels = {
     schedule: '📋 Πρόγραμμα',
     pdf: '📄 PDF'
 };
+
+// Helper: Turn what the user typed (filename, path or link) into a playable video source.
+// Keep in sync with resolveVideoSource() in script-display.js.
+function resolveVideoSource(raw) {
+    let s = (raw || '').trim();
+    if (!s) return null;
+    // Google Drive -> embedded preview player
+    const drive = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([a-zA-Z0-9_-]+)/);
+    if (drive) return { kind: 'iframe', src: `https://drive.google.com/file/d/${drive[1]}/preview` };
+    // Dropbox share link -> direct stream
+    if (/dropbox\.com/i.test(s)) {
+        s = s.replace(/([?&])dl=0/, '$1raw=1');
+        if (!/[?&](raw|dl)=1/.test(s)) s += (s.includes('?') ? '&' : '?') + 'raw=1';
+        return { kind: 'video', src: s };
+    }
+    if (/^https?:\/\//i.test(s)) return { kind: 'video', src: s };
+    // Plain filename or relative path -> videos/ folder on GitHub
+    s = s.replace(/\\/g, '/').replace(/^\.?\//, '');
+    if (!/^videos\//i.test(s)) s = 'videos/' + s;
+    return { kind: 'video', src: s.split('/').map(encodeURIComponent).join('/') };
+}
 
 function renderList(list) {
     const listContainer = document.getElementById("announcementList");
@@ -695,6 +717,7 @@ function initForm() {
             url: document.getElementById('urlGroup'),
             live: document.getElementById('liveImageGroup'),
             youtube: document.getElementById('youtubeGroup'),
+            video: document.getElementById('videoGroup'),
             countdown: document.getElementById('countdownGroup'),
             examcal: document.getElementById('examCalendarGroup'),
             googleSlides: document.getElementById('googleSlidesGroup'),
@@ -705,11 +728,12 @@ function initForm() {
         Object.values(els).forEach(el => { if (el) el.style.display = 'none'; });
 
         // Show relevant
-        if (['text', 'image', 'youtube', 'countdown', 'schedule'].includes(type)) els.content.style.display = 'block';
+        if (['text', 'image', 'youtube', 'video', 'countdown', 'schedule'].includes(type)) els.content.style.display = 'block';
         if (['image', 'pdf', 'schedule'].includes(type)) els.file.style.display = 'block';
         if (type === 'website') els.url.style.display = 'block';
         if (type === 'live_image') els.live.style.display = 'block';
         if (type === 'youtube') els.youtube.style.display = 'block';
+        if (type === 'video' && els.video) els.video.style.display = 'block';
         if (type === 'countdown') els.countdown.style.display = 'block';
         if (type === 'exam_calendar') {
             if (els.examcal) els.examcal.style.display = 'block';
@@ -767,6 +791,14 @@ function initForm() {
         if (type === 'website') mediaSource = fd.get('url');
         if (type === 'live_image') mediaSource = fd.get('liveImageUrl');
         if (type === 'youtube') mediaSource = fd.get('youtubeUrl');
+        if (type === 'video') {
+            mediaSource = (fd.get('videoUrl') || '').trim();
+            mediaSources = [];
+            if (!mediaSource) {
+                showToast("Σφάλμα", "Γράψτε το όνομα του αρχείου βίντεο (π.χ. giorti.mp4) ή έναν σύνδεσμο.", "error");
+                return;
+            }
+        }
         if (type === 'countdown') mediaSource = fd.get('countdownDate');
         if (type === 'exam_calendar') mediaSource = fd.get('examCalendarUrl');
         if (type === 'google_slides') {
@@ -1066,6 +1098,7 @@ window.previewAnnouncement = async () => {
     const extraInfoText     = document.getElementById('extraInfoText')?.value || '';
     const showQrInThirdZone = document.getElementById('showQrInThirdZone')?.checked || false;
     const youtubeUrl        = document.getElementById('youtubeUrl')?.value || '';
+    const videoUrl          = document.getElementById('videoUrl')?.value || '';
     const url               = document.getElementById('url')?.value || '';
     const liveImgUrl        = document.getElementById('liveImageUrl')?.value || '';
     const countdownDt       = document.getElementById('countdownDate')?.value || '';
@@ -1200,6 +1233,17 @@ window.previewAnnouncement = async () => {
             return vidId
                 ? `<iframe src="https://www.youtube.com/embed/${vidId}?autoplay=0&controls=1" style="width:100%;height:100%;border:none;border-radius:0.75rem;" allowfullscreen></iframe>`
                 : `<div style="color:#94a3b8;font-size:1.3rem;">▶ Δεν έχει δοθεί URL YouTube</div>`;
+        } else if (mediaType === 'video') {
+            const v = resolveVideoSource(videoUrl);
+            if (!v) return `<div style="color:#94a3b8;font-size:1.3rem;">🎬 Δεν έχει δοθεί αρχείο βίντεο</div>`;
+            if (v.kind === 'iframe') {
+                return `<iframe src="${v.src}" allow="autoplay" style="width:100%;height:100%;border:none;border-radius:0.75rem;background:#000;"></iframe>`;
+            }
+            return `
+                <video src="${v.src}" autoplay muted loop playsinline controls
+                    style="width:100%;height:100%;object-fit:contain;background:#000;border-radius:0.75rem;"
+                    onerror="this.outerHTML='<div style=&quot;color:#fca5a5;font-size:1.1rem;text-align:center;padding:1rem;&quot;>⚠️ Δεν βρέθηκε το βίντεο.<br><small>Ελέγξτε ότι ανέβηκε στον φάκελο videos του GitHub και ότι το όνομα είναι ακριβώς ίδιο.</small></div>'"></video>
+            `;
         } else if (mediaType === 'google_slides') {
             const match = slidesUrl.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
             const embedUrl = match ? `https://docs.google.com/presentation/d/${match[1]}/embed?start=false&loop=${slidesLp}&delayms=${slidesDly}` : null;
@@ -1414,6 +1458,7 @@ window.editItem = (id) => {
     if (item.mediaType === 'website') document.getElementById('url').value = item.mediaSource;
     if (item.mediaType === 'live_image') document.getElementById('liveImageUrl').value = item.mediaSource;
     if (item.mediaType === 'youtube') document.getElementById('youtubeUrl').value = item.mediaSource;
+    if (item.mediaType === 'video') document.getElementById('videoUrl').value = item.mediaSource || '';
     if (item.mediaType === 'countdown') document.getElementById('countdownDate').value = item.mediaSource;
     if (item.mediaType === 'exam_calendar') document.getElementById('examCalendarUrl').value = item.mediaSource;
     if (item.mediaType === 'google_slides') {

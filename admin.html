@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics Cloud - Διαχείριση</title>
-    <link rel="stylesheet" href="style.css?v=2026_PDF_FIT_V7">
+    <link rel="stylesheet" href="style.css?v=2026_VIDEO_V8">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -441,6 +441,10 @@
                                 <div class="media-type-card-icon">📺</div>
                                 <div class="media-type-card-label">YouTube</div>
                             </div>
+                            <div class="media-type-card" data-type="video">
+                                <div class="media-type-card-icon">🎬</div>
+                                <div class="media-type-card-label">Βίντεο</div>
+                            </div>
                             <div class="media-type-card" data-type="countdown">
                                 <div class="media-type-card-icon">⏱️</div>
                                 <div class="media-type-card-label">Αντίστροφη</div>
@@ -474,6 +478,7 @@
                             <option value="text">Μόνο Κείμενο</option>
                             <option value="image">Εικόνα / Φωτογραφία</option>
                             <option value="youtube">YouTube Βίντεο</option>
+                            <option value="video">Βίντεο (αρχείο MP4)</option>
                             <option value="countdown">Χρονόμετρο Λήξης</option>
                             <option value="exam_calendar">Ημερολόγιο Διαγωνισμάτων</option>
                             <option value="live_image">Ζωντανή Εικόνα (URL)</option>
@@ -595,6 +600,17 @@
                         <small style="color: var(--text-secondary);">Το βίντεο θα παίζει αυτόματα.</small>
                     </div>
 
+                    <div id="videoGroup" class="form-group" style="display: none;">
+                        <label for="videoUrl">🎬 Αρχείο Βίντεο</label>
+                        <input type="text" id="videoUrl" name="videoUrl" autocomplete="off"
+                            placeholder="π.χ. giorti-28is.mp4">
+                        <small style="color: var(--text-secondary); display: block; margin-top: 0.4rem; line-height: 1.5;">
+                            📁 Ανεβάστε το βίντεο στο GitHub, μέσα στον φάκελο <b>videos</b>, και γράψτε εδώ <b>μόνο το όνομα του αρχείου</b> (ακριβώς όπως είναι, με κεφαλαία/μικρά).<br>
+                            💡 Προτείνεται μορφή <b>MP4</b>, έως <b>25 MB</b>. Το βίντεο παίζει χωρίς ήχο και σε επανάληψη για όσο διαρκεί η ανακοίνωση.<br>
+                            🔗 Μπορείτε επίσης να βάλετε πλήρη σύνδεσμο (https://...) προς αρχείο MP4, Dropbox ή Google Drive.
+                        </small>
+                    </div>
+
                     <div id="countdownGroup" class="form-group" style="display: none;">
                         <label for="countdownDate">Ημερομηνία & Ώρα Στόχου</label>
                         <input type="datetime-local" id="countdownDate" name="countdownDate">
@@ -694,7 +710,7 @@
     </div> <!-- /mainApp -->
 
     <!-- MAIN SCRIPT (MODULE) -->
-    <script type="module" src="script-admin.js?v=2026_PDF_FIT_V7"></script>
+    <script type="module" src="script-admin.js?v=2026_VIDEO_V8"></script>
 
     <!-- Preview Modal -->
     <div id="previewModal" style="
