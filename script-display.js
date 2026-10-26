@@ -19,6 +19,173 @@ let tickerSequence = [];
 let tickerSequenceIndex = 0;
 let cachedRssItems = [];
 
+// ===================================================
+// GREEK OFFICIAL NETWORK TIME SYNCHRONIZATION ENGINE
+// Solves TV clock/timezone drift (e.g. DST changes, un-synchronized TV clocks)
+// by retrieving official time for Europe/Athens from external atomic time APIs.
+// ===================================================
+
+let greekTimeBaseWallMs = null;
+let greekTimeBaseMonotonicMs = null;
+let greekTimeSyncSource = 'pending';
+
+// Official EU / Greek Daylight Saving Time rule:
+// - Starts: Last Sunday of March at 01:00 UTC (clocks move forward to UTC+3)
+// - Ends: Last Sunday of October at 01:00 UTC (clocks move back to UTC+2)
+function getGreekUtcOffsetHours(utcMs) {
+    const d = new Date(utcMs);
+    const y = d.getUTCFullYear();
+    const mar31 = new Date(Date.UTC(y, 2, 31, 1, 0, 0));
+    const dstStart = new Date(Date.UTC(y, 2, 31 - mar31.getUTCDay(), 1, 0, 0));
+    const oct31 = new Date(Date.UTC(y, 9, 31, 1, 0, 0));
+    const dstEnd = new Date(Date.UTC(y, 9, 31 - oct31.getUTCDay(), 1, 0, 0));
+    const isDst = (utcMs >= dstStart.getTime() && utcMs < dstEnd.getTime());
+    return isDst ? 3 : 2;
+}
+
+function getMonotonicMs() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+}
+
+function utcMsToGreekWallMs(utcMs) {
+    const offsetHours = getGreekUtcOffsetHours(utcMs);
+    return utcMs + (offsetHours * 3600000);
+}
+
+// Custom Date wrapper representing official Greek time independently of TV's OS timezone/DST
+class GreekDate extends Date {
+    constructor(wallMs) {
+        super(wallMs);
+    }
+    getHours() { return this.getUTCHours(); }
+    getMinutes() { return this.getUTCMinutes(); }
+    getSeconds() { return this.getUTCSeconds(); }
+    getMilliseconds() { return this.getUTCMilliseconds(); }
+    getFullYear() { return this.getUTCFullYear(); }
+    getMonth() { return this.getUTCMonth(); }
+    getDate() { return this.getUTCDate(); }
+    getDay() { return this.getUTCDay(); }
+    setDate(d) { return this.setUTCDate(d); }
+    setHours(h, m = 0, s = 0, ms = 0) { return this.setUTCHours(h, m, s, ms); }
+    setMonth(m, d) { return d !== undefined ? this.setUTCMonth(m, d) : this.setUTCMonth(m); }
+    setFullYear(y, m, d) { return this.setUTCFullYear(y, m !== undefined ? m : this.getUTCMonth(), d !== undefined ? d : this.getUTCDate()); }
+    
+    toLocaleDateString(locale, options) {
+        const days = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+        const months = ['Ιανουαρίου', 'Φεβρουαρίου', 'Μαρτίου', 'Απριλίου', 'Μαΐου', 'Ιουνίου', 'Ιουλίου', 'Αυγούστου', 'Σεπτεμβρίου', 'Οκτωβρίου', 'Νοεμβρίου', 'Δεκεμβρίου'];
+        const dayName = days[this.getDay()];
+        const monthName = months[this.getMonth()];
+        const d = this.getDate();
+        const y = this.getFullYear();
+        if (options && options.weekday === 'long') {
+            return `${dayName}, ${d} ${monthName}`;
+        }
+        return `${d}/${this.getMonth() + 1}/${y}`;
+    }
+}
+
+function getGreekNow() {
+    if (greekTimeBaseWallMs === null) {
+        // Immediate fallback before network sync responds
+        return new GreekDate(utcMsToGreekWallMs(Date.now()));
+    }
+    const elapsed = getMonotonicMs() - greekTimeBaseMonotonicMs;
+    return new GreekDate(greekTimeBaseWallMs + elapsed);
+}
+
+async function syncGreekNetworkTime() {
+    const monoStart = getMonotonicMs();
+    
+    // Method 1: Dedicated Europe/Athens time API
+    try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch('https://timeapi.io/api/time/current/zone?timeZone=Europe/Athens', {
+            signal: ctrl.signal,
+            cache: 'no-store'
+        });
+        clearTimeout(tid);
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.year && data.month && data.day && data.hour !== undefined) {
+                const monoEnd = getMonotonicMs();
+                const latency = Math.max(0, (monoEnd - monoStart) / 2);
+                const wallMs = Date.UTC(
+                    data.year,
+                    data.month - 1,
+                    data.day,
+                    data.hour,
+                    data.minute || 0,
+                    data.seconds || 0,
+                    data.milliSeconds || 0
+                ) + latency;
+                
+                greekTimeBaseWallMs = wallMs;
+                greekTimeBaseMonotonicMs = monoEnd;
+                greekTimeSyncSource = 'timeapi.io (Europe/Athens)';
+                console.log(`🕒 Greek official network time synchronized via ${greekTimeSyncSource}: ${data.hour}:${String(data.minute).padStart(2,'0')}:${String(data.seconds).padStart(2,'0')} (DST: ${data.dstActive})`);
+                if (typeof updateClock === 'function') updateClock();
+                return true;
+            }
+        }
+    } catch (e) {
+        // try Method 2
+    }
+    
+    // Method 2: Server HTTP Date header (GitHub Pages / same-origin)
+    try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch(`version.json?t=${Date.now()}`, {
+            signal: ctrl.signal,
+            cache: 'no-store'
+        });
+        clearTimeout(tid);
+        const serverDateHeader = res.headers.get('date');
+        if (serverDateHeader) {
+            const serverUtcMs = Date.parse(serverDateHeader);
+            if (!isNaN(serverUtcMs)) {
+                const monoEnd = getMonotonicMs();
+                const latency = Math.max(0, (monoEnd - monoStart) / 2);
+                const wallMs = utcMsToGreekWallMs(serverUtcMs + latency);
+                
+                greekTimeBaseWallMs = wallMs;
+                greekTimeBaseMonotonicMs = monoEnd;
+                greekTimeSyncSource = 'server_http_date';
+                console.log(`🕒 Greek official network time synchronized via server HTTP Date: ${new Date(wallMs).toISOString()}`);
+                if (typeof updateClock === 'function') updateClock();
+                return true;
+            }
+        }
+    } catch (e) {
+        // Method 2 failed
+    }
+    
+    // Fallback: If network unreachable, calculate from local hardware clock with Greek DST
+    if (greekTimeBaseWallMs === null) {
+        greekTimeBaseWallMs = utcMsToGreekWallMs(Date.now());
+        greekTimeBaseMonotonicMs = getMonotonicMs();
+        greekTimeSyncSource = 'local_dst_fallback';
+    }
+    return false;
+}
+
+// Initial sync on load
+syncGreekNetworkTime();
+// Re-sync every 10 minutes to prevent clock drift
+setInterval(syncGreekNetworkTime, 10 * 60 * 1000);
+// Re-sync on visibility change (e.g. TV wakes from standby or unfreezes)
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncGreekNetworkTime();
+});
+// Expose debug accessor
+window.getGreekTimeDebug = () => ({
+    time: getGreekNow().toLocaleDateString('el-GR') + ' ' + getGreekNow().getHours() + ':' + String(getGreekNow().getMinutes()).padStart(2, '0') + ':' + String(getGreekNow().getSeconds()).padStart(2, '0'),
+    source: greekTimeSyncSource,
+    hours: getGreekNow().getHours(),
+    minutes: getGreekNow().getMinutes()
+});
+
 // Helper: Convert Base64 / Data URI to Uint8Array for PDF.js
 function base64ToUint8Array(base64) {
     const raw = atob(base64);
@@ -485,13 +652,12 @@ function updateTickerSequence() {
 
 // Helper: Get Active Slides
 const getActiveSlides = (list) => {
-    const now = new Date();
+    const now = getGreekNow();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return list.filter(item => {
         if (item.isPaused) return false; // Filter paused items
-        const start = item.startDate ? new Date(item.startDate) : null;
-        const end = item.endDate ? new Date(item.endDate) : null;
-        if (start && now < start) return false;
-        if (end && now > end) return false;
+        if (item.startDate && todayStr < item.startDate) return false;
+        if (item.endDate && todayStr > item.endDate) return false;
 
         // Daily Time Check (Advanced Scheduling)
         if (item.startTime || item.endTime) {
@@ -588,7 +754,7 @@ const schoolSchedule = [
 
 function updateScheduleStatus() {
     try {
-        const now = new Date();
+        const now = getGreekNow();
         const currentTime = now.getHours() * 60 + now.getMinutes();
         const displayEl = document.getElementById('schoolScheduleStatus');
 
@@ -642,7 +808,7 @@ function updateScheduleStatus() {
 }
 
 function updateClock() {
-    const now = new Date();
+    const now = getGreekNow();
     const clockEl = document.getElementById('clock');
     const dateEl = document.getElementById('date');
 
@@ -937,7 +1103,7 @@ function renderThirdZoneBlock(item) {
     }
 
     if (!innerHtml) {
-        const now = new Date();
+        const now = getGreekNow();
         const dateStr = now.toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long' });
         innerHtml = `
             <div class="zone-extra-title">🏫 ${currentSettings.schoolName || 'ΣΧΟΛΙΚΗ ΤΗΛΕΜΑΤΙΚΗ'}</div>
@@ -1273,7 +1439,7 @@ function startCountdownTicker(id, targetTime) {
             return;
         }
 
-        const now = new Date().getTime();
+        const now = getGreekNow().getTime();
         const dist = targetTime - now;
 
         if (dist < 0) {
@@ -1320,11 +1486,11 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
             return;
         }
 
-        const now = new Date();
+        const now = getGreekNow();
 
         // Find the Monday of the current week
         const currentDay = now.getDay() || 7; // 1-7
-        const monday = new Date(now);
+        const monday = new GreekDate(now.getTime());
         monday.setDate(now.getDate() - (currentDay - 1));
 
         const months = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος", "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"];
@@ -1342,7 +1508,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 
         const futureDays = [], pastDays = [];
         for (let i = 0; i < 5; i++) {
-            const date = new Date(monday);
+            const date = new GreekDate(monday.getTime());
             date.setDate(monday.getDate() + i);
             const isPast = currentDayIndex > i || (currentDayIndex === i && currentHour >= 15);
             if (isPast) {
@@ -1441,7 +1607,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_VIDEO_V9';
+const APP_VERSION = '2026_TIME_V10';
 
 async function checkForAppUpdate() {
     try {

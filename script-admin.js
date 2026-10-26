@@ -1549,10 +1549,14 @@ function cancelEdit() {
 function isActive(item) {
     if (item.isPaused) return false;
     const now = new Date();
-    const s = item.startDate ? new Date(item.startDate) : null;
-    const e = item.endDate ? new Date(item.endDate) : null;
-    if (s && now < s) return false;
-    if (e && now > e) return false;
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (item.startDate && todayStr < item.startDate) return false;
+    if (item.endDate && todayStr > item.endDate) return false;
+    if (item.startTime || item.endTime) {
+        const currentHHMM = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+        if (item.startTime && currentHHMM < item.startTime) return false;
+        if (item.endTime && currentHHMM > item.endTime) return false;
+    }
     return true;
 }
 
