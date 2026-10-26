@@ -521,6 +521,7 @@ const mediaTypeLabels = {
     website: '🌐 Ιστοσελίδα',
     google_slides: '📤 Google Slides',
     schedule: '📋 Πρόγραμμα',
+    schedule_change: '⚡ Αλλαγή Προγράμματος',
     pdf: '📄 PDF'
 };
 
@@ -1325,6 +1326,8 @@ window.previewAnnouncement = async () => {
                     </div>
                 </div>
             `;
+        } else if (mediaType === 'schedule_change') {
+            return renderScheduleChangeCardHtml(smartParsedData);
         } else {
             return `
                 <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;text-align:center;">
@@ -1351,6 +1354,8 @@ window.previewAnnouncement = async () => {
                     </div>
                 </div>
             `;
+        } else if (mediaType === 'schedule_change') {
+            return renderScheduleChangeCardHtml(smartParsedData);
         } else {
             fullPreviewHtml = `
                 <div class="slide active type-${type} layout-fullscreen" style="width:100%;height:100%;position:relative;">
@@ -1565,3 +1570,520 @@ function getStatusBadge(item) {
     if (!isActive(item)) return '<span class="badge badge-inactive">⏹ Ανενεργή</span>';
     return '<span class="badge badge-active">▶ Ενεργή</span>';
 }
+
+// ===================================================
+// SMART SCHEDULE CHANGE FROM EMAIL SYSTEM
+// Parses school email notifications (e.g. from Principal / Program Coordinator)
+// and creates high-visibility timetable change announcement cards.
+// ===================================================
+
+const schoolScheduleHours = [
+    { name: "1η Ώρα", start: "08:00", end: "08:45" },
+    { name: "2η Ώρα", start: "08:50", end: "09:35" },
+    { name: "3η Ώρα", start: "09:45", end: "10:30" },
+    { name: "4η Ώρα", start: "10:40", end: "11:25" },
+    { name: "5η Ώρα", start: "11:35", end: "12:20" },
+    { name: "6η Ώρα", start: "12:25", end: "13:10" },
+    { name: "7η Ώρα", start: "13:15", end: "13:55" }
+];
+
+function parseScheduleChangeEmail(rawText) {
+    if (!rawText) return null;
+    const text = rawText.trim();
+
+    // 1. Detect Class / Section (e.g. A4, Β2, Γ1)
+    const classMatch = text.match(/(?:τμήμα(?:τος)?|πρόγραμμα(?:τος)?|τάξη(?:ς)?)?\s*\b([ΑΒΓαβγABCabc][1-9])\b/i);
+    let section = classMatch ? classMatch[1].toUpperCase() : '';
+    if (section.startsWith('A')) section = 'Α' + section.slice(1);
+    else if (section.startsWith('B')) section = 'Β' + section.slice(1);
+    else if (section.startsWith('C')) section = 'Γ' + section.slice(1);
+
+    // 2. Detect Date
+    const monthsMap = {
+        'ιανουαρ': '01', 'φεβρουαρ': '02', 'μαρτ': '03', 'απριλ': '04',
+        'μαι': '05', 'μαϊ': '05', 'ιουν': '06', 'ιουλ': '07',
+        'αυγουστ': '08', 'σεπτεμβρ': '09', 'οκτωβρ': '10', 'νοεμβρ': '11', 'δεκεμβρ': '12'
+    };
+
+    let dateIso = '';
+    let dateFormatted = '';
+    let dayName = '';
+
+    const dayMatch = text.match(/\b(Δευτέρα|Τρίτη|Τετάρτη|Πέμπτη|Παρασκευή|Σάββατο|Κυριακή)\b/i);
+    if (dayMatch) {
+        dayName = dayMatch[1].charAt(0).toUpperCase() + dayMatch[1].slice(1).toLowerCase();
+    }
+
+    const textDateMatch = text.match(/(\d{1,2})\s+([α-ωΑ-Ωίϊΐόάέύϋΰήώ]+)\s+(\d{4})/i);
+    const numericDateMatch = text.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+
+    if (textDateMatch) {
+        const d = textDateMatch[1].padStart(2, '0');
+        const mRaw = textDateMatch[2].toLowerCase();
+        const y = textDateMatch[3];
+        let mNum = '10';
+        for (const [k, num] of Object.entries(monthsMap)) {
+            if (mRaw.includes(k)) {
+                mNum = num;
+                break;
+            }
+        }
+        dateIso = `${y}-${mNum}-${d}`;
+        dateFormatted = `${d}/${mNum}/${y}`;
+    } else if (numericDateMatch) {
+        const d = numericDateMatch[1].padStart(2, '0');
+        const m = numericDateMatch[2].padStart(2, '0');
+        const y = numericDateMatch[3];
+        dateIso = `${y}-${m}-${d}`;
+        dateFormatted = `${d}/${m}/${y}`;
+    }
+
+    // 3. Detect Hours
+    const lines = text.split(/\r?\n/);
+    const changes = [];
+
+    for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+        const hourMatch = line.match(/(?:[-•*]\s*)?(?:Την\s+)?([1-7])[ηή]\s+ώρα\s*[:\-–]?\s*(.+)/i);
+        if (hourMatch) {
+            const hourNum = parseInt(hourMatch[1], 10);
+            let detail = hourMatch[2].trim().replace(/\.$/, '');
+
+            let kind = 'substitution';
+            let badgeText = 'ΑΝΑΠΛΗΡΩΣΗ';
+            let badgeColor = '#10b981'; // emerald green
+            let icon = '📚';
+
+            const lower = detail.toLowerCase();
+            if (lower.includes('δεν θα γινει') || lower.includes('δεν θα γίνει') || lower.includes('κενο') || lower.includes('κενό') || lower.includes('αποχωρηση') || lower.includes('αποχώρηση')) {
+                kind = 'free';
+                badgeText = 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ';
+                badgeColor = '#ef4444'; // red
+                icon = '🛑';
+            } else if (lower.includes('αιθουσα') || lower.includes('αίθουσα')) {
+                kind = 'room';
+                badgeText = 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ';
+                badgeColor = '#f59e0b'; // amber
+                icon = '🚪';
+            }
+
+            changes.push({
+                hour: hourNum,
+                detail: detail,
+                kind: kind,
+                badgeText: badgeText,
+                badgeColor: badgeColor,
+                icon: icon
+            });
+        }
+    }
+
+    changes.sort((a, b) => a.hour - b.hour);
+
+    return {
+        section,
+        dateIso,
+        dateFormatted,
+        dayName,
+        changes
+    };
+}
+
+function renderScheduleChangeCardHtml(data) {
+    const section = data.section || 'Τμήμα';
+    const dateFormatted = data.dateFormatted || data.dateIso || '';
+    const dayName = data.dayName || '';
+    const changes = data.changes || [];
+
+    const cardsHtml = changes.map(c => {
+        const hInfo = schoolScheduleHours[c.hour - 1] || { start: '', end: '' };
+        const timeStr = (hInfo.start && hInfo.end) ? `${hInfo.start} - ${hInfo.end}` : '';
+        const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : '#10b981');
+        const icon = c.icon || (c.kind === 'free' ? '🛑' : '📚');
+        const badgeText = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ' : 'ΑΝΑΠΛΗΡΩΣΗ');
+
+        return `
+            <div class="schedule-change-card" style="
+                background: rgba(15, 23, 42, 0.88);
+                border: 2px solid rgba(255, 255, 255, 0.12);
+                border-left: 8px solid ${badgeColor};
+                border-radius: 1.25rem;
+                padding: 1.25rem 1.75rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1.5rem;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+                box-sizing: border-box;
+            ">
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div style="
+                        background: ${badgeColor};
+                        color: white;
+                        font-weight: 900;
+                        font-size: 2.2rem;
+                        width: 76px;
+                        height: 76px;
+                        border-radius: 1rem;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                        flex-shrink: 0;
+                    ">
+                        ${c.hour}η
+                    </div>
+                    <div>
+                        <div style="color: ${badgeColor}; font-weight: 800; font-size: 1.05rem; letter-spacing: 1.5px; text-transform: uppercase;">
+                            ${icon} ${badgeText}
+                        </div>
+                        <div style="color: #f8fafc; font-weight: 700; font-size: clamp(1.3rem, 2.2vw, 2.1rem); margin-top: 0.3rem; line-height: 1.25;">
+                            ${c.detail}
+                        </div>
+                    </div>
+                </div>
+                ${timeStr ? `
+                    <div style="
+                        color: #cbd5e1;
+                        font-family: monospace;
+                        font-size: 1.35rem;
+                        font-weight: 800;
+                        background: rgba(255,255,255,0.08);
+                        padding: 0.6rem 1.2rem;
+                        border-radius: 0.75rem;
+                        border: 1px solid rgba(255,255,255,0.1);
+                        white-space: nowrap;
+                    ">
+                        ⏱️ ${timeStr}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div style="
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(1.5rem, 3vw, 3rem);
+            box-sizing: border-box;
+            max-width: 1250px;
+            margin: 0 auto;
+        ">
+            <!-- Header Badge & Section -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="
+                        background: #f59e0b;
+                        color: #000;
+                        font-weight: 900;
+                        font-size: 1.1rem;
+                        letter-spacing: 1.5px;
+                        padding: 0.5rem 1.25rem;
+                        border-radius: 2rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+                    ">
+                        ⚡ ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
+                    </div>
+                    <h1 style="
+                        font-size: clamp(2rem, 3.5vw, 3.2rem);
+                        font-weight: 900;
+                        color: #ffffff;
+                        margin: 0;
+                        letter-spacing: -0.02em;
+                    ">
+                        ΤΜΗΜΑ ${section}
+                    </h1>
+                </div>
+                <div style="
+                    color: #94a3b8;
+                    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                ">
+                    📅 ${dayName ? dayName + ' ' : ''}${dateFormatted}
+                </div>
+            </div>
+
+            <!-- List of Hour Changes -->
+            <div style="display: flex; flex-direction: column; gap: 1.25rem; width: 100%;">
+                ${cardsHtml || '<div style="color:#94a3b8;font-size:1.5rem;text-align:center;">Δεν έχουν οριστεί ώρες.</div>'}
+            </div>
+        </div>
+    `;
+}
+
+// Modal open / close
+window.openSmartScheduleModal = () => {
+    const modal = document.getElementById('smartScheduleModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const txt = document.getElementById('smartEmailText');
+        if (txt) {
+            txt.focus();
+        }
+    }
+};
+
+window.closeSmartScheduleModal = () => {
+    const modal = document.getElementById('smartScheduleModal');
+    if (modal) modal.style.display = 'none';
+};
+
+// State for smart schedule modal
+let smartParsedData = {
+    section: '',
+    dateIso: '',
+    dateFormatted: '',
+    dayName: '',
+    changes: []
+};
+
+function renderSmartHoursList() {
+    const listEl = document.getElementById('smartParsedHoursList');
+    if (!listEl) return;
+
+    if (!smartParsedData.changes || smartParsedData.changes.length === 0) {
+        listEl.innerHTML = `<div style="color: #64748b; font-size: 0.85rem; font-style: italic; padding: 0.5rem 0;">Δεν έχουν ανιχνευθεί ακόμα αλλαγές. Επικολλήστε κείμενο email παραπάνω.</div>`;
+        return;
+    }
+
+    listEl.innerHTML = smartParsedData.changes.map((c, idx) => {
+        const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : '#10b981');
+        const icon = c.icon || (c.kind === 'free' ? '🛑' : '📚');
+        return `
+            <div style="display: flex; align-items: center; gap: 0.75rem; background: rgba(30,41,59,0.8); border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid ${badgeColor}; padding: 0.6rem 0.85rem; border-radius: 0.5rem;">
+                <span style="font-weight: 900; font-size: 1.1rem; color: ${badgeColor}; width: 35px;">${c.hour}η</span>
+                <span style="font-size: 0.85rem; background: ${badgeColor}; color: white; padding: 0.2rem 0.5rem; border-radius: 0.35rem; font-weight: 700;">${icon} ${c.badgeText}</span>
+                <input type="text" value="${c.detail.replace(/"/g, '&quot;')}" onchange="window.updateSmartHourDetail(${idx}, this.value)" style="flex: 1; background: transparent; border: none; border-bottom: 1px dashed rgba(255,255,255,0.2); color: white; padding: 0.2rem 0.4rem; font-size: 0.9rem;">
+                <button type="button" onclick="window.removeSmartHour(${idx})" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer;" title="Διαγραφή">✕</button>
+            </div>
+        `;
+    }).join('') + `
+        <button type="button" onclick="window.addSmartHour()" class="btn" style="background: rgba(255,255,255,0.06); border: 1px dashed rgba(255,255,255,0.2); color: #cbd5e1; padding: 0.4rem 0.8rem; font-size: 0.8rem; align-self: flex-start; margin-top: 0.4rem; border-radius: 0.4rem;">
+            + Προσθήκη ώρας
+        </button>
+    `;
+}
+
+window.updateSmartHourDetail = (idx, val) => {
+    if (smartParsedData.changes[idx]) {
+        smartParsedData.changes[idx].detail = val;
+    }
+};
+
+window.removeSmartHour = (idx) => {
+    smartParsedData.changes.splice(idx, 1);
+    renderSmartHoursList();
+};
+
+window.addSmartHour = () => {
+    const existingHours = smartParsedData.changes.map(c => c.hour);
+    let nextH = 1;
+    for (let h = 1; h <= 7; h++) {
+        if (!existingHours.includes(h)) {
+            nextH = h;
+            break;
+        }
+    }
+    smartParsedData.changes.push({
+        hour: nextH,
+        detail: 'Δεν θα γίνει μάθημα',
+        kind: 'free',
+        badgeText: 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ',
+        badgeColor: '#ef4444',
+        icon: '🛑'
+    });
+    smartParsedData.changes.sort((a, b) => a.hour - b.hour);
+    renderSmartHoursList();
+};
+
+function handleSmartEmailInput() {
+    const text = document.getElementById('smartEmailText')?.value || '';
+    const parsed = parseScheduleChangeEmail(text);
+    if (!parsed) return;
+
+    smartParsedData = parsed;
+
+    const secInput = document.getElementById('smartParsedSection');
+    if (secInput && parsed.section) secInput.value = parsed.section;
+
+    const dateInput = document.getElementById('smartParsedDate');
+    const dateText = document.getElementById('smartParsedDateText');
+    if (dateInput && parsed.dateIso) {
+        dateInput.value = parsed.dateIso;
+        if (dateText) dateText.textContent = `${parsed.dayName ? parsed.dayName + ' ' : ''}${parsed.dateFormatted}`;
+    }
+
+    renderSmartHoursList();
+}
+
+// Wire up events in admin
+document.addEventListener('DOMContentLoaded', () => {
+    const openBtn = document.getElementById('openSmartScheduleBtn');
+    if (openBtn) {
+        openBtn.addEventListener('click', window.openSmartScheduleModal);
+    }
+
+    const emailTxt = document.getElementById('smartEmailText');
+    if (emailTxt) {
+        emailTxt.addEventListener('input', handleSmartEmailInput);
+        emailTxt.addEventListener('paste', () => setTimeout(handleSmartEmailInput, 50));
+    }
+
+    const exampleBtn = document.getElementById('smartPasteExampleBtn');
+    if (exampleBtn) {
+        exampleBtn.addEventListener('click', () => {
+            const sample = `1ο Πρότυπο Γυμνάσιο Μυτιλήνης
+kmichalakis@gmail.com
+Προς svalakos@sch.gr
+6:05 μ.μ.
+Αλλαγή προγράμματος Α4 - Πέμπτη 29 Οκτωβρίου 2026
+
+Προσωρινή αλλαγή προγράμματος για το τμήμα Α4 την Πέμπτη 29 Οκτωβρίου 2026.
+- Την 5η ώρα θα γίνει το μάθημα ΑΝΑΠΛΗΡΩΣΗ από ΑΝΑΓΝΩΣΤΟΠΟΥΛΟΥ ΜΑΡΘΑ.
+- Την 7η ώρα δεν θα γίνει μάθημα.
+Το πλήρες πρόγραμμα είναι διαθέσιμο στην πλατφόρμα.`;
+            if (emailTxt) {
+                emailTxt.value = sample;
+                handleSmartEmailInput();
+                showToast("Έξυπνη Επικόλληση", "Φορτώθηκε το παράδειγμα email!", "info");
+            }
+        });
+    }
+
+    // Date change updates formatted text
+    const dateInput = document.getElementById('smartParsedDate');
+    if (dateInput) {
+        dateInput.addEventListener('change', () => {
+            smartParsedData.dateIso = dateInput.value;
+            if (dateInput.value) {
+                const parts = dateInput.value.split('-');
+                smartParsedData.dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                const dt = new Date(dateInput.value);
+                const days = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+                smartParsedData.dayName = days[dt.getDay()];
+                const dateText = document.getElementById('smartParsedDateText');
+                if (dateText) dateText.textContent = `${smartParsedData.dayName} ${smartParsedData.dateFormatted}`;
+            }
+        });
+    }
+
+    // Section input
+    const secInput = document.getElementById('smartParsedSection');
+    if (secInput) {
+        secInput.addEventListener('input', () => {
+            smartParsedData.section = secInput.value.trim().toUpperCase();
+        });
+    }
+
+    // Preview Button
+    const previewBtn = document.getElementById('smartPreviewBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', () => {
+            const sec = document.getElementById('smartParsedSection')?.value.trim() || smartParsedData.section;
+            if (!sec) {
+                showToast("Προσοχή", "Παρακαλώ ορίστε τμήμα (π.χ. Α4)", "warning");
+                return;
+            }
+            smartParsedData.section = sec;
+
+            const modal = document.getElementById('previewModal');
+            const slide = document.getElementById('previewSlide');
+            if (modal && slide) {
+                slide.innerHTML = renderScheduleChangeCardHtml(smartParsedData);
+                modal.style.display = 'flex';
+            }
+        });
+    }
+
+    // Publish Button
+    const publishBtn = document.getElementById('smartPublishBtn');
+    if (publishBtn) {
+        publishBtn.addEventListener('click', async () => {
+            const sec = document.getElementById('smartParsedSection')?.value.trim() || smartParsedData.section;
+            const dtIso = document.getElementById('smartParsedDate')?.value || smartParsedData.dateIso;
+
+            if (!sec) {
+                showToast("Σφάλμα", "Δεν έχει οριστεί τμήμα (π.χ. Α4)", "error");
+                return;
+            }
+            if (!dtIso) {
+                showToast("Σφάλμα", "Δεν έχει οριστεί ημερομηνία", "error");
+                return;
+            }
+            if (!smartParsedData.changes || smartParsedData.changes.length === 0) {
+                showToast("Σφάλμα", "Δεν υπάρχουν αλλαγές ωρών για καταχώρηση", "error");
+                return;
+            }
+
+            smartParsedData.section = sec;
+            smartParsedData.dateIso = dtIso;
+
+            const timing = document.getElementById('smartStartTiming')?.value || 'morning_only';
+            let startDate = dtIso;
+            let startTime = '07:30';
+
+            if (timing === 'today_afternoon') {
+                const targetDt = new Date(dtIso);
+                targetDt.setDate(targetDt.getDate() - 1);
+                startDate = targetDt.toISOString().slice(0, 10);
+                startTime = '15:00';
+            } else if (timing === 'now') {
+                startDate = new Date().toISOString().slice(0, 10);
+                startTime = '00:00';
+            }
+
+            const duration = parseInt(document.getElementById('smartDuration')?.value, 10) || 12;
+
+            try {
+                publishBtn.disabled = true;
+                publishBtn.textContent = '⏳ Δημοσίευση...';
+
+                const docData = {
+                    title: `Αλλαγή Προγράμματος - Τμήμα ${sec}`,
+                    type: 'alert',
+                    mediaType: 'schedule_change',
+                    content: '',
+                    scheduleData: smartParsedData,
+                    startDate: startDate,
+                    endDate: dtIso,
+                    startTime: startTime,
+                    endTime: '14:30',
+                    duration: duration,
+                    layout: 'fullscreen',
+                    isScheduleChange: true,
+                    order: 0,
+                    createdAt: new Date().toISOString()
+                };
+
+                await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
+
+                showToast("Επιτυχία!", `Η αλλαγή προγράμματος για το τμήμα ${sec} δημοσιεύτηκε!`, "success");
+                window.closeSmartScheduleModal();
+
+                // Clear fields
+                const emailTxt = document.getElementById('smartEmailText');
+                if (emailTxt) emailTxt.value = '';
+                smartParsedData = { section: '', dateIso: '', dateFormatted: '', dayName: '', changes: [] };
+                renderSmartHoursList();
+
+            } catch (err) {
+                console.error("Smart schedule publish error:", err);
+                showToast("Σφάλμα", "Αποτυχία δημοσίευσης: " + err.message, "error");
+            } finally {
+                publishBtn.disabled = false;
+                publishBtn.textContent = '🚀 Δημοσίευση στην Οθόνη';
+            }
+        });
+    }
+});

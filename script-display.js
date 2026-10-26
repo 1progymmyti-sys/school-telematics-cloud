@@ -1121,6 +1121,162 @@ function renderThirdZoneBlock(item) {
     `;
 }
 
+function getLessonHourTime(hourNum) {
+    const lessonSlots = schoolSchedule.filter(s => s.type === 'lesson');
+    const slot = lessonSlots[hourNum - 1];
+    return slot ? `${slot.start} - ${slot.end}` : '';
+}
+
+function renderScheduleChangeBlock(item) {
+    const data = item.scheduleData || {};
+    const section = data.section || (item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Τμήμα';
+    const dateFormatted = data.dateFormatted || data.dateIso || '';
+    const dayName = data.dayName || '';
+    let changes = data.changes || [];
+
+    // Fallback if changes array is empty but content exists
+    if ((!changes || changes.length === 0) && item.content) {
+        changes = [{
+            hour: 1,
+            detail: item.content,
+            badgeText: 'ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ',
+            badgeColor: '#f59e0b',
+            icon: '⚡'
+        }];
+    }
+
+    const cardsHtml = changes.map(c => {
+        const timeStr = getLessonHourTime(c.hour);
+        const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : (c.kind === 'room' ? '#f59e0b' : '#10b981'));
+        const icon = c.icon || (c.kind === 'free' ? '🛑' : (c.kind === 'room' ? '🚪' : '📚'));
+        const badgeText = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ' : (c.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
+
+        return `
+            <div class="schedule-change-card" style="
+                background: rgba(15, 23, 42, 0.88);
+                border: 2px solid rgba(255, 255, 255, 0.12);
+                border-left: 8px solid ${badgeColor};
+                border-radius: 1.25rem;
+                padding: clamp(0.9rem, 1.8vh, 1.4rem) clamp(1.2rem, 2.2vw, 1.9rem);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1.5rem;
+                box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+                box-sizing: border-box;
+                backdrop-filter: blur(8px);
+            ">
+                <div style="display: flex; align-items: center; gap: clamp(1rem, 2vw, 1.75rem); min-width: 0;">
+                    <div style="
+                        background: ${badgeColor};
+                        color: white;
+                        font-weight: 900;
+                        font-size: clamp(1.8rem, 3vw, 2.5rem);
+                        width: clamp(62px, 5.5vw, 82px);
+                        height: clamp(62px, 5.5vw, 82px);
+                        border-radius: 1rem;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                        flex-shrink: 0;
+                    ">
+                        ${c.hour}η
+                    </div>
+                    <div style="min-width: 0;">
+                        <div style="color: ${badgeColor}; font-weight: 800; font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 1.5px; text-transform: uppercase;">
+                            ${icon} ${badgeText}
+                        </div>
+                        <div style="color: #f8fafc; font-weight: 700; font-size: clamp(1.25rem, 2.3vw, 2.2rem); margin-top: 0.3rem; line-height: 1.25; word-break: break-word;">
+                            ${c.detail}
+                        </div>
+                    </div>
+                </div>
+                ${timeStr ? `
+                    <div style="
+                        color: #cbd5e1;
+                        font-family: monospace;
+                        font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+                        font-weight: 800;
+                        background: rgba(255,255,255,0.08);
+                        padding: 0.6rem 1.2rem;
+                        border-radius: 0.75rem;
+                        border: 1px solid rgba(255,255,255,0.12);
+                        white-space: nowrap;
+                        flex-shrink: 0;
+                    ">
+                        ⏱️ ${timeStr}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="schedule-change-display-wrapper" style="
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(1.5rem, 3vw, 3rem);
+            box-sizing: border-box;
+            max-width: 1300px;
+            margin: 0 auto;
+        ">
+            <!-- Header Badge & Section -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(1rem, 2vh, 1.75rem); flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="
+                        background: #f59e0b;
+                        color: #000;
+                        font-weight: 900;
+                        font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+                        letter-spacing: 1.5px;
+                        padding: 0.5rem 1.3rem;
+                        border-radius: 2rem;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
+                    ">
+                        ⚡ ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
+                    </div>
+                    <h1 style="
+                        font-size: clamp(2rem, 3.8vw, 3.4rem);
+                        font-weight: 900;
+                        color: #ffffff;
+                        margin: 0;
+                        letter-spacing: -0.02em;
+                        text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                    ">
+                        ΤΜΗΜΑ ${section}
+                    </h1>
+                </div>
+                <div style="
+                    color: #94a3b8;
+                    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    background: rgba(15, 23, 42, 0.6);
+                    padding: 0.5rem 1.2rem;
+                    border-radius: 0.75rem;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                ">
+                    📅 ${dayName ? dayName + ' ' : ''}${dateFormatted}
+                </div>
+            </div>
+
+            <!-- List of Hour Changes -->
+            <div style="display: flex; flex-direction: column; gap: clamp(0.85rem, 1.8vh, 1.35rem); width: 100%;">
+                ${cardsHtml || '<div style="color:#94a3b8;font-size:1.5rem;text-align:center;">Δεν έχουν οριστεί ώρες.</div>'}
+            </div>
+        </div>
+    `;
+}
+
 function renderMediaBlock(item, containerId) {
     const scale = parseFloat(item.mediaScale) || 1.0;
     let imgScale = scale !== 1.0 ? `transform: scale(${scale}); transform-origin: center center;` : '';
@@ -1315,6 +1471,9 @@ function renderMediaBlock(item, containerId) {
             return `<div style="color: #94a3b8; font-size: 1.3rem;">📁 Δεν έχει επιλεγεί αρχείο</div>`;
         }
     }
+    else if (item.mediaType === 'schedule_change' || item.isScheduleChange) {
+        return renderScheduleChangeBlock(item);
+    }
     else {
         return `
             <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center;">
@@ -1366,10 +1525,11 @@ function renderSlide(item) {
             `;
         } else {
             const mediaHtml = renderMediaBlock(item, slideshowId);
+            const hasOverlay = item.content && item.mediaType !== 'schedule_change';
             container.innerHTML = `
                 <div class="slide active type-${item.type} layout-fullscreen media-${item.mediaType}" style="width:100%; height:100%; position:relative;">
                     ${mediaHtml}
-                    ${item.content ? `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>` : ''}
+                    ${hasOverlay ? `<div class="slide-overlay"><h2>${item.title}</h2><div>${item.content}</div></div>` : ''}
                 </div>
             `;
         }
@@ -1607,7 +1767,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_TIME_V10';
+const APP_VERSION = '2026_SCHEDULE_V11';
 
 async function checkForAppUpdate() {
     try {

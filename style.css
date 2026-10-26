@@ -2192,6 +2192,27 @@ body.fullscreen-mode .display-header {
     overflow: hidden !important;
 }
 
+/* Schedule Change Slide */
+.slide.media-schedule_change {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0f172a 60%, #020617 100%) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+}
+
+.schedule-change-card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.schedule-change-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
 .slide-overlay {
     position: absolute;
     bottom: 2rem;
