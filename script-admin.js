@@ -1592,18 +1592,32 @@ function parseScheduleChangeEmail(rawText) {
     const text = rawText.trim();
 
     // 1. Detect Class / Section (e.g. A4, Β2, Γ1, Α-4, Β'2)
-    const classMatch = text.match(/(?:τμήμα(?:τος)?|πρόγραμμα(?:τος)?|τάξη(?:ς)?)?\s*\b([ΑΒΓαβγABCabc]\s*[-'\s]?\s*[1-9])\b/i);
-    let section = classMatch ? classMatch[1].replace(/[-'\s]/g, '').toUpperCase() : '';
+    let section = '';
+    const secKeywords = /(?:τμήμα(?:τος)?|πρόγραμμα(?:τος)?|τάξη(?:ς)?)\s*[:\-–]?\s*([ΑΒΓαβγABCabc][\s\-_']?[1-9])/i;
+    const mSec1 = text.match(secKeywords);
+    if (mSec1) {
+        section = mSec1[1];
+    } else {
+        const mSec2 = text.match(/(?:^|[^\w\u0370-\u03ff])([ΑΒΓαβγABCabc][\s\-_']?[1-9])(?=$|[^\w\u0370-\u03ff])/i);
+        if (mSec2) {
+            section = mSec2[1];
+        }
+    }
+    section = section.replace(/[\s\-_'\.]/g, '').toUpperCase();
     if (section.startsWith('A')) section = 'Α' + section.slice(1);
     else if (section.startsWith('B')) section = 'Β' + section.slice(1);
     else if (section.startsWith('C')) section = 'Γ' + section.slice(1);
 
-    // 2. Detect Date
+    // 2. Detect Date (MUST match valid Greek month names, never arbitrary text like "μ.μ.")
     const monthsMap = {
         'ιανουαρ': '01', 'φεβρουαρ': '02', 'μαρτ': '03', 'απριλ': '04',
         'μαι': '05', 'μαϊ': '05', 'ιουν': '06', 'ιουλ': '07',
-        'αυγουστ': '08', 'σεπτεμβρ': '09', 'οκτωβρ': '10', 'νοεμβρ': '11', 'δεκεμβρ': '12'
+        'αυγουστ': '08', 'σεπτεμβρ': '09', 'οκτωβρ': '10', 'νοεμβρ': '11', 'δεκεμβρ': '12',
+        'ιαν': '01', 'φεβ': '02', 'μαρ': '03', 'απρ': '04',
+        'ιουν': '06', 'ιουλ': '07', 'αυγ': '08', 'σεπ': '09', 'οκτ': '10', 'νοε': '11', 'δεκ': '12'
     };
+
+    const greekMonthNamesPattern = '(?:Ιανουαρί(?:ου|ος)|Φεβρουαρί(?:ου|ος)|Μαρτί(?:ου|ος)|Απριλί(?:ου|ος)|Μαΐου|Μαϊου|Μαΐος|Μαϊος|Ιουνί(?:ου|ος)|Ιουλί(?:ου|ος)|Αυγούστ(?:ου|ος)|Σεπτεμβρί(?:ου|ος)|Οκτωβρί(?:ου|ος)|Νοεμβρί(?:ου|ος)|Δεκεμβρί(?:ου|ος)|Ιαν|Φεβ|Μαρ|Απρ|Μαϊ|Μαι|Ιουν|Ιουλ|Αυγ|Σεπ|Οκτ|Νοε|Δεκ)';
 
     let dateIso = '';
     let dateFormatted = '';
@@ -1615,22 +1629,24 @@ function parseScheduleChangeEmail(rawText) {
     }
 
     const currentYear = new Date().getFullYear();
-    const textDateMatch = text.match(/(\d{1,2})\s+([α-ωΑ-Ωίϊΐόάέύϋΰήώ]+)(?:\s+(\d{4}))?/i);
-    const numericDateMatch = text.match(/(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?/);
+    const textDateMatch = text.match(new RegExp(`(\\d{1,2})\\s+(${greekMonthNamesPattern})(?:\\s+(\\d{4}))?`, 'i'));
+    const numericDateMatch = text.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
 
     if (textDateMatch) {
         const d = textDateMatch[1].padStart(2, '0');
         const mRaw = textDateMatch[2].toLowerCase();
         const y = textDateMatch[3] || currentYear.toString();
-        let mNum = '10';
+        let mNum = '';
         for (const [k, num] of Object.entries(monthsMap)) {
             if (mRaw.includes(k)) {
                 mNum = num;
                 break;
             }
         }
-        dateIso = `${y}-${mNum}-${d}`;
-        dateFormatted = `${d}/${mNum}/${y}`;
+        if (mNum) {
+            dateIso = `${y}-${mNum}-${d}`;
+            dateFormatted = `${d}/${mNum}/${y}`;
+        }
     } else if (numericDateMatch) {
         const d = numericDateMatch[1].padStart(2, '0');
         const m = numericDateMatch[2].padStart(2, '0');
@@ -1648,18 +1664,28 @@ function parseScheduleChangeEmail(rawText) {
         }
     }
 
-    // 3. Detect Hours
+    // 3. Detect Hours (strictly requires lesson hour 1-7 with [ηή] or word ώρα, never matches "1ο Πρότυπο" or "6:05")
     const lines = text.split(/\r?\n/);
     const changes = [];
 
     for (let line of lines) {
         line = line.trim();
         if (!line) continue;
-        const hourMatch = line.match(/^(?:[-•*·]\s*)?(?:Την\s+)?([1-7])\s*[ηή]?\s*(?:η\s+)?(?:ώρα|ωρα)?\s*[:\-–.]?\s*(.+)$/i);
-        if (hourMatch) {
-            const hourNum = parseInt(hourMatch[1], 10);
-            let detail = hourMatch[2].trim().replace(/\.$/, '');
 
+        let hourNum = null;
+        let detail = '';
+
+        const m1 = line.match(/^(?:[-•*·]\s*)?(?:Την\s+)?([1-7])[ηή]\s*(?:ώρα|ωρα)?\s*[:\-–.]?\s*(.+)$/i);
+        const m2 = !m1 ? line.match(/^(?:[-•*·]\s*)?(?:Την\s+)?([1-7])\s+(?:ώρα|ωρα)\s*[:\-–.]?\s*(.+)$/i) : null;
+        const m3 = (!m1 && !m2) ? line.match(/^(?:[-•*·]\s*)?(?:ώρα|ωρα)\s*([1-7])[ηή]?\s*[:\-–.]?\s*(.+)$/i) : null;
+
+        const hourMatch = m1 || m2 || m3;
+        if (hourMatch) {
+            hourNum = parseInt(hourMatch[1], 10);
+            detail = hourMatch[2].trim().replace(/\.$/, '');
+        }
+
+        if (hourNum && detail) {
             let kind = 'substitution';
             let badgeText = 'ΑΝΑΠΛΗΡΩΣΗ';
             let badgeColor = '#10b981'; // emerald green
@@ -2028,6 +2054,7 @@ window.publishSmartSchedule = async () => {
     const timing = document.getElementById('smartStartTiming')?.value || 'now';
     const nowIso = new Date().toISOString().slice(0, 10);
     let startDate = nowIso;
+    let endDate = dtIso;
     let startTime = '';
     let endTime = '';
 
@@ -2040,12 +2067,16 @@ window.publishSmartSchedule = async () => {
         targetDt.setDate(targetDt.getDate() - 1);
         startDate = targetDt.toISOString().slice(0, 10);
         startTime = '15:00';
-        endTime = '14:30';
+        endTime = '';
     } else {
-        // 'now': Start immediately today!
+        // 'now': Start immediately today with no daily cutoff so user can verify on screen!
         startDate = nowIso;
         startTime = '';
         endTime = '';
+    }
+
+    if (!endDate || endDate < nowIso) {
+        endDate = nowIso;
     }
 
     const duration = parseInt(document.getElementById('smartDuration')?.value, 10) || 12;
@@ -2063,7 +2094,7 @@ window.publishSmartSchedule = async () => {
             content: '',
             scheduleData: smartParsedData,
             startDate: startDate,
-            endDate: dtIso,
+            endDate: endDate,
             startTime: startTime,
             endTime: endTime,
             duration: duration,
