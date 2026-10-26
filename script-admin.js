@@ -1591,9 +1591,9 @@ function parseScheduleChangeEmail(rawText) {
     if (!rawText) return null;
     const text = rawText.trim();
 
-    // 1. Detect Class / Section (e.g. A4, Β2, Γ1)
-    const classMatch = text.match(/(?:τμήμα(?:τος)?|πρόγραμμα(?:τος)?|τάξη(?:ς)?)?\s*\b([ΑΒΓαβγABCabc][1-9])\b/i);
-    let section = classMatch ? classMatch[1].toUpperCase() : '';
+    // 1. Detect Class / Section (e.g. A4, Β2, Γ1, Α-4, Β'2)
+    const classMatch = text.match(/(?:τμήμα(?:τος)?|πρόγραμμα(?:τος)?|τάξη(?:ς)?)?\s*\b([ΑΒΓαβγABCabc]\s*[-'\s]?\s*[1-9])\b/i);
+    let section = classMatch ? classMatch[1].replace(/[-'\s]/g, '').toUpperCase() : '';
     if (section.startsWith('A')) section = 'Α' + section.slice(1);
     else if (section.startsWith('B')) section = 'Β' + section.slice(1);
     else if (section.startsWith('C')) section = 'Γ' + section.slice(1);
@@ -1614,13 +1614,14 @@ function parseScheduleChangeEmail(rawText) {
         dayName = dayMatch[1].charAt(0).toUpperCase() + dayMatch[1].slice(1).toLowerCase();
     }
 
-    const textDateMatch = text.match(/(\d{1,2})\s+([α-ωΑ-Ωίϊΐόάέύϋΰήώ]+)\s+(\d{4})/i);
-    const numericDateMatch = text.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+    const currentYear = new Date().getFullYear();
+    const textDateMatch = text.match(/(\d{1,2})\s+([α-ωΑ-Ωίϊΐόάέύϋΰήώ]+)(?:\s+(\d{4}))?/i);
+    const numericDateMatch = text.match(/(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?/);
 
     if (textDateMatch) {
         const d = textDateMatch[1].padStart(2, '0');
         const mRaw = textDateMatch[2].toLowerCase();
-        const y = textDateMatch[3];
+        const y = textDateMatch[3] || currentYear.toString();
         let mNum = '10';
         for (const [k, num] of Object.entries(monthsMap)) {
             if (mRaw.includes(k)) {
@@ -1633,9 +1634,18 @@ function parseScheduleChangeEmail(rawText) {
     } else if (numericDateMatch) {
         const d = numericDateMatch[1].padStart(2, '0');
         const m = numericDateMatch[2].padStart(2, '0');
-        const y = numericDateMatch[3];
+        let y = numericDateMatch[3] || currentYear.toString();
+        if (y.length === 2) y = '20' + y;
         dateIso = `${y}-${m}-${d}`;
         dateFormatted = `${d}/${m}/${y}`;
+    }
+
+    if (dateIso && !dayName) {
+        const dt = new Date(dateIso + 'T12:00:00');
+        if (!isNaN(dt.getTime())) {
+            const days = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+            dayName = days[dt.getDay()];
+        }
     }
 
     // 3. Detect Hours
@@ -1645,7 +1655,7 @@ function parseScheduleChangeEmail(rawText) {
     for (let line of lines) {
         line = line.trim();
         if (!line) continue;
-        const hourMatch = line.match(/(?:[-•*]\s*)?(?:Την\s+)?([1-7])[ηή]\s+ώρα\s*[:\-–]?\s*(.+)/i);
+        const hourMatch = line.match(/^(?:[-•*·]\s*)?(?:Την\s+)?([1-7])\s*[ηή]?\s*(?:η\s+)?(?:ώρα|ωρα)?\s*[:\-–.]?\s*(.+)$/i);
         if (hourMatch) {
             const hourNum = parseInt(hourMatch[1], 10);
             let detail = hourMatch[2].trim().replace(/\.$/, '');
@@ -1822,6 +1832,15 @@ function renderScheduleChangeCardHtml(data) {
     `;
 }
 
+// State for smart schedule modal
+let smartParsedData = {
+    section: '',
+    dateIso: '',
+    dateFormatted: '',
+    dayName: '',
+    changes: []
+};
+
 // Modal open / close
 window.openSmartScheduleModal = () => {
     const modal = document.getElementById('smartScheduleModal');
@@ -1839,13 +1858,9 @@ window.closeSmartScheduleModal = () => {
     if (modal) modal.style.display = 'none';
 };
 
-// State for smart schedule modal
-let smartParsedData = {
-    section: '',
-    dateIso: '',
-    dateFormatted: '',
-    dayName: '',
-    changes: []
+window.closePreviewModal = () => {
+    const modal = document.getElementById('previewModal');
+    if (modal) modal.style.display = 'none';
 };
 
 function renderSmartHoursList() {
@@ -1853,7 +1868,7 @@ function renderSmartHoursList() {
     if (!listEl) return;
 
     if (!smartParsedData.changes || smartParsedData.changes.length === 0) {
-        listEl.innerHTML = `<div style="color: #64748b; font-size: 0.85rem; font-style: italic; padding: 0.5rem 0;">Δεν έχουν ανιχνευθεί ακόμα αλλαγές. Επικολλήστε κείμενο email παραπάνω.</div>`;
+        listEl.innerHTML = `<div style="color: #64748b; font-size: 0.85rem; font-style: italic; padding: 0.5rem 0;">Δεν έχουν ανιχνευθεί ακόμα αλλαγές. Επικολλήστε κείμενο email παραπάνω ή πατήστε «✨ Δοκιμή».</div>`;
         return;
     }
 
@@ -1907,8 +1922,13 @@ window.addSmartHour = () => {
     renderSmartHoursList();
 };
 
-function handleSmartEmailInput() {
+window.handleSmartEmailInput = () => {
     const text = document.getElementById('smartEmailText')?.value || '';
+    if (!text.trim()) {
+        smartParsedData = { section: '', dateIso: '', dateFormatted: '', dayName: '', changes: [] };
+        renderSmartHoursList();
+        return;
+    }
     const parsed = parseScheduleChangeEmail(text);
     if (!parsed) return;
 
@@ -1925,25 +1945,10 @@ function handleSmartEmailInput() {
     }
 
     renderSmartHoursList();
-}
+};
 
-// Wire up events in admin
-document.addEventListener('DOMContentLoaded', () => {
-    const openBtn = document.getElementById('openSmartScheduleBtn');
-    if (openBtn) {
-        openBtn.addEventListener('click', window.openSmartScheduleModal);
-    }
-
-    const emailTxt = document.getElementById('smartEmailText');
-    if (emailTxt) {
-        emailTxt.addEventListener('input', handleSmartEmailInput);
-        emailTxt.addEventListener('paste', () => setTimeout(handleSmartEmailInput, 50));
-    }
-
-    const exampleBtn = document.getElementById('smartPasteExampleBtn');
-    if (exampleBtn) {
-        exampleBtn.addEventListener('click', () => {
-            const sample = `1ο Πρότυπο Γυμνάσιο Μυτιλήνης
+window.loadSmartScheduleSample = () => {
+    const sample = `1ο Πρότυπο Γυμνάσιο Μυτιλήνης
 kmichalakis@gmail.com
 Προς svalakos@sch.gr
 6:05 μ.μ.
@@ -1953,137 +1958,180 @@ kmichalakis@gmail.com
 - Την 5η ώρα θα γίνει το μάθημα ΑΝΑΠΛΗΡΩΣΗ από ΑΝΑΓΝΩΣΤΟΠΟΥΛΟΥ ΜΑΡΘΑ.
 - Την 7η ώρα δεν θα γίνει μάθημα.
 Το πλήρες πρόγραμμα είναι διαθέσιμο στην πλατφόρμα.`;
-            if (emailTxt) {
-                emailTxt.value = sample;
-                handleSmartEmailInput();
-                showToast("Έξυπνη Επικόλληση", "Φορτώθηκε το παράδειγμα email!", "info");
-            }
-        });
+    const emailTxt = document.getElementById('smartEmailText');
+    if (emailTxt) {
+        emailTxt.value = sample;
     }
+    window.handleSmartEmailInput();
+    if (typeof showToast === 'function') {
+        showToast("Έξυπνη Επικόλληση", "Φορτώθηκαν τα στοιχεία από το email!", "info");
+    }
+};
 
-    // Date change updates formatted text
+window.handleSmartDateChange = () => {
     const dateInput = document.getElementById('smartParsedDate');
-    if (dateInput) {
-        dateInput.addEventListener('change', () => {
-            smartParsedData.dateIso = dateInput.value;
-            if (dateInput.value) {
-                const parts = dateInput.value.split('-');
-                smartParsedData.dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
-                const dt = new Date(dateInput.value);
-                const days = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
-                smartParsedData.dayName = days[dt.getDay()];
-                const dateText = document.getElementById('smartParsedDateText');
-                if (dateText) dateText.textContent = `${smartParsedData.dayName} ${smartParsedData.dateFormatted}`;
-            }
-        });
+    if (dateInput && dateInput.value) {
+        smartParsedData.dateIso = dateInput.value;
+        const parts = dateInput.value.split('-');
+        smartParsedData.dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        const dt = new Date(dateInput.value + 'T12:00:00');
+        const days = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+        smartParsedData.dayName = days[dt.getDay()];
+        const dateText = document.getElementById('smartParsedDateText');
+        if (dateText) dateText.textContent = `${smartParsedData.dayName} ${smartParsedData.dateFormatted}`;
     }
+};
 
-    // Section input
+window.handleSmartSectionChange = () => {
     const secInput = document.getElementById('smartParsedSection');
     if (secInput) {
-        secInput.addEventListener('input', () => {
-            smartParsedData.section = secInput.value.trim().toUpperCase();
-        });
+        smartParsedData.section = secInput.value.trim().toUpperCase();
     }
+};
 
-    // Preview Button
-    const previewBtn = document.getElementById('smartPreviewBtn');
-    if (previewBtn) {
-        previewBtn.addEventListener('click', () => {
-            const sec = document.getElementById('smartParsedSection')?.value.trim() || smartParsedData.section;
-            if (!sec) {
-                showToast("Προσοχή", "Παρακαλώ ορίστε τμήμα (π.χ. Α4)", "warning");
-                return;
-            }
-            smartParsedData.section = sec;
+window.previewSmartSchedule = () => {
+    const sec = document.getElementById('smartParsedSection')?.value.trim() || smartParsedData.section || 'Α4';
+    smartParsedData.section = sec;
 
-            const modal = document.getElementById('previewModal');
-            const slide = document.getElementById('previewSlide');
-            if (modal && slide) {
-                slide.innerHTML = renderScheduleChangeCardHtml(smartParsedData);
-                modal.style.display = 'flex';
-            }
-        });
+    const modal = document.getElementById('previewModal');
+    const slide = document.getElementById('previewSlide');
+    if (modal && slide) {
+        slide.innerHTML = renderScheduleChangeCardHtml(smartParsedData);
+        modal.style.display = 'flex';
     }
+};
 
-    // Publish Button
+window.publishSmartSchedule = async () => {
     const publishBtn = document.getElementById('smartPublishBtn');
-    if (publishBtn) {
-        publishBtn.addEventListener('click', async () => {
-            const sec = document.getElementById('smartParsedSection')?.value.trim() || smartParsedData.section;
-            const dtIso = document.getElementById('smartParsedDate')?.value || smartParsedData.dateIso;
+    const sec = document.getElementById('smartParsedSection')?.value.trim() || smartParsedData.section;
+    const dtIso = document.getElementById('smartParsedDate')?.value || smartParsedData.dateIso;
 
-            if (!sec) {
-                showToast("Σφάλμα", "Δεν έχει οριστεί τμήμα (π.χ. Α4)", "error");
-                return;
-            }
-            if (!dtIso) {
-                showToast("Σφάλμα", "Δεν έχει οριστεί ημερομηνία", "error");
-                return;
-            }
-            if (!smartParsedData.changes || smartParsedData.changes.length === 0) {
-                showToast("Σφάλμα", "Δεν υπάρχουν αλλαγές ωρών για καταχώρηση", "error");
-                return;
-            }
-
-            smartParsedData.section = sec;
-            smartParsedData.dateIso = dtIso;
-
-            const timing = document.getElementById('smartStartTiming')?.value || 'morning_only';
-            let startDate = dtIso;
-            let startTime = '07:30';
-
-            if (timing === 'today_afternoon') {
-                const targetDt = new Date(dtIso);
-                targetDt.setDate(targetDt.getDate() - 1);
-                startDate = targetDt.toISOString().slice(0, 10);
-                startTime = '15:00';
-            } else if (timing === 'now') {
-                startDate = new Date().toISOString().slice(0, 10);
-                startTime = '00:00';
-            }
-
-            const duration = parseInt(document.getElementById('smartDuration')?.value, 10) || 12;
-
-            try {
-                publishBtn.disabled = true;
-                publishBtn.textContent = '⏳ Δημοσίευση...';
-
-                const docData = {
-                    title: `Αλλαγή Προγράμματος - Τμήμα ${sec}`,
-                    type: 'alert',
-                    mediaType: 'schedule_change',
-                    content: '',
-                    scheduleData: smartParsedData,
-                    startDate: startDate,
-                    endDate: dtIso,
-                    startTime: startTime,
-                    endTime: '14:30',
-                    duration: duration,
-                    layout: 'fullscreen',
-                    isScheduleChange: true,
-                    order: 0,
-                    createdAt: new Date().toISOString()
-                };
-
-                await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
-
-                showToast("Επιτυχία!", `Η αλλαγή προγράμματος για το τμήμα ${sec} δημοσιεύτηκε!`, "success");
-                window.closeSmartScheduleModal();
-
-                // Clear fields
-                const emailTxt = document.getElementById('smartEmailText');
-                if (emailTxt) emailTxt.value = '';
-                smartParsedData = { section: '', dateIso: '', dateFormatted: '', dayName: '', changes: [] };
-                renderSmartHoursList();
-
-            } catch (err) {
-                console.error("Smart schedule publish error:", err);
-                showToast("Σφάλμα", "Αποτυχία δημοσίευσης: " + err.message, "error");
-            } finally {
-                publishBtn.disabled = false;
-                publishBtn.textContent = '🚀 Δημοσίευση στην Οθόνη';
-            }
-        });
+    if (!sec) {
+        if (typeof showToast === 'function') showToast("Σφάλμα", "Δεν έχει οριστεί τμήμα (π.χ. Α4)", "error");
+        else alert("Δεν έχει οριστεί τμήμα (π.χ. Α4)");
+        return;
     }
-});
+    if (!dtIso) {
+        if (typeof showToast === 'function') showToast("Σφάλμα", "Δεν έχει οριστεί ημερομηνία", "error");
+        else alert("Δεν έχει οριστεί ημερομηνία");
+        return;
+    }
+    if (!smartParsedData.changes || smartParsedData.changes.length === 0) {
+        if (typeof showToast === 'function') showToast("Σφάλμα", "Δεν υπάρχουν αλλαγές ωρών για καταχώρηση", "error");
+        else alert("Δεν υπάρχουν αλλαγές ωρών");
+        return;
+    }
+
+    smartParsedData.section = sec;
+    smartParsedData.dateIso = dtIso;
+
+    const timing = document.getElementById('smartStartTiming')?.value || 'now';
+    const nowIso = new Date().toISOString().slice(0, 10);
+    let startDate = nowIso;
+    let startTime = '';
+    let endTime = '';
+
+    if (timing === 'morning_only') {
+        startDate = dtIso;
+        startTime = '07:30';
+        endTime = '14:30';
+    } else if (timing === 'today_afternoon') {
+        const targetDt = new Date(dtIso + 'T12:00:00');
+        targetDt.setDate(targetDt.getDate() - 1);
+        startDate = targetDt.toISOString().slice(0, 10);
+        startTime = '15:00';
+        endTime = '14:30';
+    } else {
+        // 'now': Start immediately today!
+        startDate = nowIso;
+        startTime = '';
+        endTime = '';
+    }
+
+    const duration = parseInt(document.getElementById('smartDuration')?.value, 10) || 12;
+
+    try {
+        if (publishBtn) {
+            publishBtn.disabled = true;
+            publishBtn.textContent = '⏳ Δημοσίευση...';
+        }
+
+        const docData = {
+            title: `Αλλαγή Προγράμματος - Τμήμα ${sec}`,
+            type: 'alert',
+            mediaType: 'schedule_change',
+            content: '',
+            scheduleData: smartParsedData,
+            startDate: startDate,
+            endDate: dtIso,
+            startTime: startTime,
+            endTime: endTime,
+            duration: duration,
+            layout: 'fullscreen',
+            isScheduleChange: true,
+            order: 0,
+            createdAt: new Date().toISOString()
+        };
+
+        await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
+
+        if (typeof showToast === 'function') {
+            showToast("Επιτυχία!", `Η αλλαγή προγράμματος για το τμήμα ${sec} δημοσιεύτηκε!`, "success");
+        } else {
+            alert(`Η αλλαγή προγράμματος για το τμήμα ${sec} δημοσιεύτηκε!`);
+        }
+        window.closeSmartScheduleModal();
+
+        // Clear fields
+        const emailTxt = document.getElementById('smartEmailText');
+        if (emailTxt) emailTxt.value = '';
+        smartParsedData = { section: '', dateIso: '', dateFormatted: '', dayName: '', changes: [] };
+        renderSmartHoursList();
+
+    } catch (err) {
+        console.error("Smart schedule publish error:", err);
+        if (typeof showToast === 'function') {
+            showToast("Σφάλμα", "Αποτυχία δημοσίευσης: " + err.message, "error");
+        } else {
+            alert("Αποτυχία δημοσίευσης: " + err.message);
+        }
+    } finally {
+        if (publishBtn) {
+            publishBtn.disabled = false;
+            publishBtn.textContent = '🚀 Δημοσίευση στην Οθόνη';
+        }
+    }
+};
+
+// Wire up events in admin safely
+function initSmartSchedule() {
+    const openBtn = document.getElementById('openSmartScheduleBtn');
+    if (openBtn) openBtn.onclick = window.openSmartScheduleModal;
+
+    const emailTxt = document.getElementById('smartEmailText');
+    if (emailTxt) {
+        emailTxt.oninput = window.handleSmartEmailInput;
+        emailTxt.onpaste = () => setTimeout(window.handleSmartEmailInput, 50);
+    }
+
+    const exampleBtn = document.getElementById('smartPasteExampleBtn');
+    if (exampleBtn) exampleBtn.onclick = window.loadSmartScheduleSample;
+
+    const dateInput = document.getElementById('smartParsedDate');
+    if (dateInput) dateInput.onchange = window.handleSmartDateChange;
+
+    const secInput = document.getElementById('smartParsedSection');
+    if (secInput) secInput.oninput = window.handleSmartSectionChange;
+
+    const previewBtn = document.getElementById('smartPreviewBtn');
+    if (previewBtn) previewBtn.onclick = window.previewSmartSchedule;
+
+    const publishBtn = document.getElementById('smartPublishBtn');
+    if (publishBtn) publishBtn.onclick = window.publishSmartSchedule;
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSmartSchedule);
+} else {
+    initSmartSchedule();
+}

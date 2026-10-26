@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics Cloud - Διαχείριση</title>
-    <link rel="stylesheet" href="style.css?v=2026_SCHEDULE_V11">
+    <link rel="stylesheet" href="style.css?v=2026_SCHEDULE_V12">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -301,7 +301,7 @@
                     </div>
                     <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0.25rem 0 0 0;">Λάβατε email με αλλαγή τμήματος; Επικολλήστε το απευθείας για αυτόματη δημιουργία κάρτας.</p>
                 </div>
-                <button type="button" id="openSmartScheduleBtn" class="btn" style="background: linear-gradient(135deg, #3b82f6, #6366f1); border: none; font-size: 0.95rem; font-weight: 700; padding: 0.75rem 1.4rem; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); border-radius: 2rem; cursor: pointer; color: white;">
+                <button type="button" id="openSmartScheduleBtn" onclick="window.openSmartScheduleModal && window.openSmartScheduleModal()" class="btn" style="background: linear-gradient(135deg, #3b82f6, #6366f1); border: none; font-size: 0.95rem; font-weight: 700; padding: 0.75rem 1.4rem; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); border-radius: 2rem; cursor: pointer; color: white;">
                     <span>📋</span> Έξυπνη Επικόλληση Email
                 </button>
             </div>
@@ -725,7 +725,7 @@
     </div> <!-- /mainApp -->
 
     <!-- MAIN SCRIPT (MODULE) -->
-    <script type="module" src="script-admin.js?v=2026_SCHEDULE_V11"></script>
+    <script type="module" src="script-admin.js?v=2026_SCHEDULE_V12"></script>
 
     <!-- Preview Modal -->
     <div id="previewModal" style="
@@ -805,11 +805,11 @@
             <div class="form-group" style="margin-bottom: 1.25rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                     <label for="smartEmailText" style="color: #cbd5e1; font-weight: 700; margin: 0;">📋 Κείμενο Email</label>
-                    <button type="button" id="smartPasteExampleBtn" class="btn" style="background: rgba(99,102,241,0.25); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: 1rem; cursor: pointer;">
+                    <button type="button" id="smartPasteExampleBtn" onclick="window.loadSmartScheduleSample && window.loadSmartScheduleSample()" class="btn" style="background: rgba(99,102,241,0.25); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: 1rem; cursor: pointer;">
                         ✨ Δοκιμή με το email της φωτογραφίας
                     </button>
                 </div>
-                <textarea id="smartEmailText" rows="5" placeholder="Επικολλήστε εδώ το κείμενο του email (Ctrl+V)..." style="width: 100%; font-family: 'Inter', monospace; font-size: 0.92rem; padding: 0.85rem; border-radius: 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: #0f172a; color: white; resize: vertical; box-sizing: border-box;"></textarea>
+                <textarea id="smartEmailText" oninput="window.handleSmartEmailInput && window.handleSmartEmailInput()" onpaste="setTimeout(() => window.handleSmartEmailInput && window.handleSmartEmailInput(), 50)" rows="5" placeholder="Επικολλήστε εδώ το κείμενο του email (Ctrl+V)..." style="width: 100%; font-family: 'Inter', monospace; font-size: 0.92rem; padding: 0.85rem; border-radius: 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: #0f172a; color: white; resize: vertical; box-sizing: border-box;"></textarea>
             </div>
 
             <!-- Parsed Results Card (live update) -->
@@ -821,11 +821,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
                         <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.3rem; font-weight: 600;">Τμήμα</label>
-                        <input type="text" id="smartParsedSection" placeholder="π.χ. Α4" style="width: 100%; font-size: 1.2rem; font-weight: 900; text-align: center; text-transform: uppercase; background: #1e293b; border: 1px solid rgba(255,255,255,0.15); color: white; padding: 0.6rem; border-radius: 0.5rem; box-sizing: border-box;">
+                        <input type="text" id="smartParsedSection" oninput="window.handleSmartSectionChange && window.handleSmartSectionChange()" placeholder="π.χ. Α4" style="width: 100%; font-size: 1.2rem; font-weight: 900; text-align: center; text-transform: uppercase; background: #1e293b; border: 1px solid rgba(255,255,255,0.15); color: white; padding: 0.6rem; border-radius: 0.5rem; box-sizing: border-box;">
                     </div>
                     <div>
                         <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.3rem; font-weight: 600;">Ημερομηνία Αλλαγής</label>
-                        <input type="date" id="smartParsedDate" style="width: 100%; font-size: 1rem; background: #1e293b; border: 1px solid rgba(255,255,255,0.15); color: white; padding: 0.65rem; border-radius: 0.5rem; box-sizing: border-box;">
+                        <input type="date" id="smartParsedDate" onchange="window.handleSmartDateChange && window.handleSmartDateChange()" style="width: 100%; font-size: 1rem; background: #1e293b; border: 1px solid rgba(255,255,255,0.15); color: white; padding: 0.65rem; border-radius: 0.5rem; box-sizing: border-box;">
                         <small id="smartParsedDateText" style="color: #cbd5e1; font-size: 0.8rem; display: block; margin-top: 0.25rem;"></small>
                     </div>
                 </div>
@@ -843,9 +843,9 @@
                     <div style="flex: 1.5; min-width: 220px;">
                         <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.3rem; font-weight: 600;">Έναρξη Προβολής στις Οθόνες</label>
                         <select id="smartStartTiming" style="width: 100%; background: #1e293b; color: white; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.15);">
-                            <option value="morning_only" selected>Μόνο το πρωί της ημέρας (από 07:30)</option>
-                            <option value="today_afternoon">Από το προηγούμενο απόγευμα (15:00)</option>
-                            <option value="now">Άμεση προβολή από τώρα</option>
+                            <option value="now" selected>🚀 Άμεση προβολή από τώρα (για έλεγχο και άμεση ενημέρωση)</option>
+                            <option value="morning_only">🌅 Μόνο το πρωί της ημέρας (από 07:30)</option>
+                            <option value="today_afternoon">🌇 Από το προηγούμενο απόγευμα (15:00)</option>
                         </select>
                     </div>
                     <div style="flex: 0.8; min-width: 110px;">
@@ -858,8 +858,8 @@
             <!-- Modal Action Buttons -->
             <div style="display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
                 <button type="button" onclick="window.closeSmartScheduleModal()" class="btn btn-secondary" style="padding: 0.75rem 1.4rem;">Ακύρωση</button>
-                <button type="button" id="smartPreviewBtn" class="btn" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 0.75rem 1.4rem;">👁️ Προεπισκόπηση</button>
-                <button type="button" id="smartPublishBtn" class="btn btn-success" style="background: linear-gradient(135deg, #10b981, #059669); border: none; font-weight: 800; font-size: 1rem; padding: 0.75rem 1.75rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); border-radius: 0.6rem; cursor: pointer; color: white;">🚀 Δημοσίευση στην Οθόνη</button>
+                <button type="button" id="smartPreviewBtn" onclick="window.previewSmartSchedule && window.previewSmartSchedule()" class="btn" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: white; padding: 0.75rem 1.4rem;">👁️ Προεπισκόπηση</button>
+                <button type="button" id="smartPublishBtn" onclick="window.publishSmartSchedule && window.publishSmartSchedule()" class="btn btn-success" style="background: linear-gradient(135deg, #10b981, #059669); border: none; font-weight: 800; font-size: 1rem; padding: 0.75rem 1.75rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); border-radius: 0.6rem; cursor: pointer; color: white;">🚀 Δημοσίευση στην Οθόνη</button>
             </div>
         </div>
     </div>
