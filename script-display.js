@@ -1018,7 +1018,7 @@ function startRotation() {
     renderSlide(item);
 
     let duration = (item.duration || 10) * 1000;
-    if (item.type === 'alert') duration *= 2; // Double for alert
+    if (item.type === 'alert' && item.mediaType !== 'schedule_change') duration *= 2; // Double for alert, except schedule_change
 
     timer = setTimeout(() => {
         currentIndex++;
@@ -1767,7 +1767,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_SCHEDULE_V13';
+const APP_VERSION = '2026_SCHEDULE_V14';
 
 async function checkForAppUpdate() {
     try {

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics Cloud - Διαχείριση</title>
-    <link rel="stylesheet" href="style.css?v=2026_SCHEDULE_V13">
+    <link rel="stylesheet" href="style.css?v=2026_SCHEDULE_V14">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
@@ -725,7 +725,7 @@
     </div> <!-- /mainApp -->
 
     <!-- MAIN SCRIPT (MODULE) -->
-    <script type="module" src="script-admin.js?v=2026_SCHEDULE_V13"></script>
+    <script type="module" src="script-admin.js?v=2026_SCHEDULE_V14"></script>
 
     <!-- Preview Modal -->
     <div id="previewModal" style="
@@ -803,19 +803,40 @@
 
             <!-- Textarea for Paste -->
             <div class="form-group" style="margin-bottom: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem;">
                     <label for="smartEmailText" style="color: #cbd5e1; font-weight: 700; margin: 0;">📋 Κείμενο Email</label>
-                    <button type="button" id="smartPasteExampleBtn" onclick="window.loadSmartScheduleSample && window.loadSmartScheduleSample()" class="btn" style="background: rgba(99,102,241,0.25); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: 1rem; cursor: pointer;">
-                        ✨ Δοκιμή με το email της φωτογραφίας
-                    </button>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" id="smartPasteExampleBtn" onclick="window.loadSmartScheduleSample && window.loadSmartScheduleSample()" class="btn" style="background: rgba(99,102,241,0.25); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: 1rem; cursor: pointer;">
+                            ✨ Δοκιμή (1 Τμήμα - Α4)
+                        </button>
+                        <button type="button" id="smartPasteMultiExampleBtn" onclick="window.loadSmartScheduleMultiSample && window.loadSmartScheduleMultiSample()" class="btn" style="background: rgba(16,185,129,0.25); border: 1px solid rgba(16,185,129,0.4); color: #6ee7b7; padding: 0.25rem 0.75rem; font-size: 0.8rem; border-radius: 1rem; cursor: pointer;">
+                            ✨ Δοκιμή (3 Τμήματα - Α4, Β2, Γ1)
+                        </button>
+                    </div>
                 </div>
                 <textarea id="smartEmailText" oninput="window.handleSmartEmailInput && window.handleSmartEmailInput()" onpaste="setTimeout(() => window.handleSmartEmailInput && window.handleSmartEmailInput(), 50)" rows="5" placeholder="Επικολλήστε εδώ το κείμενο του email (Ctrl+V)..." style="width: 100%; font-family: 'Inter', monospace; font-size: 0.92rem; padding: 0.85rem; border-radius: 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: #0f172a; color: white; resize: vertical; box-sizing: border-box;"></textarea>
             </div>
 
             <!-- Parsed Results Card (live update) -->
             <div id="smartParsedResult" style="background: #0f172a; border: 1px solid rgba(59,130,246,0.35); border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
-                <div style="color: #60a5fa; font-weight: 800; font-size: 0.85rem; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>🔍</span> ΑΥΤΟΜΑΤΑ ΑΝΑΓΝΩΡΙΣΜΕΝΑ ΣΤΟΙΧΕΙΑ
+                <div style="color: #60a5fa; font-weight: 800; font-size: 0.85rem; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span>🔍</span> ΑΥΤΟΜΑΤΑ ΑΝΑΓΝΩΡΙΣΜΕΝΑ ΣΤΟΙΧΕΙΑ
+                    </div>
+                    <div id="smartSectionCountBadge" style="display: none; background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; padding: 0.2rem 0.7rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 700;"></div>
+                </div>
+
+                <!-- Multi-Section Selector Bar (appears if 2+ sections detected) -->
+                <div id="smartMultiSectionHeader" style="display: none; margin-bottom: 1rem; background: rgba(30,41,59,0.7); border: 1px solid rgba(99,102,241,0.3); border-radius: 0.75rem; padding: 0.75rem 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="font-size: 0.82rem; color: #a5b4fc; font-weight: 700;">
+                            📚 Επιλέξτε τμήμα για προβολή/επεξεργασία ωρών:
+                        </div>
+                        <div id="smartDurationNotice" style="font-size: 0.78rem; color: #cbd5e1; background: rgba(255,255,255,0.08); padding: 0.2rem 0.6rem; border-radius: 1rem;">
+                            ⏱️ <strong>--</strong>
+                        </div>
+                    </div>
+                    <div id="smartSectionsTabs" style="display: flex; gap: 0.5rem; flex-wrap: wrap;"></div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 1rem; margin-bottom: 1rem;">
@@ -832,7 +853,10 @@
 
                 <!-- Detected Hours List -->
                 <div style="margin-bottom: 1.25rem;">
-                    <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 0.5rem; font-weight: 600;">Αλλαγές ανά Διδακτική Ώρα</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Αλλαγές ανά Διδακτική Ώρα</div>
+                        <div id="smartCurrentSectionLabel" style="font-size: 0.8rem; color: #38bdf8; font-weight: 700;"></div>
+                    </div>
                     <div id="smartParsedHoursList" style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <div style="color: #64748b; font-size: 0.85rem; font-style: italic; padding: 0.5rem 0;">Δεν έχουν ανιχνευθεί ακόμα αλλαγές. Επικολλήστε κείμενο email παραπάνω.</div>
                     </div>
@@ -848,9 +872,10 @@
                             <option value="today_afternoon">🌇 Από το προηγούμενο απόγευμα (15:00)</option>
                         </select>
                     </div>
-                    <div style="flex: 0.8; min-width: 110px;">
-                        <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.3rem; font-weight: 600;">Διάρκεια (δευτ.)</label>
-                        <input type="number" id="smartDuration" value="12" min="5" max="60" style="width: 100%; background: #1e293b; color: white; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.15); box-sizing: border-box;">
+                    <div style="flex: 0.8; min-width: 140px;">
+                        <label style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 0.3rem; font-weight: 600;">Διάρκεια / κάρτα (δευτ.)</label>
+                        <input type="number" id="smartDuration" value="15" min="4" max="60" style="width: 100%; background: #1e293b; color: white; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.15); box-sizing: border-box;">
+                        <small id="smartDurationHint" style="color: #64748b; font-size: 0.72rem; display: block; margin-top: 0.2rem;">15δ. (1 τμήμα) ή μοιρασμένο στα 20δ.</small>
                     </div>
                 </div>
             </div>
