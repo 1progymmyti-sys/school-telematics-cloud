@@ -1256,6 +1256,34 @@ body.fullscreen-mode .display-header {
     color: #ffffff !important;
 }
 
+/* 📅 Schedule Changes Ticker Mode: Vibrant Purple & Neon Violet / Gold */
+#tickerContainer.ticker-mode-schedule {
+    background: linear-gradient(90deg, #180928 0%, #2e1065 40%, #4c1d95 70%, #180928 100%) !important;
+    border-top: 5px solid #c084fc !important;
+    box-shadow: 0 -8px 35px rgba(192, 132, 252, 0.5) !important;
+}
+
+#tickerContainer.ticker-mode-schedule .ticker-label {
+    background: linear-gradient(135deg, #6b21a8 0%, #9333ea 50%, #c084fc 100%) !important;
+    color: #ffffff !important;
+    font-size: 1.35rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 1.5px !important;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7) !important;
+    box-shadow: 6px 0 25px rgba(147, 51, 234, 0.6) !important;
+    border-right: 2px solid rgba(233, 213, 255, 0.4) !important;
+    animation: scheduleLabelPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes scheduleLabelPulse {
+    0%, 100% {
+        box-shadow: 6px 0 25px rgba(147, 51, 234, 0.6);
+    }
+    50% {
+        box-shadow: 6px 0 35px rgba(192, 132, 252, 0.95);
+    }
+}
+
 /* Direction Message Badges & Typography inside ticker */
 .ticker-director-pill {
     background: rgba(245, 158, 11, 0.22) !important;
@@ -1324,6 +1352,77 @@ body.fullscreen-mode .display-header {
     margin-right: 10px !important;
     font-size: 1.3em !important;
     line-height: 1 !important;
+}
+
+/* 📅 Schedule Ticker Elements (Shown when other announcements are on screen) */
+.ticker-sched-section-block {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.15rem 0.5rem !important;
+}
+
+.ticker-sched-section-pill {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: #000000 !important;
+    font-weight: 900 !important;
+    font-size: 1.55rem !important;
+    padding: 0.25rem 0.9rem !important;
+    border-radius: 50px !important;
+    letter-spacing: 1px !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.5) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+}
+
+.ticker-sched-change {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 1.65rem !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+}
+
+.ticker-sched-hour {
+    color: #f1f5f9 !important;
+    font-weight: 900 !important;
+    background: rgba(255, 255, 255, 0.14) !important;
+    padding: 0.2rem 0.6rem !important;
+    border-radius: 0.4rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    font-size: 1.45rem !important;
+}
+
+.ticker-sched-badge {
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    font-size: 1.15rem !important;
+    padding: 0.2rem 0.65rem !important;
+    border-radius: 0.4rem !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+.ticker-sched-detail {
+    color: #f8fafc !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+.ticker-sched-subsep {
+    color: rgba(255, 255, 255, 0.35) !important;
+    margin: 0 0.5rem !important;
+    font-size: 1.4rem !important;
+}
+
+.ticker-sched-sep {
+    color: #c084fc !important;
+    margin: 0 2rem !important;
+    font-size: 1.6rem !important;
+    text-shadow: 0 0 12px rgba(192, 132, 252, 0.9) !important;
 }
 
 .ticker-divider {

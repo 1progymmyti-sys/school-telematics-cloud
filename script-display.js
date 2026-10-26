@@ -502,6 +502,10 @@ async function fetchRSS(url) {
     }
 }
 
+let normalTickerSequence = [];
+let currentTickerMode = 'normal'; // 'normal' | 'schedule'
+let lastScheduleTickerHtml = '';
+
 function setTickerTheme(labelText, styleClass) {
     const tickerContainer = document.getElementById('tickerContainer');
     if (!tickerContainer) return;
@@ -517,8 +521,9 @@ function setTickerTheme(labelText, styleClass) {
         }
     }
 
-    tickerContainer.classList.remove('ticker-mode-director', 'ticker-mode-gold', 'ticker-mode-alert', 'ticker-mode-rss');
-    if (styleClass === 'alert') tickerContainer.classList.add('ticker-mode-alert');
+    tickerContainer.classList.remove('ticker-mode-director', 'ticker-mode-gold', 'ticker-mode-alert', 'ticker-mode-rss', 'ticker-mode-schedule');
+    if (styleClass === 'schedule' || styleClass === 'schedule_change') tickerContainer.classList.add('ticker-mode-schedule');
+    else if (styleClass === 'alert') tickerContainer.classList.add('ticker-mode-alert');
     else if (styleClass === 'rss') tickerContainer.classList.add('ticker-mode-rss');
     else tickerContainer.classList.add('ticker-mode-director');
 }
@@ -613,7 +618,7 @@ function updateTickerSequence() {
     }
 
     if (mode === 'none') {
-        tickerSequence = [];
+        newSeq.length = 0;
     } else if (mode === 'director') {
         if (dirItem) newSeq.push(dirItem);
     } else if (mode === 'rss') {
@@ -623,7 +628,14 @@ function updateTickerSequence() {
         if (rssItem) newSeq.push(rssItem);
     }
 
-    tickerSequence = newSeq;
+    normalTickerSequence = newSeq;
+
+    // If currently displaying schedule changes on ticker, preserve active schedule ticker
+    if (currentTickerMode === 'schedule') {
+        return;
+    }
+
+    tickerSequence = normalTickerSequence;
 
     const tickerContainer = document.getElementById('tickerContainer');
     if (tickerSequence.length === 0) {
@@ -646,6 +658,124 @@ function updateTickerSequence() {
         if (tickerSequenceIndex >= tickerSequence.length) {
             tickerSequenceIndex = 0;
             playTickerItem(tickerSequence[0]);
+        }
+    }
+}
+
+// ===================================================
+// DYNAMIC SCHEDULE TICKER SYNC
+// When schedule cards are NOT showing on the main slide area (because other
+// announcements are on screen), display timetable changes in the running ticker
+// with vibrant purple/amber theme. As soon as the schedule card appears on screen,
+// revert ticker back to the Director / RSS news stream!
+// ===================================================
+
+function isScheduleChangeSlide(item) {
+    if (!item) return false;
+    return item.mediaType === 'schedule_change' || item.isScheduleChange === true;
+}
+
+function getActiveScheduleAnnouncements() {
+    const pool = (slides && slides.length > 0) ? slides : allAnnouncements;
+    return getActiveSlides(pool).filter(isScheduleChangeSlide);
+}
+
+function buildScheduleTickerItem(scheduleItems) {
+    if (!scheduleItems || scheduleItems.length === 0) return null;
+
+    const sectionsHtml = scheduleItems.map(item => {
+        const data = item.scheduleData || {};
+        const section = data.section || (item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Τμήμα';
+        let changes = data.changes || [];
+
+        if ((!changes || changes.length === 0) && item.content) {
+            changes = [{
+                hour: 1,
+                detail: item.content,
+                kind: 'substitution',
+                badgeText: 'ΑΛΛΑΓΗ',
+                icon: '⚡'
+            }];
+        }
+
+        const changesHtml = changes.map(c => {
+            const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : (c.kind === 'room' ? '#f59e0b' : '#10b981'));
+            const icon = c.icon || (c.kind === 'free' ? '🛑' : (c.kind === 'room' ? '🚪' : '📚'));
+            const badgeText = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ' : (c.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
+            const kindClass = c.kind || 'substitution';
+
+            return `
+                <span class="ticker-sched-change ticker-sched-${kindClass}">
+                    <span class="ticker-sched-hour">${c.hour}η</span>
+                    <span class="ticker-sched-badge" style="background:${badgeColor};">${icon} ${badgeText}</span>
+                    <span class="ticker-sched-detail">${c.detail}</span>
+                </span>
+            `;
+        }).join('<span class="ticker-sched-subsep">•</span>');
+
+        return `
+            <span class="ticker-sched-section-block">
+                <span class="ticker-sched-section-pill">🏫 Τμήμα ${section}</span>
+                ${changesHtml}
+            </span>
+        `;
+    }).join('<span class="ticker-sched-sep">✦</span>');
+
+    // Duplicate once with nice spacer for seamless continuous scrolling
+    const fullHtml = `${sectionsHtml} <span class="ticker-sched-sep" style="margin: 0 4rem;">✦✦✦</span> ${sectionsHtml}`;
+
+    return {
+        type: 'schedule',
+        label: '📅 ΑΛΛΑΓΕΣ ΠΡΟΓΡΑΜΜΑΤΟΣ',
+        style: 'schedule',
+        html: fullHtml
+    };
+}
+
+function syncTickerWithCurrentSlide(item) {
+    const isScheduleSlide = isScheduleChangeSlide(item);
+    const activeScheduleItems = getActiveScheduleAnnouncements();
+
+    // Target mode:
+    // When normal announcements are on screen AND there are active schedule items -> 'schedule'
+    // When schedule slide itself is on screen OR no schedule changes exist -> 'normal' (Director / RSS)
+    const targetMode = (!isScheduleSlide && activeScheduleItems.length > 0) ? 'schedule' : 'normal';
+
+    if (targetMode === 'schedule') {
+        const schedItem = buildScheduleTickerItem(activeScheduleItems);
+        if (!schedItem) return;
+
+        if (currentTickerMode !== 'schedule' || lastScheduleTickerHtml !== schedItem.html) {
+            currentTickerMode = 'schedule';
+            lastScheduleTickerHtml = schedItem.html;
+            tickerSequence = [schedItem];
+            tickerSequenceIndex = 0;
+
+            const tickerContainer = document.getElementById('tickerContainer');
+            if (tickerContainer) tickerContainer.style.display = 'flex';
+            document.body.classList.remove('no-ticker');
+
+            playTickerItem(schedItem);
+        }
+    } else {
+        if (currentTickerMode !== 'normal') {
+            currentTickerMode = 'normal';
+            lastScheduleTickerHtml = '';
+
+            // Restore normal sequence (Director / RSS)
+            updateTickerSequence();
+            if (tickerSequence.length > 0) {
+                tickerSequenceIndex = 0;
+                playTickerItem(tickerSequence[0]);
+            } else {
+                const tickerContainer = document.getElementById('tickerContainer');
+                if (tickerContainer) tickerContainer.style.display = 'none';
+                document.body.classList.add('no-ticker');
+                if (tickerAnimId) {
+                    cancelAnimationFrame(tickerAnimId);
+                    tickerAnimId = null;
+                }
+            }
         }
     }
 }
@@ -721,6 +851,7 @@ window.onload = () => {
             startRotation();
         } else if (slides.length === 0 && !emergencyActive) {
             document.getElementById('slideContainer').innerHTML = '<div class="slide active"><h1>Αναμονή για ενημερώσεις...</h1></div>';
+            syncTickerWithCurrentSlide(null);
         }
     });
 
@@ -1015,6 +1146,7 @@ function startRotation() {
     if (currentIndex >= slides.length) currentIndex = 0;
 
     const item = slides[currentIndex];
+    syncTickerWithCurrentSlide(item);
     renderSlide(item);
 
     let duration = (item.duration || 10) * 1000;
@@ -1767,7 +1899,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_SCHEDULE_V14';
+const APP_VERSION = '2026_SCHEDULE_V15';
 
 async function checkForAppUpdate() {
     try {
