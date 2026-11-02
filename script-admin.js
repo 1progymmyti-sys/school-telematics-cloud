@@ -2240,16 +2240,25 @@ window.publishSmartSchedule = async () => {
             secData.dateIso = dtIso;
             secData.duration = duration;
 
+            // Calculate auto end time based on the latest lesson hour mentioned
+            const hourEndMap = { 1: "08:45", 2: "09:35", 3: "10:30", 4: "11:25", 5: "12:20", 6: "13:10", 7: "13:55" };
+            let maxHour = 0;
+            (secData.changes || []).forEach(c => {
+                const h = parseInt(c.hour, 10);
+                if (h && h > maxHour) maxHour = h;
+            });
+            const autoSectionEndTime = (maxHour > 0 && hourEndMap[maxHour]) ? hourEndMap[maxHour] : (endTime || "13:55");
+
             const docData = {
                 title: `Αλλαγή Προγράμματος - Τμήμα ${secData.section}`,
                 type: 'alert',
                 mediaType: 'schedule_change',
                 content: '',
                 scheduleData: secData,
-                startDate: startDate,
-                endDate: endDate,
-                startTime: startTime,
-                endTime: endTime,
+                startDate: dtIso || startDate,
+                endDate: dtIso || endDate,
+                startTime: startTime || '07:45',
+                endTime: autoSectionEndTime,
                 duration: duration,
                 layout: 'fullscreen',
                 isScheduleChange: true,

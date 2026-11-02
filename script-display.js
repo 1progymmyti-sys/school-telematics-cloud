@@ -780,18 +780,84 @@ function syncTickerWithCurrentSlide(item) {
     }
 }
 
+// Mapping of Greek school periods to their end times (used for schedule change removal)
+const SCHOOL_PERIOD_END_TIMES = {
+    1: "08:45",
+    2: "09:35",
+    3: "10:30",
+    4: "11:25",
+    5: "12:20",
+    6: "13:10",
+    7: "13:55"
+};
+
+function getScheduleChangeEndTime(item) {
+    if (item.endTime && item.endTime.trim() !== "") return item.endTime.trim();
+
+    // 1. Check scheduleData.changes
+    const changes = (item.scheduleData && item.scheduleData.changes) || [];
+    let maxHour = 0;
+    for (let i = 0; i < changes.length; i++) {
+        const h = parseInt(changes[i].hour, 10);
+        if (h && h > maxHour) maxHour = h;
+    }
+
+    if (maxHour > 0 && SCHOOL_PERIOD_END_TIMES[maxHour]) {
+        return SCHOOL_PERIOD_END_TIMES[maxHour];
+    }
+
+    // 2. Fallback: Scan title & content for hour numbers (e.g. "3η ώρα", "5η ώρα")
+    const text = `${item.title || ''} ${item.content || ''}`;
+    const matches = text.match(/([1-7])[ηή]?\s*(?:ώρα|ωρα)/gi);
+    if (matches) {
+        matches.forEach(m => {
+            const h = parseInt(m, 10);
+            if (h && h > maxHour) maxHour = h;
+        });
+    }
+
+    if (maxHour > 0 && SCHOOL_PERIOD_END_TIMES[maxHour]) {
+        return SCHOOL_PERIOD_END_TIMES[maxHour];
+    }
+
+    // Default to end of school day (13:55)
+    return "13:55";
+}
+
 // Helper: Get Active Slides
 const getActiveSlides = (list) => {
     const now = getGreekNow();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+
     return list.filter(item => {
         if (item.isPaused) return false; // Filter paused items
+
+        // 1. Ειδικοί κανόνες για Αλλαγές Προγράμματος / Αναπληρώσεις
+        if (isScheduleChangeSlide(item)) {
+            // Ημερομηνία στην οποία αναφέρεται η αλλαγή
+            const targetDate = (item.scheduleData && item.scheduleData.dateIso) || item.startDate || item.endDate || todayStr;
+
+            // Εμφανίζεται ΜΟΝΟ την ημέρα στην οποία αναφέρεται
+            if (todayStr !== targetDate) return false;
+
+            // Έναρξη εμφάνισης: 07:45 της ημέρας εκείνης
+            const startTime = (item.startTime && item.startTime.trim()) || "07:45";
+            if (currentHHMM < startTime) return false;
+
+            // Απομάκρυνση: μετά το πέρας της ώρας για την οποία γίνεται λόγος
+            const endTime = getScheduleChangeEndTime(item);
+            if (currentHHMM > endTime) return false;
+
+            return true;
+        }
+
+        // 2. Κανονικές Ανακοινώσεις
         if (item.startDate && todayStr < item.startDate) return false;
         if (item.endDate && todayStr > item.endDate) return false;
 
         // Daily Time Check (Advanced Scheduling)
         if (item.startTime || item.endTime) {
-            const currentHHMM = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
             if (item.startTime && currentHHMM < item.startTime) return false;
             if (item.endTime && currentHHMM > item.endTime) return false;
         }
