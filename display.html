@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - Οθόνη Προβολής</title>
-    <link rel="stylesheet" href="style.css?v=2026_AURORA_V2">
+    <link rel="stylesheet" href="style.css?v=2026_AURORA_REAL">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -20,8 +20,7 @@
         <div class="aurora-blob aurora-blob-3"></div>
         <div class="aurora-blob aurora-blob-4"></div>
     </div>
-    <canvas id="themeCanvas"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></canvas>
+    <canvas id="themeCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; filter: blur(14px); transform: scale(1.02);"></canvas>
     <div class="display-container">
         <header class="display-header">
             <div class="header-left">
@@ -36,10 +35,9 @@
             <div id="schoolScheduleStatus" class="aurora-period-capsule"></div>
 
             <div class="header-right">
-                <div id="weather">
-                    <!-- Weather injected via JS -->
-                </div>
                 <div id="clock" class="clock">00:00</div>
+                <div id="date-display-right"></div>
+                <div id="weather"></div>
             </div>
         </header>
 
@@ -52,13 +50,13 @@
         </main>
 
         <div id="tickerContainer" class="ticker-container" style="display: none;">
-            <div class="ticker-label">ΔΙΕΥΘΥΝΣΗ</div>
+            <div class="ticker-label"><span style="font-size: 1.15rem;">🏛️</span> ΔΙΕΥΘΥΝΣΗ</div>
             <div id="tickerContent" class="ticker-content"></div>
         </div>
     </div>
 
     <!-- MAIN SCRIPT CLOUD VERSION (MODULE) -->
-    <script type="module" src="script-display.js?v=2026_AURORA_V2"></script>
+    <script type="module" src="script-display.js?v=2026_AURORA_REAL"></script>
 
     <style>
         /* Fix for banner - full width */

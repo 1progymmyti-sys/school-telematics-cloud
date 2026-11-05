@@ -1,5 +1,5 @@
 import { db, doc, onSnapshot, collection, query, orderBy, deleteDoc } from "./firebase-config.js";
-import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
+import ParticleEngine from "./canvas-particles.js?v=2026_AURORA_REAL";
 
 // Global State
 let allAnnouncements = [];
@@ -1055,14 +1055,18 @@ function updateScheduleStatus() {
         if (dayOfWeek === 0 || dayOfWeek === 6) {
             displayEl.innerHTML = `
                 <div class="capsule-inner weekend">
-                    <div class="capsule-main">
-                        <span class="capsule-icon">📅</span>
-                        <span class="capsule-title" style="color: #a7f3d0;">ΣΑΒΒΑΤΟΚΥΡΙΑΚΟ</span>
-                        <span class="capsule-sep">•</span>
-                        <span class="capsule-countdown">Καλό Ξεκούραστο Διήμερο!</span>
+                    <div class="capsule-row-top">
+                        <span>📅</span>
+                        <span style="color: #a7f3d0;">ΣΑΒΒΑΤΟΚΥΡΙΑΚΟ</span>
                     </div>
-                    <div class="capsule-progress-track">
-                        <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); opacity: 0.65;"></div>
+                    <div class="capsule-row-sub">
+                        <span>✨ Καλό Ξεκούραστο Διήμερο!</span>
+                    </div>
+                    <div class="capsule-progress-wrap">
+                        <div class="capsule-progress-track">
+                            <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #10b981, #06b6d4);"></div>
+                        </div>
+                        <span class="capsule-pct-label">Δευτέρα</span>
                     </div>
                 </div>
             `;
@@ -1093,29 +1097,32 @@ function updateScheduleStatus() {
             const remaining = activeSlot.endTotal - currentTime;
             const isLesson = activeSlot.type === 'lesson';
             const icon = isLesson ? '🔔' : '☕';
-            const badgeClass = isLesson ? 'slot-lesson' : 'slot-break';
             const slotDuration = activeSlot.endTotal - activeSlot.startTotal;
             const elapsed = Math.max(0, currentTime - activeSlot.startTotal);
             const progressPct = Math.min(100, Math.max(0, Math.round((elapsed / (slotDuration || 1)) * 100)));
 
             let subText = '';
             if (isLesson) {
-                subText = remaining === 1 ? 'Λήξη σε 1 λεπτό!' : `Λήξη & Διάλειμμα σε ${remaining} λ.`;
+                subText = remaining === 1 ? 'Λήξη σε 1 λεπτό!' : `Λήξη & Διάλειμμα σε ${remaining} λεπτά`;
             } else {
-                subText = remaining === 1 ? 'Κουδούνι σε 1 λεπτό!' : `Επόμενο κουδούνι σε ${remaining} λ.`;
+                subText = remaining === 1 ? 'Κουδούνι σε 1 λεπτό!' : `Επόμενο κουδούνι σε ${remaining} λεπτά`;
             }
 
             displayEl.innerHTML = `
-                <div class="capsule-inner ${badgeClass}">
-                    <div class="capsule-main">
-                        <span class="capsule-icon">${icon}</span>
-                        <span class="capsule-title">${activeSlot.name}</span>
-                        <span class="capsule-hours">(${activeSlot.start} – ${activeSlot.end})</span>
-                        <span class="capsule-sep">•</span>
-                        <span class="capsule-countdown">⏳ ${subText}</span>
+                <div class="capsule-inner slot-${activeSlot.type}">
+                    <div class="capsule-row-top">
+                        <span>${icon}</span>
+                        <span>${activeSlot.name}</span>
+                        <span style="color: #94a3b8; font-weight: 500; font-size: 0.95em;">(${activeSlot.start} – ${activeSlot.end})</span>
                     </div>
-                    <div class="capsule-progress-track">
-                        <div class="capsule-progress-bar" style="width: ${progressPct}%"></div>
+                    <div class="capsule-row-sub">
+                        <span>⏳ ${subText}</span>
+                    </div>
+                    <div class="capsule-progress-wrap">
+                        <div class="capsule-progress-track">
+                            <div class="capsule-progress-bar" style="width: ${progressPct}%"></div>
+                        </div>
+                        <span class="capsule-pct-label">${progressPct}%</span>
                     </div>
                 </div>
             `;
@@ -1125,34 +1132,43 @@ function updateScheduleStatus() {
             if (currentTime < 8 * 60) {
                 displayEl.innerHTML = `
                     <div class="capsule-inner before-school">
-                        <div class="capsule-main">
-                            <span class="capsule-icon">🏫</span>
-                            <span class="capsule-title" style="color: #fde047;">ΠΡΩΙΝΗ ΑΝΑΜΟΝΗ</span>
-                            <span class="capsule-sep">•</span>
-                            <span class="capsule-countdown">Έναρξη 1ης Ώρας στις 08:00</span>
+                        <div class="capsule-row-top">
+                            <span>🏫</span>
+                            <span style="color: #fde047;">Πρωινή Αναμονή</span>
+                            <span style="color: #94a3b8; font-weight: 500;">(Έναρξη στις 08:00)</span>
                         </div>
-                        <div class="capsule-progress-track">
-                            <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #f59e0b, #eab308); opacity: 0.65;"></div>
+                        <div class="capsule-row-sub">
+                            <span>✨ 1η Διδακτική Ώρα: 08:00 – 08:45</span>
+                        </div>
+                        <div class="capsule-progress-wrap">
+                            <div class="capsule-progress-track">
+                                <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #f59e0b, #eab308);"></div>
+                            </div>
+                            <span class="capsule-pct-label">08:00</span>
                         </div>
                     </div>
                 `;
-                displayEl.style.display = 'flex';
             } else {
                 displayEl.innerHTML = `
                     <div class="capsule-inner after-school">
-                        <div class="capsule-main">
-                            <span class="capsule-icon">🌙</span>
-                            <span class="capsule-title" style="color: #93c5fd; text-shadow: 0 0 10px rgba(147, 197, 253, 0.4);">ΒΡΑΔΙΝΗ ΛΕΙΤΟΥΡΓΙΑ</span>
-                            <span class="capsule-sep">•</span>
-                            <span class="capsule-countdown" style="color: #e2e8f0;">Έναρξη: Αύριο στις 08:00 (1η Ώρα)</span>
+                        <div class="capsule-row-top">
+                            <span>🌙</span>
+                            <span style="color: #93c5fd;">ΒΡΑΔΙΝΗ ΛΕΙΤΟΥΡΓΙΑ</span>
+                            <span style="color: #94a3b8; font-weight: 500;">(Έναρξη: Αύριο στις 08:00)</span>
                         </div>
-                        <div class="capsule-progress-track">
-                            <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #6366f1, #38bdf8); opacity: 0.65;"></div>
+                        <div class="capsule-row-sub">
+                            <span>✨ 1η Διδακτική Ώρα στις 08:00</span>
+                        </div>
+                        <div class="capsule-progress-wrap">
+                            <div class="capsule-progress-track">
+                                <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #6366f1, #00f0ff); opacity: 0.8;"></div>
+                            </div>
+                            <span class="capsule-pct-label">Αύριο</span>
                         </div>
                     </div>
                 `;
-                displayEl.style.display = 'flex';
             }
+            displayEl.style.display = 'flex';
         }
 
     } catch (e) {
@@ -1164,29 +1180,25 @@ function updateClock() {
     const now = getGreekNow();
     const clockEl = document.getElementById('clock');
     const dateEl = document.getElementById('date');
+    const dateRightEl = document.getElementById('date-display-right');
 
     if (clockEl) {
         let h = now.getHours();
         const m = now.getMinutes();
-        const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
-        h = h % 12;
-        h = h ? h : 12;
         const mStr = m < 10 ? '0' + m : m;
-        const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
-        if (clockEl.innerHTML !== newHtml) {
-            clockEl.innerHTML = newHtml;
-        }
+        const hStr = h < 10 ? '0' + h : h;
+        clockEl.textContent = `${hStr}:${mStr}`;
     }
+
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    const dateFormatted = now.toLocaleDateString('el-GR', options);
 
     if (dateEl) {
-        const options = { weekday: 'long', day: 'numeric', month: 'long' };
-        const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
-        if (dateEl.innerText !== dateStr) {
-            dateEl.innerText = dateStr;
-        }
+        dateEl.textContent = dateFormatted.toUpperCase();
     }
-
-    updateScheduleStatus();
+    if (dateRightEl) {
+        dateRightEl.textContent = dateFormatted;
+    }
 }
 
 function applySettings(s) {
@@ -1483,164 +1495,125 @@ function getLessonHourTime(hourNum) {
 
 function renderScheduleChangeBlock(item) {
     const data = item.scheduleData || {};
-    const section = data.section || (item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Τμήμα';
+    const section = data.section || (item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Α1';
     const dateFormatted = data.dateFormatted || data.dateIso || '';
     const dayName = data.dayName || '';
     let changes = data.changes || [];
 
-    // Fallback if changes array is empty but content exists
     if ((!changes || changes.length === 0) && item.content) {
         changes = [{
-            hour: 1,
+            hour: 7,
             detail: item.content,
-            badgeText: 'ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ',
-            badgeColor: '#f59e0b',
-            icon: '⚡'
+            badgeText: 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ',
+            badgeColor: '#ef4444'
         }];
     }
 
-    const cardsHtml = changes.map(c => {
-        const timeStr = getLessonHourTime(c.hour);
-        const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : (c.kind === 'room' ? '#f59e0b' : '#10b981'));
-        const icon = c.icon || (c.kind === 'free' ? '🛑' : (c.kind === 'room' ? '🚪' : '📚'));
-        const badgeText = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ' : (c.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
+    const firstChange = changes[0] || { hour: 7, detail: 'Κενό (Αποχώρηση μαθητών)', badgeText: 'ΚΕΝΟ' };
+    const hourNum = firstChange.hour || 7;
+    const timeStr = getLessonHourTime(hourNum) || '13:15 – 13:55';
+    const badgeText = firstChange.badgeText || (firstChange.kind === 'free' ? 'ΚΕΝΟ' : (firstChange.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
+    const detailText = firstChange.detail || 'Απουσία διδάσκοντος. Οι μαθητές αποχωρούν από το σχολείο.';
 
-        return `
-            <div class="schedule-change-card" style="
-                background: rgba(15, 23, 42, 0.75);
-                border: 1px solid rgba(255, 255, 255, 0.14);
-                border-left: 8px solid ${badgeColor};
-                border-radius: 1.25rem;
-                padding: clamp(0.9rem, 1.8vh, 1.4rem) clamp(1.2rem, 2.2vw, 1.9rem);
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 1.5rem;
-                box-shadow: 0 12px 35px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-                box-sizing: border-box;
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-            ">
-                <div style="display: flex; align-items: center; gap: clamp(1rem, 2vw, 1.75rem); min-width: 0;">
-                    <div style="
-                        background: ${badgeColor};
-                        color: white;
-                        font-weight: 900;
-                        font-size: clamp(1.8rem, 3vw, 2.5rem);
-                        width: clamp(62px, 5.5vw, 82px);
-                        height: clamp(62px, 5.5vw, 82px);
-                        border-radius: 1rem;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 15px ${badgeColor}88;
-                        flex-shrink: 0;
-                    ">
-                        ${c.hour}η
-                    </div>
-                    <div style="min-width: 0;">
-                        <div style="color: ${badgeColor}; font-weight: 800; font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 1.5px; text-transform: uppercase;">
-                            ${icon} ${badgeText}
-                        </div>
-                        <div style="color: #f8fafc; font-weight: 700; font-size: clamp(1.25rem, 2.3vw, 2.2rem); margin-top: 0.3rem; line-height: 1.25; word-break: break-word;">
-                            ${c.detail}
-                        </div>
-                    </div>
-                </div>
-                ${timeStr ? `
-                    <div style="
-                        color: #cbd5e1;
-                        font-family: monospace;
-                        font-size: clamp(1.1rem, 1.6vw, 1.45rem);
-                        font-weight: 800;
-                        background: rgba(255,255,255,0.08);
-                        padding: 0.6rem 1.2rem;
-                        border-radius: 0.75rem;
-                        border: 1px solid rgba(255,255,255,0.14);
-                        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-                        white-space: nowrap;
-                        flex-shrink: 0;
-                    ">
-                        ⏱️ ${timeStr}
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }).join('');
+    // Date prefix calculation
+    const now = getGreekNow();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const targetDateIso = data.dateIso || item.startDate || '';
+    const isTomorrow = targetDateIso && targetDateIso > todayStr;
+    const prefixDate = isTomorrow ? (dayName ? `${dayName} (Αύριο)` : 'Αύριο') : (dayName ? `${dayName} (Σήμερα)` : 'Σήμερα');
+    const dateBadgeText = `${prefixDate}: ${timeStr}`;
 
     return `
         <div class="schedule-change-display-wrapper" style="
             width: 100%;
             height: 100%;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            padding: clamp(1.5rem, 3vw, 3rem);
+            padding: 1.5rem;
             box-sizing: border-box;
-            max-width: 1300px;
-            margin: 0 auto;
         ">
-            <!-- Aurora Glassmorphism Panel Container -->
-            <div style="
-                background: rgba(11, 18, 38, 0.76);
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                border: 1.5px solid rgba(245, 158, 11, 0.45);
-                border-radius: 1.75rem;
-                padding: clamp(1.5rem, 3vh, 2.5rem) clamp(1.8rem, 3vw, 3rem);
-                box-shadow: 0 0 50px rgba(245, 158, 11, 0.22), 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            <!-- Aurora Glassmorphism Urgent Card (Exact Replica of Mockup Image 3) -->
+            <div class="aurora-urgent-card" style="
+                max-width: 820px;
+                width: 90%;
+                background: rgba(10, 18, 38, 0.75);
+                backdrop-filter: blur(28px);
+                -webkit-backdrop-filter: blur(28px);
+                border: 2px solid rgba(239, 68, 68, 0.6);
+                border-radius: 28px;
+                box-shadow: 0 0 60px rgba(239, 68, 68, 0.35), 0 30px 70px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                padding: clamp(1.8rem, 3.5vh, 2.5rem) clamp(2rem, 3.5vw, 3rem);
                 box-sizing: border-box;
-                width: 100%;
+                text-align: left;
+                position: relative;
             ">
-                <!-- Header Badge & Section -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(1rem, 2vh, 1.75rem); flex-wrap: wrap; gap: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 1.25rem;">
-                        <div style="
-                            background: linear-gradient(135deg, #f59e0b, #ef4444);
-                            color: #ffffff;
-                            font-weight: 900;
-                            font-size: clamp(0.95rem, 1.4vw, 1.2rem);
-                            letter-spacing: 1.5px;
-                            padding: 0.55rem 1.4rem;
-                            border-radius: 2rem;
-                            display: inline-flex;
-                            align-items: center;
-                            gap: 0.5rem;
-                            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
-                        ">
-                            🚨 ΕΠΕΙΓΟΥΣΑ ΑΝΑΚΟΙΝΩΣΗ • ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
-                        </div>
-                        <h1 style="
-                            font-size: clamp(2rem, 3.8vw, 3.4rem);
-                            font-weight: 900;
-                            color: #ffffff;
-                            margin: 0;
-                            letter-spacing: -0.02em;
-                            text-shadow: 0 0 25px rgba(56, 189, 248, 0.45);
-                        ">
-                            ΤΜΗΜΑ ${section}
-                        </h1>
-                    </div>
-                    <div style="
-                        color: #94a3b8;
-                        font-size: clamp(1.1rem, 1.8vw, 1.6rem);
-                        font-weight: 700;
-                        display: flex;
-                        align-items: center;
-                        gap: 0.5rem;
-                        background: rgba(15, 23, 42, 0.6);
-                        padding: 0.5rem 1.2rem;
-                        border-radius: 0.75rem;
-                        border: 1px solid rgba(255, 255, 255, 0.12);
-                        backdrop-filter: blur(8px);
-                    ">
-                        📅 ${dayName ? dayName + ' ' : ''}${dateFormatted}
-                    </div>
+                <!-- Top Red/Gold Header Pill (Exact Image 3) -->
+                <div style="
+                    background: linear-gradient(135deg, #b91c1c, #991b1b);
+                    border: 1px solid rgba(254, 202, 202, 0.4);
+                    border-radius: 30px;
+                    padding: 0.45rem 1.4rem;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.6rem;
+                    color: #ffffff;
+                    font-weight: 800;
+                    font-size: 0.95rem;
+                    letter-spacing: 1px;
+                    text-transform: uppercase;
+                    box-shadow: 0 4px 15px rgba(185, 28, 28, 0.4);
+                ">
+                    🚨 ΕΠΕΙΓΟΥΣΑ ΑΝΑΚΟΙΝΩΣΗ • ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
                 </div>
 
-                <!-- List of Hour Changes -->
-                <div style="display: flex; flex-direction: column; gap: clamp(0.85rem, 1.8vh, 1.35rem); width: 100%;">
-                    ${cardsHtml || '<div style="color:#94a3b8;font-size:1.5rem;text-align:center;">Δεν έχουν οριστεί ώρες.</div>'}
+                <!-- Main Class Title (Exact Image 3) -->
+                <h1 style="
+                    color: #ffffff;
+                    font-size: clamp(2rem, 3.2vw, 2.7rem);
+                    font-weight: 800;
+                    margin: 1.4rem 0 1.2rem 0;
+                    letter-spacing: -0.01em;
+                    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+                    line-height: 1.2;
+                ">
+                    Τμήμα ${section} – Τροποποίηση ${hourNum}ης Ώρας
+                </h1>
+
+                <!-- Inner Creamy White Frosted Plate (Exact Image 3) -->
+                <div style="
+                    background: rgba(248, 250, 252, 0.92);
+                    border-radius: 18px;
+                    padding: clamp(1.4rem, 2.5vh, 1.8rem) clamp(1.6rem, 2.5vw, 2.2rem);
+                    color: #0f172a;
+                    font-size: clamp(1.25rem, 1.9vw, 1.55rem);
+                    font-weight: 600;
+                    line-height: 1.5;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+                ">
+                    <div>
+                        <strong>${hourNum}η Ώρα: ${badgeText}</strong> – ${detailText}
+                    </div>
+                    ${changes.length > 1 ? `
+                        <div style="margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid rgba(0,0,0,0.1); font-size: 0.9em;">
+                            ${changes.slice(1).map(c => `<div><strong>${c.hour}η Ώρα:</strong> ${c.badgeText || ''} – ${c.detail}</div>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Bottom Time Badge (Exact Image 3) -->
+                <div style="
+                    display: inline-block;
+                    margin-top: 1.3rem;
+                    background: rgba(255, 255, 255, 0.85);
+                    padding: 0.45rem 1.4rem;
+                    border-radius: 20px;
+                    color: #0f172a;
+                    font-weight: 700;
+                    font-size: 1.05rem;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                ">
+                    📅 ${dateBadgeText}
                 </div>
             </div>
         </div>
