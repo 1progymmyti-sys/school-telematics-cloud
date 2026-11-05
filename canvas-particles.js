@@ -22,10 +22,15 @@ export default class ParticleEngine {
         this.theme = themeName || 'default';
         this.particles = [];
 
-        console.log(`Starting aurora & particles for theme: ${this.theme}`);
+        // For default theme, do not run animation loop at all (saves massive GPU/CPU on TVs)
+        if (this.theme === 'default') {
+            return;
+        }
 
-        // Populate initial particles for seasonal themes
-        if (this.theme !== 'default' && this.theme !== 'national') {
+        console.log(`Starting particles for theme: ${this.theme}`);
+
+        // Populate initial particles
+        if (this.theme !== 'national') {
             this.initParticles();
         }
         this.animate();
@@ -151,84 +156,19 @@ export default class ParticleEngine {
     }
 
     animate() {
+        if (!this.animationId && this.theme === 'default') return;
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.time += 0.05;
 
-        // 1. Render Living Aurora Wave Ribbon (Always active!)
-        this.renderAuroraWave();
-
-        // 2. Render seasonal theme particles on top if active
+        // Render based on theme
         if (this.theme === 'national') {
             this.renderFlag();
-        } else if (this.theme !== 'default') {
+        } else {
             this.renderParticles();
         }
 
         this.animationId = requestAnimationFrame(() => this.animate());
-    }
-
-    renderAuroraWave() {
-        if (!this.ctx) return;
-        const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-        const t = this.time * 0.28;
-
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-
-        // Ribbon 1: Luminous Emerald & Cyan
-        this.drawSingleAuroraWave(h * 0.52, 60, 0.0028, t * 0.04, '#00f5d4', '#0284c7', 0.65);
-        // Ribbon 2: Electric Cyan & Sky Blue
-        this.drawSingleAuroraWave(h * 0.47, 85, 0.0022, t * 0.035 + 1.2, '#38bdf8', '#818cf8', 0.7);
-        // Ribbon 3: Vivid Purple & Magenta
-        this.drawSingleAuroraWave(h * 0.43, 110, 0.0018, t * 0.028 + 2.4, '#c084fc', '#e879f9', 0.5);
-
-        // Radiant vertical beams/curtains
-        const beamCount = 12;
-        for (let i = 0; i < beamCount; i++) {
-            const bx = (w / beamCount) * i + Math.sin(t * 0.03 + i) * 35;
-            const bWidth = 60 + Math.sin(t * 0.05 + i) * 25;
-            const bHeight = h * 0.52 + Math.cos(t * 0.04 + i) * 70;
-            const by = h * 0.65;
-
-            const bGrad = ctx.createLinearGradient(bx, by, bx, by - bHeight);
-            bGrad.addColorStop(0, 'rgba(56, 189, 248, 0.28)');
-            bGrad.addColorStop(0.4, 'rgba(168, 85, 247, 0.2)');
-            bGrad.addColorStop(1, 'transparent');
-
-            ctx.fillStyle = bGrad;
-            ctx.globalAlpha = 0.55;
-            ctx.fillRect(bx - bWidth / 2, by - bHeight, bWidth, bHeight);
-        }
-
-        ctx.restore();
-    }
-
-    drawSingleAuroraWave(baseY, amp, freq, phase, c1, c2, alpha) {
-        const ctx = this.ctx;
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-
-        ctx.beginPath();
-        ctx.moveTo(0, h);
-        for (let x = 0; x <= w; x += 15) {
-            const y = baseY + 
-                Math.sin(x * freq + phase) * amp + 
-                Math.cos(x * freq * 0.6 + phase * 0.7) * (amp * 0.4);
-            ctx.lineTo(x, y);
-        }
-        ctx.lineTo(w, h);
-        ctx.closePath();
-
-        const grad = ctx.createLinearGradient(0, baseY - amp, w, baseY + amp);
-        grad.addColorStop(0, c1);
-        grad.addColorStop(0.5, c2);
-        grad.addColorStop(1, c1);
-
-        ctx.fillStyle = grad;
-        ctx.globalAlpha = alpha;
-        ctx.fill();
     }
 
     renderFlag() {
