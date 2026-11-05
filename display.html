@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - Οθόνη Προβολής</title>
-    <link rel="stylesheet" href="style.css?v=2026_SCHEDULE_V15">
+    <link rel="stylesheet" href="style.css?v=2026_AURORA_V1">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -13,6 +13,12 @@
 </head>
 
 <body style="overflow: hidden;">
+    <!-- Aurora Ambient Glow Background -->
+    <div class="aurora-ambient-glow" aria-hidden="true">
+        <div class="aurora-blob aurora-blob-1"></div>
+        <div class="aurora-blob aurora-blob-2"></div>
+        <div class="aurora-blob aurora-blob-3"></div>
+    </div>
     <canvas id="themeCanvas"
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></canvas>
     <div class="display-container">
@@ -22,9 +28,12 @@
                 <div>
                     <div id="schoolNameDisplay" style="font-weight: 800; font-size: 1.6rem; letter-spacing: -0.02em; color: white;">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
                     <div id="date" style="color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;"></div>
-                    <div id="schoolScheduleStatus"></div>
                 </div>
             </div>
+
+            <!-- Live Aurora School Period / Break Capsule Widget -->
+            <div id="schoolScheduleStatus" class="aurora-period-capsule"></div>
+
             <div class="header-right">
                 <div id="weather">
                     <!-- Weather injected via JS -->
@@ -48,7 +57,7 @@
     </div>
 
     <!-- MAIN SCRIPT CLOUD VERSION (MODULE) -->
-    <script type="module" src="script-display.js?v=2026_SCHEDULE_V16"></script>
+    <script type="module" src="script-display.js?v=2026_AURORA_V1"></script>
 
     <style>
         /* Fix for banner - full width */

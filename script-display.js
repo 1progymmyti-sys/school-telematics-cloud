@@ -1037,10 +1037,20 @@ function updateScheduleStatus() {
 
         if (!displayEl) return;
 
-        // Hide during weekends (0 = Sunday, 6 = Saturday)
+        // Weekend Check (0 = Sunday, 6 = Saturday)
         const dayOfWeek = now.getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) {
-            displayEl.style.display = 'none';
+            displayEl.innerHTML = `
+                <div class="capsule-inner weekend">
+                    <div class="capsule-main">
+                        <span class="capsule-icon">📅</span>
+                        <span class="capsule-title">Σαββατοκύριακο</span>
+                        <span class="capsule-sep">•</span>
+                        <span class="capsule-countdown">Καλό Ξεκούραστο Διήμερο!</span>
+                    </div>
+                </div>
+            `;
+            displayEl.style.display = 'flex';
             return;
         }
 
@@ -1057,7 +1067,7 @@ function updateScheduleStatus() {
             const endTotal = eH * 60 + eM;
 
             if (currentTime >= startTotal && currentTime < endTotal) {
-                activeSlot = { ...slot, endTotal };
+                activeSlot = { ...slot, startTotal, endTotal };
                 nextSlot = schoolSchedule[i + 1];
                 break;
             }
@@ -1065,18 +1075,62 @@ function updateScheduleStatus() {
 
         if (activeSlot) {
             const remaining = activeSlot.endTotal - currentTime;
-            let text = `${activeSlot.name} (Λήξη σε ${remaining}')`;
+            const isLesson = activeSlot.type === 'lesson';
+            const icon = isLesson ? '🔔' : '☕';
+            const badgeClass = isLesson ? 'slot-lesson' : 'slot-break';
+            const slotDuration = activeSlot.endTotal - activeSlot.startTotal;
+            const elapsed = Math.max(0, currentTime - activeSlot.startTotal);
+            const progressPct = Math.min(100, Math.max(0, Math.round((elapsed / (slotDuration || 1)) * 100)));
 
-            if (nextSlot) {
-                text += ` -> Ακολουθεί: ${nextSlot.name}`;
+            let subText = '';
+            if (isLesson) {
+                subText = remaining === 1 ? 'Λήξη σε 1 λεπτό!' : `Λήξη & Διάλειμμα σε ${remaining} λ.`;
             } else {
-                text += ` -> Ακολουθεί: Λήξη Μαθημάτων`;
+                subText = remaining === 1 ? 'Κουδούνι σε 1 λεπτό!' : `Επόμενο κουδούνι σε ${remaining} λ.`;
             }
 
-            displayEl.textContent = text;
-            displayEl.style.display = 'block';
+            displayEl.innerHTML = `
+                <div class="capsule-inner ${badgeClass}">
+                    <div class="capsule-main">
+                        <span class="capsule-icon">${icon}</span>
+                        <span class="capsule-title">${activeSlot.name}</span>
+                        <span class="capsule-hours">(${activeSlot.start} – ${activeSlot.end})</span>
+                        <span class="capsule-sep">•</span>
+                        <span class="capsule-countdown">⏳ ${subText}</span>
+                    </div>
+                    <div class="capsule-progress-track">
+                        <div class="capsule-progress-bar" style="width: ${progressPct}%"></div>
+                    </div>
+                </div>
+            `;
+            displayEl.style.display = 'flex';
         } else {
-            displayEl.style.display = 'none';
+            // Before or After School
+            if (currentTime < 8 * 60) {
+                displayEl.innerHTML = `
+                    <div class="capsule-inner before-school">
+                        <div class="capsule-main">
+                            <span class="capsule-icon">🏫</span>
+                            <span class="capsule-title">Έναρξη Προγράμματος</span>
+                            <span class="capsule-sep">•</span>
+                            <span class="capsule-countdown">1η Ώρα στις 08:00</span>
+                        </div>
+                    </div>
+                `;
+                displayEl.style.display = 'flex';
+            } else {
+                displayEl.innerHTML = `
+                    <div class="capsule-inner after-school">
+                        <div class="capsule-main">
+                            <span class="capsule-icon">👋</span>
+                            <span class="capsule-title">Λήξη Μαθημάτων</span>
+                            <span class="capsule-sep">•</span>
+                            <span class="capsule-countdown">Καλό απόγευμα!</span>
+                        </div>
+                    </div>
+                `;
+                displayEl.style.display = 'flex';
+            }
         }
 
     } catch (e) {
@@ -1431,8 +1485,8 @@ function renderScheduleChangeBlock(item) {
 
         return `
             <div class="schedule-change-card" style="
-                background: rgba(15, 23, 42, 0.88);
-                border: 2px solid rgba(255, 255, 255, 0.12);
+                background: rgba(15, 23, 42, 0.75);
+                border: 1px solid rgba(255, 255, 255, 0.14);
                 border-left: 8px solid ${badgeColor};
                 border-radius: 1.25rem;
                 padding: clamp(0.9rem, 1.8vh, 1.4rem) clamp(1.2rem, 2.2vw, 1.9rem);
@@ -1440,9 +1494,10 @@ function renderScheduleChangeBlock(item) {
                 align-items: center;
                 justify-content: space-between;
                 gap: 1.5rem;
-                box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+                box-shadow: 0 12px 35px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
                 box-sizing: border-box;
-                backdrop-filter: blur(8px);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
             ">
                 <div style="display: flex; align-items: center; gap: clamp(1rem, 2vw, 1.75rem); min-width: 0;">
                     <div style="
@@ -1456,7 +1511,7 @@ function renderScheduleChangeBlock(item) {
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 15px ${badgeColor}88;
                         flex-shrink: 0;
                     ">
                         ${c.hour}η
@@ -1479,7 +1534,8 @@ function renderScheduleChangeBlock(item) {
                         background: rgba(255,255,255,0.08);
                         padding: 0.6rem 1.2rem;
                         border-radius: 0.75rem;
-                        border: 1px solid rgba(255,255,255,0.12);
+                        border: 1px solid rgba(255,255,255,0.14);
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
                         white-space: nowrap;
                         flex-shrink: 0;
                     ">
@@ -1502,54 +1558,68 @@ function renderScheduleChangeBlock(item) {
             max-width: 1300px;
             margin: 0 auto;
         ">
-            <!-- Header Badge & Section -->
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(1rem, 2vh, 1.75rem); flex-wrap: wrap; gap: 1rem;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Aurora Glassmorphism Panel Container -->
+            <div style="
+                background: rgba(11, 18, 38, 0.76);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1.5px solid rgba(245, 158, 11, 0.45);
+                border-radius: 1.75rem;
+                padding: clamp(1.5rem, 3vh, 2.5rem) clamp(1.8rem, 3vw, 3rem);
+                box-shadow: 0 0 50px rgba(245, 158, 11, 0.22), 0 25px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+                box-sizing: border-box;
+                width: 100%;
+            ">
+                <!-- Header Badge & Section -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(1rem, 2vh, 1.75rem); flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1.25rem;">
+                        <div style="
+                            background: linear-gradient(135deg, #f59e0b, #ef4444);
+                            color: #ffffff;
+                            font-weight: 900;
+                            font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+                            letter-spacing: 1.5px;
+                            padding: 0.55rem 1.4rem;
+                            border-radius: 2rem;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+                        ">
+                            🚨 ΕΠΕΙΓΟΥΣΑ ΑΝΑΚΟΙΝΩΣΗ • ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
+                        </div>
+                        <h1 style="
+                            font-size: clamp(2rem, 3.8vw, 3.4rem);
+                            font-weight: 900;
+                            color: #ffffff;
+                            margin: 0;
+                            letter-spacing: -0.02em;
+                            text-shadow: 0 0 25px rgba(56, 189, 248, 0.45);
+                        ">
+                            ΤΜΗΜΑ ${section}
+                        </h1>
+                    </div>
                     <div style="
-                        background: #f59e0b;
-                        color: #000;
-                        font-weight: 900;
-                        font-size: clamp(0.95rem, 1.4vw, 1.2rem);
-                        letter-spacing: 1.5px;
-                        padding: 0.5rem 1.3rem;
-                        border-radius: 2rem;
-                        display: inline-flex;
+                        color: #94a3b8;
+                        font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+                        font-weight: 700;
+                        display: flex;
                         align-items: center;
                         gap: 0.5rem;
-                        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
+                        background: rgba(15, 23, 42, 0.6);
+                        padding: 0.5rem 1.2rem;
+                        border-radius: 0.75rem;
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        backdrop-filter: blur(8px);
                     ">
-                        ⚡ ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
+                        📅 ${dayName ? dayName + ' ' : ''}${dateFormatted}
                     </div>
-                    <h1 style="
-                        font-size: clamp(2rem, 3.8vw, 3.4rem);
-                        font-weight: 900;
-                        color: #ffffff;
-                        margin: 0;
-                        letter-spacing: -0.02em;
-                        text-shadow: 0 4px 20px rgba(0,0,0,0.5);
-                    ">
-                        ΤΜΗΜΑ ${section}
-                    </h1>
                 </div>
-                <div style="
-                    color: #94a3b8;
-                    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
-                    font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    background: rgba(15, 23, 42, 0.6);
-                    padding: 0.5rem 1.2rem;
-                    border-radius: 0.75rem;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                ">
-                    📅 ${dayName ? dayName + ' ' : ''}${dateFormatted}
-                </div>
-            </div>
 
-            <!-- List of Hour Changes -->
-            <div style="display: flex; flex-direction: column; gap: clamp(0.85rem, 1.8vh, 1.35rem); width: 100%;">
-                ${cardsHtml || '<div style="color:#94a3b8;font-size:1.5rem;text-align:center;">Δεν έχουν οριστεί ώρες.</div>'}
+                <!-- List of Hour Changes -->
+                <div style="display: flex; flex-direction: column; gap: clamp(0.85rem, 1.8vh, 1.35rem); width: 100%;">
+                    ${cardsHtml || '<div style="color:#94a3b8;font-size:1.5rem;text-align:center;">Δεν έχουν οριστεί ώρες.</div>'}
+                </div>
             </div>
         </div>
     `;
