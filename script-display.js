@@ -886,6 +886,9 @@ async function cleanupExpiredAnnouncementsFromDisplay(items) {
 const getActiveSlides = (list) => {
     const now = getGreekNow();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
     const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
 
     return list.filter(item => {
@@ -897,18 +900,28 @@ const getActiveSlides = (list) => {
             // Ημερομηνία στην οποία αναφέρεται η αλλαγή
             const targetDate = (item.scheduleData && item.scheduleData.dateIso) || item.startDate || item.endDate || todayStr;
 
-            // Εμφανίζεται ΜΟΝΟ την ημέρα στην οποία αναφέρεται
-            if (todayStr !== targetDate) return false;
+            // Α. Εάν η αλλαγή αναφέρεται στο ΣΗΜΕΡΑ:
+            if (todayStr === targetDate) {
+                // Έναρξη εμφάνισης: 07:45 της ημέρας εκείνης
+                const startTime = (item.startTime && item.startTime.trim()) || "07:45";
+                if (currentHHMM < startTime) return false;
 
-            // Έναρξη εμφάνισης: 07:45 της ημέρας εκείνης
-            const startTime = (item.startTime && item.startTime.trim()) || "07:45";
-            if (currentHHMM < startTime) return false;
+                // Απομάκρυνση: μετά το πέρας της ώρας για την οποία γίνεται λόγος
+                const endTime = getScheduleChangeEndTime(item);
+                if (currentHHMM > endTime) return false;
 
-            // Απομάκρυνση: μετά το πέρας της ώρας για την οποία γίνεται λόγος
-            const endTime = getScheduleChangeEndTime(item);
-            if (currentHHMM > endTime) return false;
+                return true;
+            }
 
-            return true;
+            // Β. Εάν η αλλαγή αναφέρεται στο ΑΥΡΙΟ:
+            // Εμφανίζεται από το μεσημέρι (13:30) και καθ' όλο το απόγευμα/βράδυ της προηγούμενης
+            if (targetDate === tomorrowStr) {
+                if (currentHHMM >= "13:30") return true;
+                return false;
+            }
+
+            // Σε οποιαδήποτε άλλη ημέρα δεν εμφανίζεται
+            return false;
         }
 
         // 2. Κανονικές Ανακοινώσεις
@@ -1044,9 +1057,12 @@ function updateScheduleStatus() {
                 <div class="capsule-inner weekend">
                     <div class="capsule-main">
                         <span class="capsule-icon">📅</span>
-                        <span class="capsule-title">Σαββατοκύριακο</span>
+                        <span class="capsule-title" style="color: #a7f3d0;">ΣΑΒΒΑΤΟΚΥΡΙΑΚΟ</span>
                         <span class="capsule-sep">•</span>
                         <span class="capsule-countdown">Καλό Ξεκούραστο Διήμερο!</span>
+                    </div>
+                    <div class="capsule-progress-track">
+                        <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); opacity: 0.65;"></div>
                     </div>
                 </div>
             `;
@@ -1111,9 +1127,12 @@ function updateScheduleStatus() {
                     <div class="capsule-inner before-school">
                         <div class="capsule-main">
                             <span class="capsule-icon">🏫</span>
-                            <span class="capsule-title">Έναρξη Προγράμματος</span>
+                            <span class="capsule-title" style="color: #fde047;">ΠΡΩΙΝΗ ΑΝΑΜΟΝΗ</span>
                             <span class="capsule-sep">•</span>
-                            <span class="capsule-countdown">1η Ώρα στις 08:00</span>
+                            <span class="capsule-countdown">Έναρξη 1ης Ώρας στις 08:00</span>
+                        </div>
+                        <div class="capsule-progress-track">
+                            <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #f59e0b, #eab308); opacity: 0.65;"></div>
                         </div>
                     </div>
                 `;
@@ -1122,10 +1141,13 @@ function updateScheduleStatus() {
                 displayEl.innerHTML = `
                     <div class="capsule-inner after-school">
                         <div class="capsule-main">
-                            <span class="capsule-icon">👋</span>
-                            <span class="capsule-title">Λήξη Μαθημάτων</span>
+                            <span class="capsule-icon">🌙</span>
+                            <span class="capsule-title" style="color: #93c5fd; text-shadow: 0 0 10px rgba(147, 197, 253, 0.4);">ΒΡΑΔΙΝΗ ΛΕΙΤΟΥΡΓΙΑ</span>
                             <span class="capsule-sep">•</span>
-                            <span class="capsule-countdown">Καλό απόγευμα!</span>
+                            <span class="capsule-countdown" style="color: #e2e8f0;">Έναρξη: Αύριο στις 08:00 (1η Ώρα)</span>
+                        </div>
+                        <div class="capsule-progress-track">
+                            <div class="capsule-progress-bar" style="width: 100%; background: linear-gradient(90deg, #6366f1, #38bdf8); opacity: 0.65;"></div>
                         </div>
                     </div>
                 `;
@@ -1728,13 +1750,68 @@ function renderMediaBlock(item, containerId) {
             const h = `calc((100vh - 190px) / ${scale})`;
             scaleStyle = `width: ${w}% !important; height: ${h} !important; transform: scale(${scale}) !important; transform-origin: 0 0 !important;`;
         }
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(item.mediaSource)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(item.mediaSource)}`;
         return `
-            <div style="position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 1rem;">
-                <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="${scaleStyle}"></iframe>
-                <div class="qr-box">
-                    <img src="${qrUrl}" alt="Scan QR">
-                    <div class="qr-label">SCAN ME</div>
+            <div class="aurora-web-frame" style="
+                width: 95%;
+                height: 94%;
+                margin: auto;
+                background: rgba(11, 18, 38, 0.78);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                border-radius: 1.5rem;
+                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                position: relative;
+            ">
+                <!-- Browser Glassmorphism Top Bar -->
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 0.7rem 1.6rem;
+                    background: rgba(15, 23, 42, 0.85);
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+                ">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #ef4444; display: inline-block;"></span>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                        <span style="color: #ffffff; font-weight: 700; font-size: 1rem; margin-left: 0.8rem;">🌐 ${item.title || 'Ιστοσελίδα Σχολείου'}</span>
+                    </div>
+                    <div style="color: #94a3b8; font-size: 0.88rem; font-family: monospace; background: rgba(0,0,0,0.3); padding: 0.3rem 0.9rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.08);">
+                        🔗 ${item.mediaSource}
+                    </div>
+                </div>
+
+                <!-- Web Content Area -->
+                <div style="flex: 1; position: relative; width: 100%; height: calc(100% - 50px); overflow: hidden; background: transparent;">
+                    <iframe src="${item.mediaSource}" class="slide-iframe framed-web" frameborder="0" style="width: 100%; height: 100%; background: transparent !important; ${scaleStyle}"></iframe>
+                    
+                    <!-- Floating High-Tech QR Badge -->
+                    <div class="qr-box" style="
+                        position: absolute;
+                        bottom: 1.5rem;
+                        right: 1.5rem;
+                        background: rgba(15, 23, 42, 0.92);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1px solid rgba(56, 189, 248, 0.4);
+                        border-radius: 1.25rem;
+                        padding: 0.9rem;
+                        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.65), 0 0 25px rgba(14, 165, 233, 0.3);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 0.45rem;
+                        z-index: 50;
+                    ">
+                        <img src="${qrUrl}" alt="Scan QR" style="width: 110px; height: 110px; border-radius: 0.5rem; background: #ffffff; padding: 4px; display: block;">
+                        <div style="color: #38bdf8; font-size: 0.82rem; font-weight: 800; letter-spacing: 1px;">ΣΑΡΩΣΤΕ ΕΔΩ</div>
+                    </div>
                 </div>
             </div>
         `;
