@@ -1,4 +1,4 @@
-import { db, doc, onSnapshot, collection, query, orderBy } from "./firebase-config.js";
+import { db, doc, onSnapshot, collection, query, orderBy, deleteDoc } from "./firebase-config.js";
 import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
@@ -824,6 +824,64 @@ function getScheduleChangeEndTime(item) {
     return "13:55";
 }
 
+function isExpiredUrgentOrSchedule(item) {
+    if (!item) return false;
+    const isSchedule = isScheduleChangeSlide(item);
+    const isAlertWithSchedule = item.type === 'alert' && (item.startDate || item.endDate || item.endTime);
+
+    if (!isSchedule && !isAlertWithSchedule) {
+        return false;
+    }
+
+    const now = getGreekNow();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+
+    let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.endDate || item.startDate || "";
+    if (rawDate.includes('T')) {
+        rawDate = rawDate.split('T')[0];
+    }
+    const targetDate = rawDate.trim();
+
+    // 1. Target date is strictly in the past
+    if (targetDate && targetDate < todayStr) {
+        return true;
+    }
+
+    // 2. Target date is today and end time has passed
+    if (targetDate === todayStr || (!targetDate && isSchedule)) {
+        const endTime = getScheduleChangeEndTime(item);
+        if (endTime && currentHHMM > endTime) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+let isDisplayCleaningUp = false;
+
+async function cleanupExpiredAnnouncementsFromDisplay(items) {
+    if (isDisplayCleaningUp || !items || items.length === 0) return;
+    const expiredItems = items.filter(isExpiredUrgentOrSchedule);
+    if (expiredItems.length === 0) return;
+
+    isDisplayCleaningUp = true;
+    try {
+        console.log(`[Display Cleanup] Απομάκρυνση ${expiredItems.length} ληγμένων ανακοινώσεων:`, expiredItems.map(i => i.title));
+        for (const item of expiredItems) {
+            try {
+                await deleteDoc(doc(db, "announcements", item.id));
+                console.log(`[Display Cleanup] Διαγράφηκε επιτυχώς: ${item.title} (${item.id})`);
+            } catch (err) {
+                console.error(`[Display Cleanup] Σφάλμα διαγραφής ${item.id}:`, err);
+            }
+        }
+    } finally {
+        isDisplayCleaningUp = false;
+    }
+}
+
 // Helper: Get Active Slides
 const getActiveSlides = (list) => {
     const now = getGreekNow();
@@ -832,6 +890,7 @@ const getActiveSlides = (list) => {
 
     return list.filter(item => {
         if (item.isPaused) return false; // Filter paused items
+        if (isExpiredUrgentOrSchedule(item)) return false; // Filter expired urgent/schedule slides immediately
 
         // 1. Ειδικοί κανόνες για Αλλαγές Προγράμματος / Αναπληρώσεις
         if (isScheduleChangeSlide(item)) {
@@ -910,6 +969,8 @@ window.onload = () => {
             return (b.createdAt || '') > (a.createdAt || '') ? 1 : -1;
         });
 
+        cleanupExpiredAnnouncementsFromDisplay(allAnnouncements);
+
         slides = getActiveSlides(allAnnouncements);
 
         if (!emergencyActive && slides.length > 0) {
@@ -924,6 +985,25 @@ window.onload = () => {
     // Clock
     setInterval(updateClock, 1000);
     updateClock();
+
+    // Periodic auto-cleanup & slides refresh every 30 seconds
+    setInterval(() => {
+        if (allAnnouncements && allAnnouncements.length > 0) {
+            cleanupExpiredAnnouncementsFromDisplay(allAnnouncements);
+            const freshSlides = getActiveSlides(allAnnouncements);
+            const hasChanged = freshSlides.length !== slides.length || 
+                freshSlides.some((s, idx) => !slides[idx] || s.id !== slides[idx].id);
+            if (hasChanged) {
+                slides = freshSlides;
+                if (!emergencyActive && slides.length > 0) {
+                    startRotation();
+                } else if (slides.length === 0 && !emergencyActive) {
+                    document.getElementById('slideContainer').innerHTML = '<div class="slide active"><h1>Αναμονή για ενημερώσεις...</h1></div>';
+                    syncTickerWithCurrentSlide(null);
+                }
+            }
+        }
+    }, 30000);
 
     // Audio Unlock
     document.body.addEventListener('click', () => {

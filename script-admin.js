@@ -217,6 +217,7 @@ window.onload = async () => {
         // Sort if some were calculated from createdAt
         allAnnouncements.sort((a, b) => a.order - b.order);
         
+        cleanupExpiredAnnouncements(allAnnouncements);
         renderList(allAnnouncements);
     });
 
@@ -573,12 +574,115 @@ window.handleAdminVideoError = function(vid) {
     vid.outerHTML = '<div style="color:#fca5a5;font-size:1.1rem;text-align:center;padding:1.5rem;background:rgba(15,23,42,0.95);border-radius:0.75rem;">⚠️ Δεν βρέθηκε το βίντεο.<br><small style="color:#94a3b8;font-size:0.9rem;display:block;margin-top:0.4rem;">Εάν μόλις το ανεβάσατε στο GitHub, περιμένετε 1-2 λεπτά για την ολοκλήρωση της δημοσίευσης (Pages deployment).</small></div>';
 };
 
+// --- AUTO-REMOVAL FOR EXPIRED URGENT & SCHEDULE ANNOUNCEMENTS ---
+const SCHOOL_PERIOD_END_TIMES = {
+    1: "08:45",
+    2: "09:35",
+    3: "10:30",
+    4: "11:25",
+    5: "12:20",
+    6: "13:10",
+    7: "13:55"
+};
+
+function isScheduleChangeSlide(item) {
+    if (!item) return false;
+    return item.mediaType === 'schedule_change' || item.isScheduleChange === true;
+}
+
+function getScheduleChangeEndTime(item) {
+    if (item.endTime && item.endTime.trim()) {
+        return item.endTime.trim();
+    }
+    const changes = (item.scheduleData && item.scheduleData.changes) || [];
+    let maxHour = 0;
+    changes.forEach(ch => {
+        const h = parseInt(ch.hour, 10);
+        if (!isNaN(h) && h > maxHour) maxHour = h;
+    });
+
+    if (maxHour > 0 && SCHOOL_PERIOD_END_TIMES[maxHour]) {
+        return SCHOOL_PERIOD_END_TIMES[maxHour];
+    }
+    return "13:55";
+}
+
+function isExpiredUrgentOrSchedule(item) {
+    if (!item) return false;
+    const isSchedule = isScheduleChangeSlide(item);
+    const isAlertWithSchedule = item.type === 'alert' && (item.startDate || item.endDate || item.endTime);
+
+    if (!isSchedule && !isAlertWithSchedule) {
+        return false;
+    }
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+
+    let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.endDate || item.startDate || "";
+    if (rawDate.includes('T')) {
+        rawDate = rawDate.split('T')[0];
+    }
+    const targetDate = rawDate.trim();
+
+    // 1. If target date is strictly in the past (e.g. yesterday or older)
+    if (targetDate && targetDate < todayStr) {
+        return true;
+    }
+
+    // 2. If target date is today (or if no date is set, but it is today's schedule change)
+    if (targetDate === todayStr || (!targetDate && isSchedule)) {
+        const endTime = getScheduleChangeEndTime(item);
+        if (endTime && currentHHMM > endTime) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+let isCleaningUpAnnouncements = false;
+
+async function cleanupExpiredAnnouncements(items) {
+    if (isCleaningUpAnnouncements || !items || items.length === 0) return;
+    const expiredItems = items.filter(isExpiredUrgentOrSchedule);
+    if (expiredItems.length === 0) return;
+
+    isCleaningUpAnnouncements = true;
+    try {
+        console.log(`[Auto-Cleanup] Βρέθηκαν ${expiredItems.length} ληγμένες επείγουσες ανακοινώσεις/αλλαγές για απομάκρυνση:`, expiredItems.map(i => i.title));
+        for (const item of expiredItems) {
+            try {
+                await deleteDoc(doc(db, ANNOUNCEMENTS_COL, item.id));
+                console.log(`[Auto-Cleanup] Επιτυχής διαγραφή από Firestore: ${item.title} (${item.id})`);
+            } catch (err) {
+                console.error(`[Auto-Cleanup] Σφάλμα διαγραφής ${item.id}:`, err);
+            }
+        }
+        if (typeof showToast === 'function') {
+            const count = expiredItems.length;
+            showToast(
+                "Αυτόματη Απομάκρυνση", 
+                `Απομακρύνθηκαν αυτόματα ${count} ${count === 1 ? 'ληγμένη ανακοίνωση' : 'ληγμένες ανακοινώσεις'} αλλαγής προγράμματος από τον πίνακα.`, 
+                "info", 
+                4000
+            );
+        }
+    } finally {
+        isCleaningUpAnnouncements = false;
+    }
+}
+
 function renderList(list) {
     const listContainer = document.getElementById("announcementList");
     if (!listContainer) return;
 
+    // 0. Filter out expired urgent/schedule announcements so they NEVER appear on the admin board surface
+    const cleanPool = (list || []).filter(item => !isExpiredUrgentOrSchedule(item));
+
     // 1. Calculate stats across active announcements
-    const activeItems = allAnnouncements.filter(i => isActive(i));
+    const activeItems = cleanPool.filter(i => isActive(i));
     const totalDurationSec = activeItems.reduce((sum, i) => {
         let d = i.duration || 10;
         if (i.type === 'alert') d *= 2;
@@ -593,7 +697,7 @@ function renderList(list) {
     }
 
     // 2. Filter by status / chip
-    let filtered = list;
+    let filtered = cleanPool;
     if (activeFilter === 'active') {
         filtered = filtered.filter(i => isActive(i));
     } else if (activeFilter === 'paused') {
@@ -1552,13 +1656,26 @@ function cancelEdit() {
 
 // Helpers
 function isActive(item) {
-    if (item.isPaused) return false;
+    if (!item || item.isPaused) return false;
+    if (isExpiredUrgentOrSchedule(item)) return false;
+
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+
+    if (isScheduleChangeSlide(item)) {
+        const targetDate = (item.scheduleData && item.scheduleData.dateIso) || item.startDate || item.endDate || todayStr;
+        if (todayStr !== targetDate) return false;
+        const startTime = (item.startTime && item.startTime.trim()) || "07:45";
+        if (currentHHMM < startTime) return false;
+        const endTime = getScheduleChangeEndTime(item);
+        if (currentHHMM > endTime) return false;
+        return true;
+    }
+
     if (item.startDate && todayStr < item.startDate) return false;
     if (item.endDate && todayStr > item.endDate) return false;
     if (item.startTime || item.endTime) {
-        const currentHHMM = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
         if (item.startTime && currentHHMM < item.startTime) return false;
         if (item.endTime && currentHHMM > item.endTime) return false;
     }
@@ -2340,5 +2457,13 @@ if (document.readyState === 'loading') {
 } else {
     initSmartSchedule();
 }
+
+// Periodic cleanup & real-time refresh check every 30 seconds
+setInterval(() => {
+    if (allAnnouncements && allAnnouncements.length > 0) {
+        cleanupExpiredAnnouncements(allAnnouncements);
+        renderList(allAnnouncements);
+    }
+}, 30000);
 
 
