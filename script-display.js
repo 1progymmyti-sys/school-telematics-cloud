@@ -803,8 +803,10 @@ function buildScheduleTickerItem(scheduleItems) {
         `;
     }).join('<span class="ticker-sched-sep">✦</span>');
 
-    // Duplicate once with nice spacer for seamless continuous scrolling
-    const fullHtml = `${sectionsHtml} <span class="ticker-sched-sep" style="margin: 0 4rem;">✦✦✦</span> ${sectionsHtml}`;
+    const hasDirMsg = !!getActiveDirectorTickerItem();
+    const fullHtml = hasDirMsg
+        ? sectionsHtml
+        : `${sectionsHtml} <span class="ticker-sched-sep" style="margin: 0 4rem;">✦✦✦</span> ${sectionsHtml}`;
 
     return {
         type: 'schedule',
@@ -815,13 +817,15 @@ function buildScheduleTickerItem(scheduleItems) {
 }
 
 function syncTickerWithCurrentSlide(item) {
-    const isScheduleSlide = isScheduleChangeSlide(item);
     const activeScheduleItems = getActiveScheduleAnnouncements();
+    const hasNonScheduleSlides = (slides && slides.length > 0)
+        ? slides.some(s => !isScheduleChangeSlide(s))
+        : true;
 
     // Target mode:
-    // When normal announcements are on screen AND there are active schedule items -> 'schedule'
-    // When schedule slide itself is on screen OR no schedule changes exist -> 'normal' (Director / RSS)
-    const targetMode = (!isScheduleSlide && activeScheduleItems.length > 0) ? 'schedule' : 'normal';
+    // Whenever active schedule changes exist alongside other slides, keep ticker in 'schedule' mode
+    // continuously (alternating Director's message + Schedule changes) so slide transitions never cut off the ticker mid-scroll!
+    const targetMode = (activeScheduleItems.length > 0 && hasNonScheduleSlides) ? 'schedule' : 'normal';
 
     if (targetMode === 'schedule') {
         const schedItem = buildScheduleTickerItem(activeScheduleItems);
