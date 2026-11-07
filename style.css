@@ -2418,8 +2418,8 @@ body.aurora-glass-body .logo {
 
 .aurora-school-title {
     font-weight: 800 !important;
-    font-size: clamp(0.76rem, 0.96vw, 1.12rem) !important;
-    line-height: 1.2 !important;
+    font-size: clamp(0.88rem, 1.08vw, 1.18rem) !important;
+    line-height: 1.26 !important;
     letter-spacing: 0.01em !important;
     color: #ffffff !important;
     max-width: none !important;

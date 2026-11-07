@@ -1254,7 +1254,10 @@ function updateClock() {
 }
 
 function applySettings(s) {
-    if (s.schoolName) document.getElementById('schoolNameDisplay').innerText = s.schoolName.replace(/^1[ΟO]/g, '1ο');
+    if (s.schoolName) {
+        const cleanName = s.schoolName.replace(/^1[ΟO]/g, '1ο').trim();
+        document.getElementById('schoolNameDisplay').innerHTML = cleanName.replace(/\s+ΜΥΤΙΛΗΝΗΣ$/i, '<br>ΜΥΤΙΛΗΝΗΣ');
+    }
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
     // Weather
@@ -2106,7 +2109,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V20';
+const APP_VERSION = '2026_AURORA_V21';
 
 async function checkForAppUpdate() {
     try {
