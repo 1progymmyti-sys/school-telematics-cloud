@@ -1120,52 +1120,97 @@ const schoolSchedule = [
 
 function updateScheduleStatus() {
     try {
-        const now = getGreekNow();
-        const currentTime = now.getHours() * 60 + now.getMinutes();
         const displayEl = document.getElementById('schoolScheduleStatus');
-
         if (!displayEl) return;
 
-        // Hide during weekends (0 = Sunday, 6 = Saturday)
-        const dayOfWeek = now.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            displayEl.style.display = 'none';
+        if (window._auroraDemoScheduleHtml) {
+            displayEl.style.display = 'flex';
+            if (displayEl.innerHTML !== window._auroraDemoScheduleHtml) {
+                displayEl.innerHTML = window._auroraDemoScheduleHtml;
+            }
             return;
         }
+
+        const now = getGreekNow();
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+        const currentSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const dayOfWeek = now.getDay();
+        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
 
         let activeSlot = null;
         let nextSlot = null;
 
-        for (let i = 0; i < schoolSchedule.length; i++) {
-            const slot = schoolSchedule[i];
-            const [sH, sM] = slot.start.split(':').map(Number);
-            const [eH, eM] = slot.end.split(':').map(Number);
+        if (!isWeekend) {
+            for (let i = 0; i < schoolSchedule.length; i++) {
+                const slot = schoolSchedule[i];
+                const [sH, sM] = slot.start.split(':').map(Number);
+                const [eH, eM] = slot.end.split(':').map(Number);
 
-            // Convert to minutes
-            const startTotal = sH * 60 + sM;
-            const endTotal = eH * 60 + eM;
+                const startTotal = sH * 60 + sM;
+                const endTotal = eH * 60 + eM;
 
-            if (currentTime >= startTotal && currentTime < endTotal) {
-                activeSlot = { ...slot, endTotal };
-                nextSlot = schoolSchedule[i + 1];
-                break;
+                if (currentTime >= startTotal && currentTime < endTotal) {
+                    activeSlot = { ...slot, startTotal, endTotal };
+                    nextSlot = schoolSchedule[i + 1];
+                    break;
+                }
             }
         }
 
+        let line1 = '';
+        let line2 = '';
+        let pct = 100;
+
         if (activeSlot) {
-            const remaining = activeSlot.endTotal - currentTime;
-            let text = `${activeSlot.name} (Λήξη σε ${remaining}')`;
+            const remaining = Math.max(1, activeSlot.endTotal - currentTime);
+            const startSec = activeSlot.startTotal * 60;
+            const endSec = activeSlot.endTotal * 60;
+            pct = Math.min(100, Math.max(3, Math.round(((currentSec - startSec) / Math.max(1, endSec - startSec)) * 100)));
 
-            if (nextSlot) {
-                text += ` -> Ακολουθεί: ${nextSlot.name}`;
+            const minWord = remaining === 1 ? 'λεπτό' : 'λεπτά';
+            if (activeSlot.type === 'lesson') {
+                const lessonTitle = activeSlot.name.replace('Ώρα', 'Διδακτική Ώρα');
+                line1 = `🔔 ${lessonTitle} (${activeSlot.start} - ${activeSlot.end})`;
+                if (nextSlot && nextSlot.type === 'break') {
+                    line2 = `⏳ Λήξη &amp; Διάλειμμα σε ${remaining} ${minWord}`;
+                } else if (nextSlot) {
+                    line2 = `⏳ Ακολουθεί ${nextSlot.name} σε ${remaining} ${minWord}`;
+                } else {
+                    line2 = `⏳ Λήξη Μαθημάτων σε ${remaining} ${minWord}`;
+                }
             } else {
-                text += ` -> Ακολουθεί: Λήξη Μαθημάτων`;
+                line1 = `☕ ${activeSlot.name} (${activeSlot.start} - ${activeSlot.end})`;
+                if (nextSlot) {
+                    line2 = `⏳ Έναρξη ${nextSlot.name.replace('Ώρα', 'Ώρας')} σε ${remaining} ${minWord}`;
+                } else {
+                    line2 = `⏳ Λήξη σε ${remaining} ${minWord}`;
+                }
             }
-
-            displayEl.textContent = text;
-            displayEl.style.display = 'block';
+        } else if (!isWeekend && currentTime >= 420 && currentTime < 480) {
+            const remaining = 480 - currentTime;
+            pct = Math.min(99, Math.max(5, Math.round(((currentTime - 420) / 60) * 100)));
+            line1 = `🌅 Πρωινή Προσέλευση (07:00 - 08:00)`;
+            line2 = `⏳ Έναρξη 1ης Διδακτικής Ώρας σε ${remaining} ${remaining === 1 ? 'λεπτό' : 'λεπτά'}`;
         } else {
-            displayEl.style.display = 'none';
+            line1 = `🔔 Ωρολόγιο Πρόγραμμα (08:00 - 13:55)`;
+            line2 = `⏳ Εκτός Διδακτικού Ωραρίου • Έναρξη: 08:00`;
+            pct = 100;
+        }
+
+        const newHtml = `
+            <div class="aurora-sched-line1">${line1}</div>
+            <div class="aurora-sched-line2"><span class="aurora-sched-dot">•</span> ${line2}</div>
+            <div class="aurora-sched-progress-row">
+                <div class="aurora-sched-progress-track">
+                    <div class="aurora-sched-progress-fill" style="width: ${pct}%;"></div>
+                </div>
+                <span class="aurora-sched-progress-pct">${pct}%</span>
+            </div>
+        `;
+
+        displayEl.style.display = 'flex';
+        if (displayEl.innerHTML !== newHtml) {
+            displayEl.innerHTML = newHtml;
         }
 
     } catch (e) {
@@ -1174,26 +1219,32 @@ function updateScheduleStatus() {
 }
 
 function updateClock() {
+    if (window._auroraDemoClock) {
+        const clockEl = document.getElementById('clock');
+        const dateEl = document.getElementById('date');
+        if (clockEl && clockEl.innerHTML !== window._auroraDemoClock.time) clockEl.innerHTML = window._auroraDemoClock.time;
+        if (dateEl && dateEl.innerText !== window._auroraDemoClock.date) dateEl.innerText = window._auroraDemoClock.date;
+        updateScheduleStatus();
+        return;
+    }
+
     const now = getGreekNow();
     const clockEl = document.getElementById('clock');
     const dateEl = document.getElementById('date');
 
     if (clockEl) {
-        let h = now.getHours();
-        const m = now.getMinutes();
-        const ampm = h >= 12 ? 'μ.μ.' : 'π.μ.';
-        h = h % 12;
-        h = h ? h : 12;
-        const mStr = m < 10 ? '0' + m : m;
-        const newHtml = `${h}:${mStr}<span style="font-size:0.6em; margin-left:5px;">${ampm}</span>`;
+        const hStr = String(now.getHours()).padStart(2, '0');
+        const mStr = String(now.getMinutes()).padStart(2, '0');
+        const newHtml = `${hStr}:${mStr}`;
         if (clockEl.innerHTML !== newHtml) {
             clockEl.innerHTML = newHtml;
         }
     }
 
     if (dateEl) {
-        const options = { weekday: 'long', day: 'numeric', month: 'long' };
-        const dateStr = now.toLocaleDateString('el-GR', options).toUpperCase();
+        const days = ['Κυριακή', 'Δευτέρα', 'Τρίτη', 'Τετάρτη', 'Πέμπτη', 'Παρασκευή', 'Σάββατο'];
+        const months = ['Ιανουαρίου', 'Φεβρουαρίου', 'Μαρτίου', 'Απριλίου', 'Μαΐου', 'Ιουνίου', 'Ιουλίου', 'Αυγούστου', 'Σεπτεμβρίου', 'Οκτωβρίου', 'Νοεμβρίου', 'Δεκεμβρίου'];
+        const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
         if (dateEl.innerText !== dateStr) {
             dateEl.innerText = dateStr;
         }
@@ -1203,7 +1254,7 @@ function updateClock() {
 }
 
 function applySettings(s) {
-    if (s.schoolName) document.getElementById('schoolNameDisplay').innerText = s.schoolName;
+    if (s.schoolName) document.getElementById('schoolNameDisplay').innerText = s.schoolName.replace(/^1[ΟO]/g, '1ο');
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
     // Weather
@@ -1293,9 +1344,9 @@ async function updateWeather(city) {
             const wmoCode = weatherData.current_weather.weathercode;
             const weatherInfo = getWeatherDescription(wmoCode);
 
-            // Update UI
-            // Format: Icon | City | Temp | Description
-            weatherEl.innerHTML = `${weatherInfo.icon} ${name} ${temp}°C <span style="font-size:0.6em; opacity:0.8; margin-left:5px;">(${weatherInfo.desc})</span>`;
+            if (!window._auroraDemoWeather) {
+                weatherEl.innerHTML = `${name} ${temp}°C ${weatherInfo.icon}`;
+            }
         }
     } catch (error) {
         console.error("Weather Error:", error);
@@ -1504,141 +1555,60 @@ function renderScheduleChangeBlock(item) {
     // Fallback if changes array is empty but content exists
     if ((!changes || changes.length === 0) && item.content) {
         changes = [{
-            hour: 1,
+            hour: 3,
             detail: item.content,
-            badgeText: 'ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ',
-            badgeColor: '#f59e0b',
-            icon: '⚡'
+            badgeText: 'ΚΕΝΟ',
+            badgeColor: '#ef4444',
+            icon: '🛑',
+            kind: 'free'
         }];
     }
 
-    const cardsHtml = changes.map(c => {
-        const timeStr = getLessonHourTime(c.hour);
-        const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : (c.kind === 'room' ? '#f59e0b' : '#10b981'));
-        const icon = c.icon || (c.kind === 'free' ? '🛑' : (c.kind === 'room' ? '🚪' : '📚'));
-        const badgeText = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ' : (c.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
+    const headingText = changes.length === 1
+        ? `Τμήμα ${section} — Τροποποίηση ${changes[0].hour}ης Ώρας`
+        : `Τμήμα ${section} — Τροποποίηση Προγράμματος`;
 
+    const rowsHtml = changes.map(c => {
+        const rawBadge = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ' : (c.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
+        const cleanBadge = rawBadge.replace('ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ', 'ΚΕΝΟ');
+        const detailText = (c.detail || '').replace(/\n/g, '<br>');
         return `
-            <div class="schedule-change-card" style="
-                background: rgba(15, 23, 42, 0.88);
-                border: 2px solid rgba(255, 255, 255, 0.12);
-                border-left: 8px solid ${badgeColor};
-                border-radius: 1.25rem;
-                padding: clamp(0.9rem, 1.8vh, 1.4rem) clamp(1.2rem, 2.2vw, 1.9rem);
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 1.5rem;
-                box-shadow: 0 12px 35px rgba(0,0,0,0.4);
-                box-sizing: border-box;
-                backdrop-filter: blur(8px);
-            ">
-                <div style="display: flex; align-items: center; gap: clamp(1rem, 2vw, 1.75rem); min-width: 0;">
-                    <div style="
-                        background: ${badgeColor};
-                        color: white;
-                        font-weight: 900;
-                        font-size: clamp(1.8rem, 3vw, 2.5rem);
-                        width: clamp(62px, 5.5vw, 82px);
-                        height: clamp(62px, 5.5vw, 82px);
-                        border-radius: 1rem;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-                        flex-shrink: 0;
-                    ">
-                        ${c.hour}η
-                    </div>
-                    <div style="min-width: 0;">
-                        <div style="color: ${badgeColor}; font-weight: 800; font-size: clamp(0.9rem, 1.3vw, 1.15rem); letter-spacing: 1.5px; text-transform: uppercase;">
-                            ${icon} ${badgeText}
-                        </div>
-                        <div style="color: #f8fafc; font-weight: 700; font-size: clamp(1.25rem, 2.3vw, 2.2rem); margin-top: 0.3rem; line-height: 1.25; word-break: break-word;">
-                            ${c.detail}
-                        </div>
-                    </div>
-                </div>
-                ${timeStr ? `
-                    <div style="
-                        color: #cbd5e1;
-                        font-family: monospace;
-                        font-size: clamp(1.1rem, 1.6vw, 1.45rem);
-                        font-weight: 800;
-                        background: rgba(255,255,255,0.08);
-                        padding: 0.6rem 1.2rem;
-                        border-radius: 0.75rem;
-                        border: 1px solid rgba(255,255,255,0.12);
-                        white-space: nowrap;
-                        flex-shrink: 0;
-                    ">
-                        ⏱️ ${timeStr}
-                    </div>
-                ` : ''}
+            <div class="aurora-schedule-ice-row">
+                <span class="aurora-schedule-ice-lead">${c.hour}η Ώρα: ${cleanBadge} —</span>
+                <span class="aurora-schedule-ice-detail">${detailText}</span>
             </div>
         `;
     }).join('');
 
-    return `
-        <div class="schedule-change-display-wrapper" style="
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: clamp(1.5rem, 3vw, 3rem);
-            box-sizing: border-box;
-            max-width: 1300px;
-            margin: 0 auto;
-        ">
-            <!-- Header Badge & Section -->
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: clamp(1rem, 2vh, 1.75rem); flex-wrap: wrap; gap: 1rem;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="
-                        background: #f59e0b;
-                        color: #000;
-                        font-weight: 900;
-                        font-size: clamp(0.95rem, 1.4vw, 1.2rem);
-                        letter-spacing: 1.5px;
-                        padding: 0.5rem 1.3rem;
-                        border-radius: 2rem;
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 0.5rem;
-                        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45);
-                    ">
-                        ⚡ ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
-                    </div>
-                    <h1 style="
-                        font-size: clamp(2rem, 3.8vw, 3.4rem);
-                        font-weight: 900;
-                        color: #ffffff;
-                        margin: 0;
-                        letter-spacing: -0.02em;
-                        text-shadow: 0 4px 20px rgba(0,0,0,0.5);
-                    ">
-                        ΤΜΗΜΑ ${section}
-                    </h1>
-                </div>
-                <div style="
-                    color: #94a3b8;
-                    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
-                    font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    background: rgba(15, 23, 42, 0.6);
-                    padding: 0.5rem 1.2rem;
-                    border-radius: 0.75rem;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                ">
-                    📅 ${dayName ? dayName + ' ' : ''}${dateFormatted}
-                </div>
-            </div>
+    let bottomTimeLabel = '';
+    if (changes.length === 1) {
+        const t = getLessonHourTime(changes[0].hour);
+        bottomTimeLabel = t ? `Σήμερα: ${t}` : (dateFormatted ? `${dayName} ${dateFormatted}` : 'Σήμερα');
+    } else if (changes.length > 1) {
+        const firstT = getLessonHourTime(changes[0].hour).split(' - ')[0] || '';
+        const lastT = (getLessonHourTime(changes[changes.length - 1].hour).split(' - ')[1]) || '';
+        bottomTimeLabel = (firstT && lastT)
+            ? `Σήμερα: ${firstT} - ${lastT} (${changes.map(c => c.hour + 'η').join(', ')} Ώρα)`
+            : `Σήμερα (${changes.map(c => c.hour + 'η').join(', ')} Ώρα)`;
+    } else {
+        bottomTimeLabel = dateFormatted ? `${dayName} ${dateFormatted}` : 'Σήμερα';
+    }
 
-            <!-- List of Hour Changes -->
-            <div style="display: flex; flex-direction: column; gap: clamp(0.85rem, 1.8vh, 1.35rem); width: 100%;">
-                ${cardsHtml || '<div style="color:#94a3b8;font-size:1.5rem;text-align:center;">Δεν έχουν οριστεί ώρες.</div>'}
+    return `
+        <div class="aurora-schedule-wrapper">
+            <div class="aurora-schedule-card-outer">
+                <div class="aurora-schedule-top-pill">
+                    🚨 ΕΠΕΙΓΟΥΣΑ ΑΝΑΚΟΙΝΩΣΗ • ΑΛΛΑΓΗ ΠΡΟΓΡΑΜΜΑΤΟΣ
+                </div>
+
+                <h1 class="aurora-schedule-main-title">${headingText}</h1>
+
+                <div class="aurora-schedule-inner-ice">
+                    <div class="aurora-schedule-ice-content">
+                        ${rowsHtml || '<div class="aurora-schedule-ice-row">Δεν έχουν οριστεί ώρες.</div>'}
+                    </div>
+                    <div class="aurora-schedule-bottom-pill">${bottomTimeLabel}</div>
+                </div>
             </div>
         </div>
     `;
@@ -1646,7 +1616,8 @@ function renderScheduleChangeBlock(item) {
 
 function renderMediaBlock(item, containerId) {
     const scale = parseFloat(item.mediaScale) || 1.0;
-    let imgScale = scale !== 1.0 ? `transform: scale(${scale}); transform-origin: center center;` : '';
+    const isSplitLayout = item.layout && item.layout !== 'fullscreen';
+    let imgScale = (!isSplitLayout && scale !== 1.0) ? `transform: scale(${scale}); transform-origin: center center;` : '';
 
     if (item.mediaType === 'image' || item.mediaType === 'live_image') {
         const sources = item.mediaSources && item.mediaSources.length > 0 ? item.mediaSources : (item.mediaSource ? [item.mediaSource] : []);
@@ -1661,7 +1632,7 @@ function renderMediaBlock(item, containerId) {
                 return `
                     <div style="width: 100%; height: 100%; display: flex; flex-wrap: wrap; gap: ${gap}rem; padding: 0.5rem; justify-content: center; align-items: center; overflow: hidden; box-sizing: border-box;">
                         ${sources.map(src => `
-                            <img src="${src}" style="max-width: ${maxW}; max-height: ${maxH}; object-fit: contain; border-radius: 0.75rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4); flex-shrink: 0; ${imgScale}">
+                            <img src="${src}" style="width: auto; height: auto; max-width: ${maxW}; max-height: ${maxH}; object-fit: contain; border-radius: 0.75rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4); flex-shrink: 0;">
                         `).join('')}
                     </div>
                 `;
@@ -1675,7 +1646,7 @@ function renderMediaBlock(item, containerId) {
                     <div class="photo-slideshow-container ${effectClass}" id="${containerId}">
                         ${sources.map((src, i) => `
                             <div class="photo-slideshow-slide ${i === 0 ? 'active' : ''}" data-index="${i}">
-                                <img src="${src}" class="photo-slideshow-img" style="${imgScale}">
+                                <img src="${src}" class="photo-slideshow-img">
                             </div>
                         `).join('')}
                         <div class="photo-slideshow-counter">
@@ -1690,8 +1661,8 @@ function renderMediaBlock(item, containerId) {
             }
         } else if (sources.length === 1 && sources[0]) {
             return `
-                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 0.5rem; overflow: hidden; box-sizing: border-box;">
-                    <img src="${sources[0]}" class="slide-image" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 1rem; box-shadow: 0 12px 30px rgba(0,0,0,0.5); ${imgScale}">
+                <div class="aurora-media-fit-box" style="width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0.5rem; overflow: hidden; box-sizing: border-box;">
+                    <img src="${sources[0]}" class="slide-image" style="width: auto !important; height: auto !important; max-width: 100% !important; max-height: 100% !important; object-fit: contain !important; border-radius: 1rem; ${imgScale}">
                 </div>
             `;
         } else {
@@ -1914,10 +1885,11 @@ function renderSlide(item) {
             part2 = textHtml;
         }
 
+        const isUnifiedGlass = ['split-left', 'split-right'].includes(layout) && ['image', 'live_image', 'text'].includes(item.mediaType);
+
         container.innerHTML = `
-            <div class="slide active type-${item.type} multi-zone-container layout-${layout}">
-                ${part1}
-                ${part2}
+            <div class="slide active type-${item.type} multi-zone-container layout-${layout} ${isUnifiedGlass ? 'aurora-unified-split' : ''}">
+                ${isUnifiedGlass ? `<div class="aurora-unified-glass-card">${part1}${part2}</div>` : `${part1}${part2}`}
             </div>
         `;
     }
@@ -2134,7 +2106,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_SCHEDULE_V19';
+const APP_VERSION = '2026_AURORA_V20';
 
 async function checkForAppUpdate() {
     try {
@@ -2158,3 +2130,117 @@ async function checkForAppUpdate() {
 
 setTimeout(checkForAppUpdate, 30000);
 setInterval(checkForAppUpdate, 5 * 60 * 1000);
+
+// ===================================================
+// LOCAL TESTING PREVIEW BAR (Only visible on localhost)
+// Lets the user test the exact scenarios from Mockup 1 & Mockup 2
+// alongside their real live Firebase school stream!
+// ===================================================
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+    window.addEventListener('DOMContentLoaded', () => {
+        const bar = document.createElement('div');
+        bar.id = 'auroraLocalTestBar';
+        bar.innerHTML = `
+            <span style="font-weight:800; color:#67e8f9; margin-right:4px;">🎛️ Δοκιμή Aurora:</span>
+            <button type="button" data-demo="live" class="aurora-demo-btn active">🔄 Ζωντανή Ροή Σχολείου</button>
+            <button type="button" data-demo="mockup2" class="aurora-demo-btn">🚨 Δείγμα Εικόνας 2 (Έκτακτη Β1 + 3η Ώρα 70%)</button>
+            <button type="button" data-demo="mockup1" class="aurora-demo-btn">🏰 Δείγμα Εικόνας 1 (Εκπαιδευτική Επίσκεψη)</button>
+            <button type="button" id="closeAuroraTestBar" title="Απόκρυψη μπάρας δοκιμής" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0 6px;">✕</button>
+        `;
+        document.body.appendChild(bar);
+
+        document.getElementById('closeAuroraTestBar')?.addEventListener('click', () => {
+            bar.style.display = 'none';
+        });
+
+        bar.querySelectorAll('.aurora-demo-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                bar.querySelectorAll('.aurora-demo-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const mode = btn.getAttribute('data-demo');
+
+                if (mode === 'live') {
+                    window._auroraDemoScheduleHtml = null;
+                    window._auroraDemoClock = null;
+                    window._auroraDemoWeather = false;
+                    updateClock();
+                    if (currentSettings && currentSettings.weatherCity) updateWeather(currentSettings.weatherCity);
+                    updateTickerSequence();
+                    startRotation();
+                } else if (mode === 'mockup2') {
+                    if (timer) clearTimeout(timer);
+                    window._auroraDemoClock = { time: '10:16', date: 'Τετάρτη 5 Νοεμβρίου' };
+                    window._auroraDemoWeather = true;
+                    const wEl = document.getElementById('weather');
+                    if (wEl) wEl.innerHTML = `Μυτιλήνη 21°C ☀️`;
+                    window._auroraDemoScheduleHtml = `
+                        <div class="aurora-sched-line1">🔔 3η Διδακτική Ώρα (09:45 - 10:30)</div>
+                        <div class="aurora-sched-line2"><span class="aurora-sched-dot">•</span> ⏳ Λήξη &amp; Διάλειμμα σε 14 λεπτά</div>
+                        <div class="aurora-sched-progress-row">
+                            <div class="aurora-sched-progress-track">
+                                <div class="aurora-sched-progress-fill" style="width: 70%;"></div>
+                            </div>
+                            <span class="aurora-sched-progress-pct">70%</span>
+                        </div>
+                    `;
+                    updateClock();
+                    renderSlide({
+                        id: 'demo-b1',
+                        type: 'alert',
+                        layout: 'fullscreen',
+                        mediaType: 'schedule_change',
+                        isScheduleChange: true,
+                        title: 'Τμήμα Β1 — Τροποποίηση 3ης Ώρας',
+                        scheduleData: {
+                            section: 'Β1',
+                            changes: [{
+                                hour: 3,
+                                kind: 'free',
+                                badgeText: 'ΚΕΝΟ',
+                                detail: 'Απουσία διδάσκοντος.\nΟι μαθητές παραμένουν στο χώρο της Βιβλιοθήκης'
+                            }]
+                        }
+                    });
+                    playTickerItem({
+                        type: 'director',
+                        label: '🏛️ ΔΙΕΥΘΥΝΣΗ',
+                        style: 'director',
+                        html: `<span class="ticker-director-message">...Υπενθυμίζουμε στους μαθητές της Γ' Τάξης να καταθέσουν τις αιτήσεις συμμετοχής για τις αθλητικές ομάδες...</span>`
+                    });
+                } else if (mode === 'mockup1') {
+                    if (timer) clearTimeout(timer);
+                    window._auroraDemoClock = { time: '10:15', date: 'Πέμπτη, 24 Οκτ' };
+                    window._auroraDemoWeather = true;
+                    const wEl = document.getElementById('weather');
+                    if (wEl) wEl.innerHTML = `ΜΥΤΙΛΗΝΗ | 21°C`;
+                    window._auroraDemoScheduleHtml = `
+                        <div class="aurora-sched-line1">🔔 3η Διδακτική Ώρα (09:45 - 10:30)</div>
+                        <div class="aurora-sched-line2"><span class="aurora-sched-dot">•</span> ⏳ Λήξη &amp; Διάλειμμα σε 15 λεπτά</div>
+                        <div class="aurora-sched-progress-row">
+                            <div class="aurora-sched-progress-track">
+                                <div class="aurora-sched-progress-fill" style="width: 67%;"></div>
+                            </div>
+                            <span class="aurora-sched-progress-pct">67%</span>
+                        </div>
+                    `;
+                    updateClock();
+                    renderSlide({
+                        id: 'demo-visit',
+                        type: 'event',
+                        layout: 'split-left',
+                        mediaType: 'image',
+                        mediaSource: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80',
+                        title: 'ΕΚΠΑΙΔΕΥΤΙΚΗ ΕΠΙΣΚΕΨΗ',
+                        content: `<div style="font-weight:700; color:#fff; font-size:1.45rem; margin-bottom:0.6rem;">1ο Πρότυπο Γυμνάσιο Μυτιλήνης<br>Πέμπτη, 24 Οκτωβρίου | 09:30<br>Προορισμός: Αρχαιολογικό Μουσείο</div><div style="font-size:1.15rem; color:rgba(226,232,240,0.9);">Συμμετοχή: Τμήματα Α1, Α2. Οι μαθητές θα ξεναγηθούν στις μόνιμες εκθέσεις του Αρχαιολογικού Μουσείου Μυτιλήνης με τη συνοδεία των υπεύθυνων καθηγητών.</div>`
+                    });
+                    playTickerItem({
+                        type: 'director',
+                        label: '🔔 ΕΚΤΑΚΤΗ ΑΝΑΚΟΙΝΩΣΗ',
+                        style: 'director',
+                        html: `<span class="ticker-director-message">Πρόγραμμα Εξετάσεων (Α' ΤΕΤΡ...) &nbsp;|&nbsp; ΜΑΘΗΤΙΚΟΣ ΔΙΑΓΩΝΙΣΜΟΣ ΜΑΘΗΜΑΤΙΚΩΝ &nbsp;|&nbsp; 1ο Πρότυπο Γυμνάσιο Μυτιλήνης</span>`
+                    });
+                }
+            });
+        });
+    });
+}

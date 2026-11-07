@@ -5,31 +5,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - Οθόνη Προβολής</title>
-    <link rel="stylesheet" href="style.css?v=2026_SCHEDULE_V15">
+    <link rel="stylesheet" href="style.css?v=2026_AURORA_V20">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
-<body style="overflow: hidden;">
+<body class="aurora-glass-body" style="overflow: hidden;">
+    <!-- Aurora Borealis Widescreen Background Layer -->
+    <div class="aurora-bg-layer" aria-hidden="true"></div>
     <canvas id="themeCanvas"
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></canvas>
     <div class="display-container">
         <header class="display-header">
             <div class="header-left">
-                <img id="schoolLogo" src="logo.png" alt="School Logo" class="logo">
-                <div>
-                    <div id="schoolNameDisplay" style="font-weight: 800; font-size: 1.6rem; letter-spacing: -0.02em; color: white;">ΣΧΟΛΙΚΕΣ ΕΝΗΜΕΡΩΣΕΙΣ</div>
-                    <div id="date" style="color: var(--text-secondary); font-size: 0.95rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;"></div>
-                    <div id="schoolScheduleStatus"></div>
+                <div class="aurora-logo-badge">
+                    <img id="schoolLogo" src="logo.png" alt="School Logo" class="logo">
                 </div>
+                <div id="schoolNameDisplay" class="aurora-school-title">1ο ΠΡΟΤΥΠΟ ΓΥΜΝΑΣΙΟ ΜΥΤΙΛΗΝΗΣ</div>
             </div>
+
+            <div class="header-center">
+                <div id="schoolScheduleStatus" class="aurora-schedule-pill"></div>
+            </div>
+
             <div class="header-right">
-                <div id="weather">
-                    <!-- Weather injected via JS -->
+                <div class="aurora-clock-card">
+                    <div id="clock" class="clock">00:00</div>
+                    <div id="date" class="aurora-date"></div>
+                    <div id="weather" class="aurora-weather"></div>
                 </div>
-                <div id="clock" class="clock">00:00</div>
             </div>
         </header>
 
@@ -38,17 +44,17 @@
 
         <main id="slideContainer" class="display-content">
             <!-- Slides will be injected here -->
-            <div class="loading">Σύνδεση στο Cloud (RESTORE)...</div>
+            <div class="loading">Σύνδεση στο Cloud...</div>
         </main>
 
         <div id="tickerContainer" class="ticker-container" style="display: none;">
-            <div class="ticker-label">ΔΙΕΥΘΥΝΣΗ</div>
+            <div class="ticker-label">🏛️ ΔΙΕΥΘΥΝΣΗ</div>
             <div id="tickerContent" class="ticker-content"></div>
         </div>
     </div>
 
     <!-- MAIN SCRIPT CLOUD VERSION (MODULE) -->
-    <script type="module" src="script-display.js?v=2026_SCHEDULE_V19"></script>
+    <script type="module" src="script-display.js?v=2026_AURORA_V20"></script>
 
     <style>
         /* Fix for banner - full width */
@@ -63,12 +69,14 @@
             display: block !important;
         }
 
-        /* Fix for oversized images and iframes in slides - Use full container height */
+        /* Fit entire image inside its frame without cropping or distortion */
         .slide-image {
-            max-width: 100% !important;
-            height: 100% !important;
             width: auto !important;
+            height: auto !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
             object-fit: contain !important;
+            object-position: center center !important;
         }
 
         .slide-iframe {
