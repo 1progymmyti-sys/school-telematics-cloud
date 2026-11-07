@@ -1928,7 +1928,95 @@ function renderSlide(item) {
             `;
         }
     }
+
+    // Automatically fit text so titles and descriptions never get clipped at the bottom
+    autoFitSlideText();
+    requestAnimationFrame(() => autoFitSlideText());
+    setTimeout(() => autoFitSlideText(), 80);
 }
+
+function autoFitSlideText() {
+    const container = document.getElementById('slideContainer');
+    if (!container) return;
+
+    const cards = container.querySelectorAll('.zone-card-text, .slide-card');
+    cards.forEach(card => {
+        const titleEl = card.querySelector('.slide-card-title');
+        const bodyEl = card.querySelector('.slide-card-body');
+        const badgeEl = card.querySelector('.slide-card-badge');
+        const dividerEl = card.querySelector('.slide-card-divider');
+
+        if (!titleEl && !bodyEl) return;
+
+        // Reset any previous inline adjustments before measuring fresh
+        if (titleEl) {
+            titleEl.style.removeProperty('font-size');
+            titleEl.style.removeProperty('line-height');
+            titleEl.style.removeProperty('margin-bottom');
+        }
+        if (bodyEl) {
+            bodyEl.style.removeProperty('font-size');
+            bodyEl.style.removeProperty('line-height');
+        }
+        if (badgeEl) badgeEl.style.removeProperty('margin-bottom');
+        if (dividerEl) dividerEl.style.removeProperty('margin-bottom');
+
+        // Align to top during measurement so scrollHeight reflects 100% of children height
+        card.style.setProperty('justify-content', 'flex-start', 'important');
+
+        // Normalize any hardcoded inline font sizes inside .slide-card-body to relative em
+        if (bodyEl) {
+            const baseBodyPx = parseFloat(window.getComputedStyle(bodyEl).fontSize) || 22;
+            bodyEl.querySelectorAll('[style*="font-size"], font[size]').forEach(child => {
+                if (!child.dataset.origEmRatio) {
+                    const childPx = parseFloat(window.getComputedStyle(child).fontSize) || baseBodyPx;
+                    const ratio = Math.min(1.25, Math.max(0.75, childPx / baseBodyPx));
+                    child.dataset.origEmRatio = ratio.toFixed(3);
+                }
+                child.style.setProperty('font-size', `${child.dataset.origEmRatio}em`, 'important');
+                child.style.setProperty('line-height', 'inherit', 'important');
+            });
+        }
+
+        let titleSize = titleEl ? (parseFloat(window.getComputedStyle(titleEl).fontSize) || 32) : 32;
+        let bodySize = bodyEl ? (parseFloat(window.getComputedStyle(bodyEl).fontSize) || 22) : 22;
+        let bodyLineHeight = 1.42;
+
+        const isOverflowing = () => card.scrollHeight > (card.clientHeight + 1);
+
+        let step = 0;
+        while (isOverflowing() && step < 32) {
+            step++;
+            bodySize = Math.max(12, bodySize * 0.94);
+            titleSize = Math.max(16, titleSize * 0.94);
+            bodyLineHeight = Math.max(1.22, bodyLineHeight - 0.01);
+
+            if (bodyEl) {
+                bodyEl.style.setProperty('font-size', `${bodySize.toFixed(1)}px`, 'important');
+                bodyEl.style.setProperty('line-height', `${bodyLineHeight.toFixed(2)}`, 'important');
+            }
+            if (titleEl) {
+                titleEl.style.setProperty('font-size', `${titleSize.toFixed(1)}px`, 'important');
+                titleEl.style.setProperty('line-height', '1.12', 'important');
+            }
+
+            if (step >= 4) {
+                if (badgeEl) badgeEl.style.setProperty('margin-bottom', '0.3rem', 'important');
+                if (titleEl) titleEl.style.setProperty('margin-bottom', '0.3rem', 'important');
+                if (dividerEl) dividerEl.style.setProperty('margin-bottom', '0.35rem', 'important');
+            }
+        }
+
+        // Re-center vertically once content fits inside the card
+        if (!isOverflowing()) {
+            card.style.setProperty('justify-content', 'center', 'important');
+        }
+    });
+}
+
+window.addEventListener('resize', () => {
+    autoFitSlideText();
+});
 
 let countdownTimerId = null;
 function startCountdownTicker(id, targetTime) {
@@ -2109,7 +2197,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V21';
+const APP_VERSION = '2026_AURORA_V22';
 
 async function checkForAppUpdate() {
     try {
