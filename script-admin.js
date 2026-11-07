@@ -360,10 +360,10 @@ window.onload = async () => {
         });
     }
 
-    // Filter Chips Listeners
-    document.querySelectorAll('.filter-chip').forEach(chip => {
+    // Filter Chips Listeners (Scoped to #filterChips so it doesn't collide with #tickerModeChips)
+    document.querySelectorAll('#filterChips .filter-chip').forEach(chip => {
         chip.addEventListener('click', () => {
-            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#filterChips .filter-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             activeFilter = chip.dataset.filter;
             renderList(allAnnouncements);
@@ -1038,12 +1038,49 @@ function setTickerModeUI(mode) {
 }
 
 function initSettingsForm() {
-    // Mode chip selectors
+    const saveTickerOnly = async (customToastMsg) => {
+        const mode = document.getElementById('tickerMode')?.value || 'director';
+        const msg = document.getElementById('tickerMessage')?.value || '';
+        const badge = document.getElementById('tickerBadgeLabel')?.value || '🏛️ ΔΙΕΥΘΥΝΣΗ';
+        const style = document.getElementById('tickerStyle')?.value || 'gold';
+        const rss = document.getElementById('rssUrl')?.value || '';
+
+        try {
+            await setDoc(doc(db, SETTINGS_COL, SETTINGS_DOC_ID), {
+                tickerMode: mode,
+                tickerMessage: msg,
+                tickerBadgeLabel: badge,
+                tickerStyle: style,
+                rssUrl: rss
+            }, { merge: true });
+            showToast("Κυλιόμενη Μπάρα", customToastMsg || "Οι ρυθμίσεις της κυλιόμενης μπάρας ενημερώθηκαν στην οθόνη!", "success");
+        } catch (err) {
+            showToast("Σφάλμα", "Αποτυχία αποθήκευσης μπάρας: " + err.message, "error");
+        }
+    };
+
+    window.saveTickerSettingsNow = () => saveTickerOnly("Το μήνυμα και η επιλογή εμφάνισης αποθηκεύτηκαν!");
+
+    // Mode chip selectors (auto-save mode & ticker fields immediately on click)
     document.querySelectorAll('#tickerModeChips .filter-chip').forEach(chip => {
         chip.onclick = () => {
-            setTickerModeUI(chip.dataset.mode);
+            const mode = chip.dataset.mode;
+            setTickerModeUI(mode);
+            const modeLabels = {
+                director: "🏛️ Μήνυμα Διεύθυνσης",
+                rss: "🗞️ Ειδήσεις RSS",
+                both: "🔄 Και τα δύο (Διεύθυνση + RSS)",
+                none: "🚫 Ανενεργή Μπάρα"
+            };
+            saveTickerOnly(`Ενεργοποιήθηκε η επιλογή: ${modeLabels[mode] || mode}`);
         };
     });
+
+    const badgeSelect = document.getElementById('tickerBadgeLabel');
+    if (badgeSelect) badgeSelect.onchange = () => saveTickerOnly("Η σήμανση Διεύθυνσης ενημερώθηκε!");
+
+    const styleSelect = document.getElementById('tickerStyle');
+    if (styleSelect) styleSelect.onchange = () => saveTickerOnly("Το στυλ εμφάνισης της μπάρας ενημερώθηκε!");
 
     // School Settings
     document.getElementById('settingsForm').onsubmit = async (e) => {

@@ -505,6 +505,13 @@ async function fetchRSS(url) {
 let normalTickerSequence = [];
 let currentTickerMode = 'normal'; // 'normal' | 'schedule'
 let lastScheduleTickerHtml = '';
+let currentPlayingTickerKey = '';
+let lastTickerSettingsKey = '';
+
+function getTickerItemKey(item) {
+    if (!item) return '';
+    return `${item.label || ''}|${item.style || ''}|${item.html || ''}`;
+}
 
 function setTickerTheme(labelText, styleClass) {
     const tickerContainer = document.getElementById('tickerContainer');
@@ -524,7 +531,7 @@ function setTickerTheme(labelText, styleClass) {
     tickerContainer.classList.remove('ticker-mode-director', 'ticker-mode-gold', 'ticker-mode-alert', 'ticker-mode-rss', 'ticker-mode-schedule');
     if (styleClass === 'schedule' || styleClass === 'schedule_change') tickerContainer.classList.add('ticker-mode-schedule');
     else if (styleClass === 'alert') tickerContainer.classList.add('ticker-mode-alert');
-    else if (styleClass === 'rss') tickerContainer.classList.add('ticker-mode-rss');
+    else if (styleClass === 'rss' || styleClass === 'blue') tickerContainer.classList.add('ticker-mode-rss');
     else tickerContainer.classList.add('ticker-mode-director');
 }
 
@@ -535,6 +542,7 @@ function playTickerItem(item) {
     const tickerContent = document.getElementById('tickerContent');
     if (!tickerContainer || !tickerContent) return;
 
+    currentPlayingTickerKey = getTickerItemKey(item);
     tickerContainer.style.display = 'flex';
     setTickerTheme(item.label, item.style);
 
@@ -554,10 +562,11 @@ function showTickerText(htmlContent, labelText, styleClass = 'director') {
 function startTickerAnim(element) {
     if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
     tickerOffset = window.innerWidth;
-    let elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 1200);
+    let elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 300);
 
     function loop() {
         tickerOffset -= 1.8; // Smooth Speed
+        elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 300);
 
         // When content has completely scrolled off the screen to the left
         if (tickerOffset < -elementWidth) {
@@ -565,9 +574,16 @@ function startTickerAnim(element) {
                 tickerSequenceIndex = (tickerSequenceIndex + 1) % tickerSequence.length;
                 playTickerItem(tickerSequence[tickerSequenceIndex]);
                 return;
+            } else if (tickerSequence.length === 1) {
+                const onlyItem = tickerSequence[0];
+                if (currentPlayingTickerKey !== getTickerItemKey(onlyItem)) {
+                    tickerSequenceIndex = 0;
+                    playTickerItem(onlyItem);
+                    return;
+                }
+                tickerOffset = window.innerWidth;
             } else {
                 tickerOffset = window.innerWidth;
-                elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 1200);
             }
         }
 
@@ -575,6 +591,31 @@ function startTickerAnim(element) {
         tickerAnimId = requestAnimationFrame(loop);
     }
     loop();
+}
+
+function getActiveDirectorTickerItem() {
+    const s = currentSettings || {};
+    let mode = s.tickerMode;
+    if (!mode) {
+        if (s.tickerMessage && s.tickerMessage.trim() !== '') mode = 'director';
+        else if (s.rssUrl && s.rssUrl.trim() !== '') mode = 'rss';
+        else mode = 'none';
+    }
+    if (mode !== 'director' && mode !== 'both') return null;
+
+    const dirMsg = s.tickerMessage ? s.tickerMessage.trim() : '';
+    if (!dirMsg) return null;
+
+    const dirBadge = s.tickerBadgeLabel || '🏛️ ΔΙΕΥΘΥΝΣΗ';
+    const dirStyle = s.tickerStyle || 'gold';
+    const badgeIcon = getBadgeIcon(dirBadge);
+
+    return {
+        type: 'director',
+        label: dirBadge,
+        style: dirStyle,
+        html: `<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`
+    };
 }
 
 function updateTickerSequence() {
@@ -591,6 +632,10 @@ function updateTickerSequence() {
     const dirStyle = s.tickerStyle || 'gold';
     const badgeIcon = getBadgeIcon(dirBadge);
 
+    const settingsKey = `${mode}|${dirMsg}|${dirBadge}|${dirStyle}|${s.rssUrl || ''}`;
+    const settingsChanged = (settingsKey !== lastTickerSettingsKey);
+    lastTickerSettingsKey = settingsKey;
+
     const newSeq = [];
 
     // Director item (clean icon pill, no repeated text, no extra colon)
@@ -601,20 +646,33 @@ function updateTickerSequence() {
         html: `<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`
     } : null;
 
-    // RSS item (clean news items with bullets)
-    let rssItem = null;
+    // RSS item(s)
+    let rssFullItem = null;
+    const rssChunks = [];
     if (cachedRssItems && cachedRssItems.length > 0) {
-        const rssSpans = cachedRssItems.map(title => `
+        const buildRssHtml = (list) => list.map(title => `
             <span class="ticker-rss-item">
                 <span class="ticker-rss-bullet">✦</span> ${title}
             </span>
         `).join('');
-        rssItem = {
+
+        rssFullItem = {
             type: 'rss',
             label: '🗞️ ΕΙΔΗΣΕΙΣ',
             style: 'rss',
-            html: rssSpans
+            html: buildRssHtml(cachedRssItems)
         };
+
+        // Split RSS into chunks of 3 headlines for 'both' mode so Director message alternates frequently
+        const chunkSize = 3;
+        for (let i = 0; i < cachedRssItems.length; i += chunkSize) {
+            rssChunks.push({
+                type: 'rss',
+                label: '🗞️ ΕΙΔΗΣΕΙΣ',
+                style: 'rss',
+                html: buildRssHtml(cachedRssItems.slice(i, i + chunkSize))
+            });
+        }
     }
 
     if (mode === 'none') {
@@ -622,17 +680,39 @@ function updateTickerSequence() {
     } else if (mode === 'director') {
         if (dirItem) newSeq.push(dirItem);
     } else if (mode === 'rss') {
-        if (rssItem) newSeq.push(rssItem);
+        if (rssFullItem) newSeq.push(rssFullItem);
     } else if (mode === 'both') {
-        if (dirItem) newSeq.push(dirItem);
-        if (rssItem) newSeq.push(rssItem);
+        if (dirItem && rssChunks.length > 0) {
+            // Interleave Director's message with each chunk of RSS news
+            rssChunks.forEach(chunk => {
+                newSeq.push(dirItem);
+                newSeq.push(chunk);
+            });
+        } else if (dirItem) {
+            newSeq.push(dirItem);
+        } else if (rssFullItem) {
+            newSeq.push(rssFullItem);
+        }
     }
 
     normalTickerSequence = newSeq;
 
-    // If currently displaying schedule changes on ticker, preserve active schedule ticker
+    // If currently displaying schedule changes on ticker, include Director's message alongside schedule changes
     if (currentTickerMode === 'schedule') {
-        return;
+        const activeScheduleItems = getActiveScheduleAnnouncements();
+        const schedItem = buildScheduleTickerItem(activeScheduleItems);
+        if (schedItem) {
+            tickerSequence = dirItem && (mode === 'director' || mode === 'both')
+                ? [dirItem, schedItem]
+                : [schedItem];
+            if (settingsChanged) {
+                tickerSequenceIndex = 0;
+                playTickerItem(tickerSequence[0]);
+            }
+            return;
+        } else {
+            currentTickerMode = 'normal';
+        }
     }
 
     tickerSequence = normalTickerSequence;
@@ -645,20 +725,22 @@ function updateTickerSequence() {
             cancelAnimationFrame(tickerAnimId);
             tickerAnimId = null;
         }
+        currentPlayingTickerKey = '';
         return;
     } else {
         document.body.classList.remove('no-ticker');
     }
 
-    // If ticker was not already playing, start it
-    if (!tickerAnimId) {
+    if (tickerSequenceIndex >= tickerSequence.length) {
+        tickerSequenceIndex = 0;
+    }
+
+    const expectedKey = getTickerItemKey(tickerSequence[tickerSequenceIndex]);
+
+    // Start or immediately update ticker if not running, if settings changed, or if stuck on initial loading text
+    if (!tickerAnimId || settingsChanged || currentPlayingTickerKey !== expectedKey) {
         tickerSequenceIndex = 0;
         playTickerItem(tickerSequence[0]);
-    } else {
-        if (tickerSequenceIndex >= tickerSequence.length) {
-            tickerSequenceIndex = 0;
-            playTickerItem(tickerSequence[0]);
-        }
     }
 }
 
@@ -745,17 +827,20 @@ function syncTickerWithCurrentSlide(item) {
         const schedItem = buildScheduleTickerItem(activeScheduleItems);
         if (!schedItem) return;
 
-        if (currentTickerMode !== 'schedule' || lastScheduleTickerHtml !== schedItem.html) {
+        const dirItem = getActiveDirectorTickerItem();
+        const combinedHtmlKey = `${dirItem ? dirItem.html : ''}|${schedItem.html}`;
+
+        if (currentTickerMode !== 'schedule' || lastScheduleTickerHtml !== combinedHtmlKey) {
             currentTickerMode = 'schedule';
-            lastScheduleTickerHtml = schedItem.html;
-            tickerSequence = [schedItem];
+            lastScheduleTickerHtml = combinedHtmlKey;
+            tickerSequence = dirItem ? [dirItem, schedItem] : [schedItem];
             tickerSequenceIndex = 0;
 
             const tickerContainer = document.getElementById('tickerContainer');
             if (tickerContainer) tickerContainer.style.display = 'flex';
             document.body.classList.remove('no-ticker');
 
-            playTickerItem(schedItem);
+            playTickerItem(tickerSequence[0]);
         }
     } else {
         if (currentTickerMode !== 'normal') {
@@ -2045,7 +2130,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_SCHEDULE_V15';
+const APP_VERSION = '2026_SCHEDULE_V19';
 
 async function checkForAppUpdate() {
     try {

@@ -176,12 +176,18 @@
                                 <span>🗞️ Σύνδεσμος RSS Feed Ειδήσεων</span>
                             </label>
                             <div style="display: flex; gap: 0.5rem;">
-                                <input type="url" id="rssUrl" name="rssUrl" placeholder="π.χ. https://www.ertnews.gr/feed/ ή https://www.esos.gr/rss.xml" style="flex: 1;">
+                                <input type="text" id="rssUrl" name="rssUrl" placeholder="π.χ. https://www.ertnews.gr/feed/ ή https://www.esos.gr/rss.xml" style="flex: 1;">
                                 <button type="button" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem; white-space: nowrap;" onclick="document.getElementById('rssUrl').value='https://www.ertnews.gr/feed/'">ERT News</button>
                             </div>
                             <small style="color: var(--text-secondary); display: block; margin-top: 0.4rem;">
                                 Αντλεί αυτόματα τους τελευταίους τίτλους ειδήσεων και τους προβάλλει με ετικέτα «🗞️ ΕΙΔΗΣΕΙΣ».
                             </small>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                            <button type="button" class="btn" onclick="window.saveTickerSettingsNow && window.saveTickerSettingsNow()" style="padding: 0.65rem 1.5rem; background: #f59e0b; color: #0f172a; font-weight: 800;">
+                                💾 Αποθήκευση Μηνύματος / Μπάρας
+                            </button>
                         </div>
                     </div>
 
@@ -206,7 +212,7 @@
                         </div>
                         <div class="form-group" style="flex: 1; min-width: 180px; margin: 0;">
                             <label for="weatherUrl">🔗 Weather Widget Link</label>
-                            <input type="url" id="weatherUrl" name="weatherUrl" placeholder="Widget από meteo.gr">
+                            <input type="text" id="weatherUrl" name="weatherUrl" placeholder="Widget από meteo.gr">
                         </div>
                     </div>
 
@@ -725,7 +731,7 @@
     </div> <!-- /mainApp -->
 
     <!-- MAIN SCRIPT (MODULE) -->
-    <script type="module" src="script-admin.js?v=2026_SCHEDULE_V16"></script>
+    <script type="module" src="script-admin.js?v=2026_SCHEDULE_V19"></script>
 
     <!-- Preview Modal -->
     <div id="previewModal" style="
