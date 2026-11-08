@@ -1253,10 +1253,22 @@ function updateClock() {
     updateScheduleStatus();
 }
 
+function formatSchoolTitleHtml(rawName) {
+    const clean = (rawName || '').replace(/^1[ΟO]/g, '1ο').trim();
+    if (!clean || /ΠΡΟΤΥΠΟ\s+ΓΥΜΝΑΣΙΟ/i.test(clean)) {
+        return `
+            <span class="school-title-line1">1ο ΠΡΟΤΥΠΟ ΓΥΜΝΑΣΙΟ</span>
+            <span class="school-title-line2">ΜΥΤΙΛΗΝΗΣ</span>
+            <span class="school-title-line3">"Βύρων Σιβολαπένκο"</span>
+        `;
+    }
+    return `<span class="school-title-line1">${clean}</span>`;
+}
+
 function applySettings(s) {
-    if (s.schoolName) {
-        const cleanName = s.schoolName.replace(/^1[ΟO]/g, '1ο').trim();
-        document.getElementById('schoolNameDisplay').innerHTML = cleanName.replace(/\s+ΜΥΤΙΛΗΝΗΣ$/i, '<br>ΜΥΤΙΛΗΝΗΣ');
+    const titleEl = document.getElementById('schoolNameDisplay');
+    if (titleEl) {
+        titleEl.innerHTML = formatSchoolTitleHtml(s.schoolName);
     }
     if (s.logo) document.getElementById('schoolLogo').src = s.logo;
 
@@ -2197,7 +2209,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V22';
+const APP_VERSION = '2026_AURORA_V23';
 
 async function checkForAppUpdate() {
     try {

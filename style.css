@@ -2416,16 +2416,43 @@ body.aurora-glass-body .logo {
     display: block !important;
 }
 
+body.aurora-glass-body #schoolNameDisplay.aurora-school-title,
 .aurora-school-title {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
     font-weight: 800 !important;
-    font-size: clamp(0.88rem, 1.08vw, 1.18rem) !important;
-    line-height: 1.26 !important;
+    font-size: clamp(0.8rem, 0.98vw, 1.08rem) !important;
+    line-height: 1.18 !important;
+    gap: 1px !important;
     letter-spacing: 0.01em !important;
     color: #ffffff !important;
     max-width: none !important;
     white-space: nowrap !important;
     text-transform: none !important;
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.65) !important;
+}
+
+.aurora-school-title .school-title-line1,
+.aurora-school-title .school-title-line2 {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+}
+
+.aurora-school-title .school-title-line3 {
+    display: block !important;
+    width: 100% !important;
+    text-align: center !important;
+    font-size: 0.92em !important;
+    font-weight: 700 !important;
+    color: rgba(241, 245, 249, 0.95) !important;
+    letter-spacing: 0.015em !important;
+    margin-top: 1px !important;
 }
 
 /* 2. Center Frosted Glass Schedule & Break Pill with Cyan Progress Bar */
