@@ -499,9 +499,6 @@ async function fetchRSS(url) {
     if (items.length > 0) {
         cachedRssItems = items;
         updateTickerSequence();
-        if (slides && slides.length > 0) {
-            syncTickerWithCurrentSlide(slides[currentIndex] || slides[0]);
-        }
     }
 }
 
@@ -511,6 +508,8 @@ let lastScheduleTickerHtml = '';
 let currentPlayingTickerKey = '';
 let lastTickerSettingsKey = '';
 let currentDisplayedSlideItem = null;
+let labelSwitchTimer = null;
+let currentTargetLabelText = '';
 
 // Saved scroll states per mode so switching between normal slides ('schedule' ticker)
 // and schedule-change slides ('normal' RSS/Director ticker) never loses progress
@@ -544,12 +543,22 @@ function setTickerTheme(labelText, styleClass) {
     const labelEl = tickerContainer.querySelector('.ticker-label');
 
     if (labelEl && labelText) {
-        if (labelEl.innerHTML !== labelText) {
-            labelEl.classList.add('label-switching');
-            setTimeout(() => {
-                labelEl.innerHTML = labelText;
+        if (currentTargetLabelText !== labelText || labelEl.innerHTML !== labelText) {
+            currentTargetLabelText = labelText;
+            if (labelSwitchTimer) {
+                clearTimeout(labelSwitchTimer);
+                labelSwitchTimer = null;
+            }
+            if (labelEl.innerHTML !== labelText) {
+                labelEl.classList.add('label-switching');
+                labelSwitchTimer = setTimeout(() => {
+                    labelEl.innerHTML = currentTargetLabelText;
+                    labelEl.classList.remove('label-switching');
+                    labelSwitchTimer = null;
+                }, 180);
+            } else {
                 labelEl.classList.remove('label-switching');
-            }, 220);
+            }
         }
     }
 
@@ -695,7 +704,7 @@ function buildNormalTickerSequence(forScheduleSlideOnScreen = false) {
 
     const newSeq = [];
 
-    if (mode === 'none') {
+    if (mode === 'none' && !forScheduleSlideOnScreen) {
         return newSeq;
     }
 
@@ -715,7 +724,7 @@ function buildNormalTickerSequence(forScheduleSlideOnScreen = false) {
         return newSeq;
     }
 
-    // Standard normal mode (no active schedule changes)
+    // Standard normal mode (when no schedule changes exist)
     if (mode === 'director') {
         if (dirItem) newSeq.push(dirItem);
         else if (rssFullItem) newSeq.push(rssFullItem);
@@ -753,65 +762,25 @@ function updateTickerSequence() {
     const dirStyle = s.tickerStyle || 'gold';
 
     const settingsKey = `${mode}|${dirMsg}|${dirBadge}|${dirStyle}|${s.rssUrl || ''}|${(cachedRssItems || []).length}`;
-    const settingsChanged = (settingsKey !== lastTickerSettingsKey);
     lastTickerSettingsKey = settingsKey;
 
-    const isSchedSlideNow = isScheduleChangeSlide(currentDisplayedSlideItem);
-    normalTickerSequence = buildNormalTickerSequence(isSchedSlideNow);
+    const activeSlide = currentDisplayedSlideItem || ((slides && slides.length > 0) ? (slides[currentIndex] || slides[0]) : null);
+    normalTickerSequence = buildNormalTickerSequence(isScheduleChangeSlide(activeSlide));
 
-    if (currentTickerMode === 'schedule') {
-        const activeScheduleItems = getActiveScheduleAnnouncements();
-        const schedItem = buildScheduleTickerItem(activeScheduleItems);
-        const dirItem = getActiveDirectorTickerItem();
-        if (schedItem && !isSchedSlideNow) {
-            // Priority 1: Director's message, Priority 2: Schedule changes
-            tickerSequence = dirItem ? [dirItem, schedItem] : [schedItem];
-            const seqKey = getSequenceKey(tickerSequence);
-            if (settingsChanged || savedTickerModeState.schedule.seqKey !== seqKey) {
-                savedTickerModeState.schedule = { index: 0, offset: null, seqKey };
-                tickerSequenceIndex = 0;
-                playTickerItem(tickerSequence[0], getFreshTickerStartOffset(true));
-            }
-            return;
-        } else {
-            currentTickerMode = 'normal';
-        }
-    }
-
-    tickerSequence = normalTickerSequence;
-
-    const tickerContainer = document.getElementById('tickerContainer');
-    if (tickerSequence.length === 0) {
-        if (tickerContainer) tickerContainer.style.display = 'none';
-        document.body.classList.add('no-ticker');
-        if (tickerAnimId) {
-            cancelAnimationFrame(tickerAnimId);
-            tickerAnimId = null;
-        }
-        currentPlayingTickerKey = '';
-        return;
-    } else {
-        document.body.classList.remove('no-ticker');
-    }
-
-    if (tickerSequenceIndex >= tickerSequence.length) {
-        tickerSequenceIndex = 0;
-    }
-
-    const expectedKey = getTickerItemKey(tickerSequence[tickerSequenceIndex]);
-
-    if (!tickerAnimId || settingsChanged || currentPlayingTickerKey !== expectedKey) {
-        tickerSequenceIndex = 0;
-        playTickerItem(tickerSequence[0], getFreshTickerStartOffset(true));
-    }
+    // Always delegate to syncTickerWithCurrentSlide so it remains the single authority
+    // deciding whether the bottom bar shows Schedule Changes (during normal slides) or RSS (during schedule slides)
+    syncTickerWithCurrentSlide(activeSlide);
 }
 
 // ===================================================
 // DYNAMIC SCHEDULE TICKER SYNC
 // Strict Rule & Priority Hierarchy:
-// 1st Priority: Director's Message (🏛️ ΔΙΕΥΘΥΝΣΗ) when active
-// 2nd Priority: Urgent Schedule Changes (📅 ΑΛΛΑΓΕΣ ΠΡΟΓΡΑΜΜΑΤΟΣ) when a NORMAL announcement is on screen
-// 3rd Priority: RSS News (🗞️ ΕΙΔΗΣΕΙΣ) when a SCHEDULE CHANGE card is on screen (or when no schedule changes exist)
+// - When NORMAL announcements are on the main screen (!isScheduleChangeSlide(item)) and schedule changes exist:
+//   Urgent Schedule Changes (📅 ΑΛΛΑΓΕΣ ΠΡΟΓΡΑΜΜΑΤΟΣ) take the exact place of RSS News (🗞️ ΕΙΔΗΣΕΙΣ)
+//   for the entire duration of the normal announcements so schedule changes are never lost!
+//   (If Director's Message 🏛️ ΔΙΕΥΘΥΝΣΗ is also active, it alternates with 📅 ΑΛΛΑΓΕΣ ΠΡΟΓΡΑΜΜΑΤΟΣ).
+// - When a SCHEDULE CHANGE announcement is on the main screen (isScheduleChangeSlide(item)):
+//   RSS News (🗞️ ΕΙΔΗΣΕΙΣ) is displayed (alongside 🏛️ ΔΙΕΥΘΥΝΣΗ if active, with 🏛️ ΔΙΕΥΘΥΝΣΗ having 1st priority).
 // ===================================================
 
 function isScheduleChangeSlide(item) {
@@ -820,8 +789,21 @@ function isScheduleChangeSlide(item) {
 }
 
 function getActiveScheduleAnnouncements() {
-    const pool = (slides && slides.length > 0) ? slides : allAnnouncements;
-    return getActiveSlides(pool).filter(isScheduleChangeSlide);
+    if (window._auroraDemoScheduleItems && window._auroraDemoScheduleItems.length > 0) {
+        return window._auroraDemoScheduleItems;
+    }
+    const activeFromSlides = getActiveSlides(allAnnouncements || []).filter(isScheduleChangeSlide);
+    if (activeFromSlides.length > 0) {
+        return activeFromSlides;
+    }
+    // Also include any unpaused, non-expired schedule changes in allAnnouncements
+    // so that whenever normal announcements are playing on the main screen and schedule changes
+    // have already been published, they are shown in the bottom bar in place of RSS news!
+    return (allAnnouncements || []).filter(item =>
+        !item.isPaused &&
+        !isExpiredUrgentOrSchedule(item) &&
+        isScheduleChangeSlide(item)
+    );
 }
 
 function buildScheduleTickerItem(scheduleItems) {
@@ -881,29 +863,31 @@ function buildScheduleTickerItem(scheduleItems) {
 let hasShownInitialDirectorPriority = false;
 
 function syncTickerWithCurrentSlide(item) {
-    currentDisplayedSlideItem = item || null;
-    const isCurrentSlideSchedule = isScheduleChangeSlide(item);
+    if (item !== undefined) {
+        currentDisplayedSlideItem = item || null;
+    }
+    const isCurrentSlideSchedule = isScheduleChangeSlide(currentDisplayedSlideItem);
     const activeScheduleItems = getActiveScheduleAnnouncements();
 
     // STRICT RULE:
-    // - When a NORMAL announcement is on screen (!isCurrentSlideSchedule) AND active schedule changes exist -> 'schedule' mode
-    // - When a SCHEDULE CHANGE announcement is on screen (isCurrentSlideSchedule) OR no active schedule changes -> 'normal' mode (RSS / Director)
+    // - When a NORMAL announcement is on screen (!isCurrentSlideSchedule) AND schedule changes exist -> 'schedule' mode
+    //   (Schedule changes take the place of RSS news for the entire duration of the normal announcements!)
+    // - When a SCHEDULE CHANGE announcement is on screen (isCurrentSlideSchedule) OR no schedule changes exist -> 'normal' mode (RSS / Director)
     const targetMode = (!isCurrentSlideSchedule && activeScheduleItems.length > 0) ? 'schedule' : 'normal';
-
-    const previousItemType = (tickerSequence && tickerSequence[tickerSequenceIndex])
-        ? tickerSequence[tickerSequenceIndex].type
-        : null;
 
     if (targetMode === 'schedule') {
         const schedItem = buildScheduleTickerItem(activeScheduleItems);
         if (!schedItem) return;
 
         const dirItem = getActiveDirectorTickerItem();
-        // Priority 1: Director's message, Priority 2: Schedule changes
-        const newScheduleSeq = dirItem ? [dirItem, schedItem] : [schedItem];
+        // During normal announcements, Schedule Changes (schedItem) replace RSS news immediately
+        // so they are never lost while normal announcements play on the main screen;
+        // if Director's message (dirItem) is active, it alternates with schedItem.
+        const newScheduleSeq = dirItem ? [schedItem, dirItem] : [schedItem];
         const seqKey = getSequenceKey(newScheduleSeq);
 
         if (currentTickerMode !== 'schedule' || lastScheduleTickerHtml !== seqKey || !tickerAnimId) {
+            const wasAlreadyScheduleMode = (currentTickerMode === 'schedule');
             currentTickerMode = 'schedule';
             lastScheduleTickerHtml = seqKey;
             tickerSequence = newScheduleSeq;
@@ -911,23 +895,20 @@ function syncTickerWithCurrentSlide(item) {
             let resumeIdx = 0;
             let resumeOffset = getFreshTickerStartOffset(true);
 
-            if (savedTickerModeState.schedule.seqKey === seqKey && savedTickerModeState.schedule.index < tickerSequence.length) {
+            if (!wasAlreadyScheduleMode) {
+                // Just switched onto a normal announcement: start immediately with 📅 ΑΛΛΑΓΕΣ ΠΡΟΓΡΑΜΜΑΤΟΣ (index 0)
+                // or resume its scroll position if it was mid-scroll earlier
+                resumeIdx = 0;
+                if (savedTickerModeState.schedule.seqKey === seqKey &&
+                    savedTickerModeState.schedule.index === 0 &&
+                    typeof savedTickerModeState.schedule.offset === 'number' &&
+                    savedTickerModeState.schedule.offset > -200) {
+                    resumeOffset = savedTickerModeState.schedule.offset;
+                }
+            } else if (savedTickerModeState.schedule.seqKey === seqKey && savedTickerModeState.schedule.index < tickerSequence.length) {
                 resumeIdx = savedTickerModeState.schedule.index;
                 if (typeof savedTickerModeState.schedule.offset === 'number' && savedTickerModeState.schedule.offset > -200) {
                     resumeOffset = savedTickerModeState.schedule.offset;
-                }
-            }
-
-            // Ensure Priority 1 (Director's message) plays first on initial boot,
-            // and if Director's message just played in the previous mode, show Schedule Changes immediately!
-            if (dirItem && tickerSequence.length > 1) {
-                if (!hasShownInitialDirectorPriority) {
-                    resumeIdx = 0; // Director first (1st priority)
-                    resumeOffset = getFreshTickerStartOffset(true);
-                    hasShownInitialDirectorPriority = true;
-                } else if (previousItemType === 'director') {
-                    resumeIdx = 1; // Schedule changes immediately after Director
-                    resumeOffset = getFreshTickerStartOffset(true);
                 }
             }
 
@@ -975,16 +956,11 @@ function syncTickerWithCurrentSlide(item) {
 
             const dirItem = getActiveDirectorTickerItem();
             if (isCurrentSlideSchedule && tickerSequence.length > 1 && dirItem) {
-                // On a Schedule Change slide: if Director's message has not been shown yet, show Director first (Priority 1);
-                // if Director's message was already shown, immediately show RSS (index 1, 3, ...) so RSS is always visible on Schedule Change slides!
+                // Priority 1: Director's message plays first on initial schedule slide, then alternates with RSS (Priority 3)
                 if (!hasShownInitialDirectorPriority) {
-                    resumeIdx = 0; // Director first
+                    resumeIdx = 0;
                     resumeOffset = getFreshTickerStartOffset(true);
                     hasShownInitialDirectorPriority = true;
-                } else if (previousItemType === 'director' || tickerSequence[resumeIdx]?.type === 'director') {
-                    const rssIdx = tickerSequence.findIndex((it, idx) => idx >= resumeIdx && it.type === 'rss');
-                    resumeIdx = rssIdx !== -1 ? rssIdx : 1;
-                    resumeOffset = getFreshTickerStartOffset(true);
                 }
             }
 
@@ -1110,17 +1086,31 @@ const getActiveSlides = (list) => {
 
         // 1. Ειδικοί κανόνες για Αλλαγές Προγράμματος / Αναπληρώσεις
         if (isScheduleChangeSlide(item)) {
+            if (window._auroraSimulateSchoolHours) return true;
+
             // Ημερομηνία στην οποία αναφέρεται η αλλαγή
-            let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.startDate || item.endDate || todayStr;
+            let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.endDate || item.startDate || todayStr;
             if (rawDate.includes('T')) rawDate = rawDate.split('T')[0];
             const targetDate = rawDate.trim();
 
-            // Εμφανίζεται ΜΟΝΟ την ημέρα στην οποία αναφέρεται
+            let startDateStr = (item.startDate || targetDate).trim();
+            if (startDateStr.includes('T')) startDateStr = startDateStr.split('T')[0];
+
+            // Εάν ο διαχειριστής επέλεξε «Άμεση προβολή από τώρα» (startDate <= todayStr <= targetDate)
+            if (startDateStr < targetDate && todayStr >= startDateStr && todayStr < targetDate) {
+                const startTime = (item.startTime && item.startTime.trim()) || "";
+                if (startTime && todayStr === startDateStr && currentHHMM < startTime) return false;
+                return true;
+            }
+
+            // Εμφανίζεται την ημέρα στην οποία αναφέρεται
             if (todayStr !== targetDate) return false;
 
-            // Έναρξη εμφάνισης: 07:45 της ημέρας εκείνης
-            const startTime = (item.startTime && item.startTime.trim()) || "07:45";
-            if (currentHHMM < startTime) return false;
+            // Έναρξη εμφάνισης: 07:45 της ημέρας εκείνης (ή όποια ώρα ορίστηκε)
+            const startTime = (item.startTime !== undefined && item.startTime !== null)
+                ? item.startTime.trim()
+                : "07:45";
+            if (startTime && currentHHMM < startTime) return false;
 
             // Απομάκρυνση: μετά το πέρας της ώρας για την οποία γίνεται λόγος
             const endTime = getScheduleChangeEndTime(item);
@@ -2339,7 +2329,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V24';
+const APP_VERSION = '2026_AURORA_V25';
 
 async function checkForAppUpdate() {
     try {
@@ -2376,8 +2366,9 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         bar.innerHTML = `
             <span style="font-weight:800; color:#67e8f9; margin-right:4px;">🎛️ Δοκιμή Aurora:</span>
             <button type="button" data-demo="live" class="aurora-demo-btn active">🔄 Ζωντανή Ροή Σχολείου</button>
-            <button type="button" data-demo="mockup2" class="aurora-demo-btn">🚨 Δείγμα Εικόνας 2 (Έκτακτη Β1 + 3η Ώρα 70%)</button>
-            <button type="button" data-demo="mockup1" class="aurora-demo-btn">🏰 Δείγμα Εικόνας 1 (Εκπαιδευτική Επίσκεψη)</button>
+            <button type="button" data-demo="rotation" class="aurora-demo-btn">🔁 Δοκιμή Εναλλαγής (Κανονικές ↔ Αλλαγές)</button>
+            <button type="button" data-demo="mockup2" class="aurora-demo-btn">🚨 Δείγμα 2 (Αλλαγή Προγράμματος → RSS κάτω)</button>
+            <button type="button" data-demo="mockup1" class="aurora-demo-btn">🏰 Δείγμα 1 (Κανονική Ανακοίνωση → Αλλαγές κάτω)</button>
             <button type="button" id="closeAuroraTestBar" title="Απόκρυψη μπάρας δοκιμής" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0 6px;">✕</button>
         `;
         document.body.appendChild(bar);
@@ -2386,6 +2377,24 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
             bar.style.display = 'none';
         });
 
+        const fallbackDemoScheduleItems = [{
+            id: 'demo-b1',
+            type: 'alert',
+            layout: 'fullscreen',
+            mediaType: 'schedule_change',
+            isScheduleChange: true,
+            title: 'Τμήμα Β1 — Τροποποίηση 3ης Ώρας',
+            scheduleData: {
+                section: 'Β1',
+                changes: [{
+                    hour: 3,
+                    kind: 'free',
+                    badgeText: 'ΚΕΝΟ',
+                    detail: 'Απουσία διδάσκοντος — Οι μαθητές παραμένουν στο χώρο της Βιβλιοθήκης'
+                }]
+            }
+        }];
+
         bar.querySelectorAll('.aurora-demo-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 bar.querySelectorAll('.aurora-demo-btn').forEach(b => b.classList.remove('active'));
@@ -2393,15 +2402,29 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 const mode = btn.getAttribute('data-demo');
 
                 if (mode === 'live') {
+                    window._auroraSimulateSchoolHours = false;
+                    window._auroraDemoScheduleItems = null;
                     window._auroraDemoScheduleHtml = null;
                     window._auroraDemoClock = null;
                     window._auroraDemoWeather = false;
                     updateClock();
                     if (currentSettings && currentSettings.weatherCity) updateWeather(currentSettings.weatherCity);
-                    updateTickerSequence();
+                    currentIndex = 0;
+                    startRotation();
+                } else if (mode === 'rotation') {
+                    window._auroraSimulateSchoolHours = true;
+                    window._auroraDemoScheduleItems = null;
+                    window._auroraDemoScheduleHtml = null;
+                    window._auroraDemoClock = null;
+                    window._auroraDemoWeather = false;
+                    updateClock();
+                    if (currentSettings && currentSettings.weatherCity) updateWeather(currentSettings.weatherCity);
+                    currentIndex = 0;
                     startRotation();
                 } else if (mode === 'mockup2') {
                     if (timer) clearTimeout(timer);
+                    window._auroraSimulateSchoolHours = false;
+                    window._auroraDemoScheduleItems = null;
                     window._auroraDemoClock = { time: '10:16', date: 'Τετάρτη 5 Νοεμβρίου' };
                     window._auroraDemoWeather = true;
                     const wEl = document.getElementById('weather');
@@ -2417,7 +2440,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                         </div>
                     `;
                     updateClock();
-                    renderSlide({
+                    const demoSchedSlide = {
                         id: 'demo-b1',
                         type: 'alert',
                         layout: 'fullscreen',
@@ -2433,15 +2456,14 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                                 detail: 'Απουσία διδάσκοντος.\nΟι μαθητές παραμένουν στο χώρο της Βιβλιοθήκης'
                             }]
                         }
-                    });
-                    playTickerItem({
-                        type: 'director',
-                        label: '🏛️ ΔΙΕΥΘΥΝΣΗ',
-                        style: 'director',
-                        html: `<span class="ticker-director-message">...Υπενθυμίζουμε στους μαθητές της Γ' Τάξης να καταθέσουν τις αιτήσεις συμμετοχής για τις αθλητικές ομάδες...</span>`
-                    });
+                    };
+                    syncTickerWithCurrentSlide(demoSchedSlide);
+                    renderSlide(demoSchedSlide);
                 } else if (mode === 'mockup1') {
                     if (timer) clearTimeout(timer);
+                    window._auroraSimulateSchoolHours = false;
+                    const realSched = getActiveScheduleAnnouncements();
+                    window._auroraDemoScheduleItems = (realSched && realSched.length > 0) ? null : fallbackDemoScheduleItems;
                     window._auroraDemoClock = { time: '10:15', date: 'Πέμπτη, 24 Οκτ' };
                     window._auroraDemoWeather = true;
                     const wEl = document.getElementById('weather');
@@ -2457,7 +2479,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                         </div>
                     `;
                     updateClock();
-                    renderSlide({
+                    const demoNormalSlide = {
                         id: 'demo-visit',
                         type: 'event',
                         layout: 'split-left',
@@ -2465,13 +2487,9 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                         mediaSource: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80',
                         title: 'ΕΚΠΑΙΔΕΥΤΙΚΗ ΕΠΙΣΚΕΨΗ',
                         content: `<div style="font-weight:700; color:#fff; font-size:1.45rem; margin-bottom:0.6rem;">1ο Πρότυπο Γυμνάσιο Μυτιλήνης<br>Πέμπτη, 24 Οκτωβρίου | 09:30<br>Προορισμός: Αρχαιολογικό Μουσείο</div><div style="font-size:1.15rem; color:rgba(226,232,240,0.9);">Συμμετοχή: Τμήματα Α1, Α2. Οι μαθητές θα ξεναγηθούν στις μόνιμες εκθέσεις του Αρχαιολογικού Μουσείου Μυτιλήνης με τη συνοδεία των υπεύθυνων καθηγητών.</div>`
-                    });
-                    playTickerItem({
-                        type: 'director',
-                        label: '🔔 ΕΚΤΑΚΤΗ ΑΝΑΚΟΙΝΩΣΗ',
-                        style: 'director',
-                        html: `<span class="ticker-director-message">Πρόγραμμα Εξετάσεων (Α' ΤΕΤΡ...) &nbsp;|&nbsp; ΜΑΘΗΤΙΚΟΣ ΔΙΑΓΩΝΙΣΜΟΣ ΜΑΘΗΜΑΤΙΚΩΝ &nbsp;|&nbsp; 1ο Πρότυπο Γυμνάσιο Μυτιλήνης</span>`
-                    });
+                    };
+                    syncTickerWithCurrentSlide(demoNormalSlide);
+                    renderSlide(demoNormalSlide);
                 }
             });
         });
