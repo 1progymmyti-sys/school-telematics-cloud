@@ -2420,7 +2420,35 @@ window.publishSmartSchedule = async () => {
                 createdAt: new Date().toISOString()
             };
 
-            await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
+            // If a card already exists for the same section & date, merge all changes into ONE card
+            const normSec = (s) => {
+                let v = (s || '').replace(/[\s\-_\'\.]/g, '').toUpperCase();
+                if (v.startsWith('A')) v = 'Α' + v.slice(1);
+                else if (v.startsWith('B')) v = 'Β' + v.slice(1);
+                else if (v.startsWith('C')) v = 'Γ' + v.slice(1);
+                return v;
+            };
+            const existingCard = (allAnnouncements || []).find(a =>
+                isScheduleChangeSlide(a) &&
+                !a.isPaused &&
+                normSec((a.scheduleData && a.scheduleData.section) || '') === normSec(secData.section) &&
+                (((a.scheduleData && a.scheduleData.dateIso) || a.endDate || '').slice(0, 10) === dtIso)
+            );
+
+            if (existingCard) {
+                const byHour = new Map();
+                ((existingCard.scheduleData && existingCard.scheduleData.changes) || []).forEach(c => byHour.set(parseInt(c.hour, 10), c));
+                (secData.changes || []).forEach(c => byHour.set(parseInt(c.hour, 10), c)); // new changes override same hour
+                const mergedChanges = Array.from(byHour.values()).sort((a, b) => (parseInt(a.hour, 10) || 0) - (parseInt(b.hour, 10) || 0));
+                const mergedMax = Math.max(...mergedChanges.map(c => parseInt(c.hour, 10) || 0));
+                await updateDoc(doc(db, ANNOUNCEMENTS_COL, existingCard.id), {
+                    scheduleData: { ...(existingCard.scheduleData || {}), ...secData, changes: mergedChanges },
+                    endTime: hourEndMap[mergedMax] || autoSectionEndTime,
+                    isPaused: false
+                });
+            } else {
+                await addDoc(collection(db, ANNOUNCEMENTS_COL), docData);
+            }
             publishedSecs.push(secData.section);
         }
 

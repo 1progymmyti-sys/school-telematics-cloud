@@ -2875,6 +2875,31 @@ body.aurora-glass-body .type-alert .aurora-unified-glass-card {
     color: #1e293b;
 }
 
+/* Multiple changes for the same section on ONE card: each hour on its own separated row */
+.aurora-schedule-ice-row-multi {
+    font-size: clamp(1.1rem, min(1.7vw, 2.8vh), 1.55rem);
+    line-height: 1.35;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.15);
+    animation: auroraSchedRowIn 0.4s ease both;
+}
+
+.aurora-schedule-ice-row-multi:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.aurora-schedule-ice-time {
+    font-weight: 700;
+    color: #475569;
+    font-size: 0.82em;
+}
+
+@keyframes auroraSchedRowIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .aurora-schedule-bottom-pill {
     position: absolute;
     bottom: -18px;

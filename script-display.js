@@ -1,4 +1,4 @@
-import { db, doc, onSnapshot, collection, query, orderBy, deleteDoc } from "./firebase-config.js";
+import { db, doc, onSnapshot, collection, query, orderBy, updateDoc, deleteDoc } from "./firebase-config.js";
 import ParticleEngine from "./canvas-particles.js?v=exams_fix2";
 
 // Global State
@@ -783,14 +783,145 @@ function updateTickerSequence() {
 //   RSS News (🗞️ ΕΙΔΗΣΕΙΣ) is displayed (alongside 🏛️ ΔΙΕΥΘΥΝΣΗ if active, with 🏛️ ΔΙΕΥΘΥΝΣΗ having 1st priority).
 // ===================================================
 
+// Mapping of Greek school periods to their end times (used for per-hour schedule change removal)
+const SCHOOL_PERIOD_END_TIMES = {
+    1: "08:45",
+    2: "09:35",
+    3: "10:30",
+    4: "11:25",
+    5: "12:20",
+    6: "13:10",
+    7: "13:55"
+};
+
 function isScheduleChangeSlide(item) {
     if (!item) return false;
     return item.mediaType === 'schedule_change' || item.isScheduleChange === true;
 }
 
+function normalizeScheduleSectionName(item) {
+    const data = (item && item.scheduleData) || {};
+    let sec = data.section || (item && item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Τμήμα';
+    sec = sec.replace(/[\s\-_\'\.]/g, '').toUpperCase();
+    if (sec.startsWith('A')) sec = 'Α' + sec.slice(1);
+    else if (sec.startsWith('B')) sec = 'Β' + sec.slice(1);
+    else if (sec.startsWith('C')) sec = 'Γ' + sec.slice(1);
+    return sec || 'Τμήμα';
+}
+
+function getScheduleTargetDate(item, fallbackDateStr = '') {
+    let rawDate = (item && item.scheduleData && item.scheduleData.dateIso) || (item && item.endDate) || (item && item.startDate) || fallbackDateStr;
+    if (rawDate && rawDate.includes('T')) rawDate = rawDate.split('T')[0];
+    return (rawDate || '').trim();
+}
+
+function getRawChangesFromScheduleItem(item) {
+    const data = (item && item.scheduleData) || {};
+    let changes = Array.isArray(data.changes) ? data.changes.map(c => ({ ...c, hour: parseInt(c.hour, 10) || 1 })) : [];
+    if (changes.length === 0 && item && item.content) {
+        const text = `${item.title || ''} ${item.content || ''}`;
+        const m = text.match(/([1-7])[ηή]?\s*(?:ώρα|ωρα)/i);
+        const h = m ? parseInt(m[1], 10) : 1;
+        changes = [{
+            hour: h,
+            detail: item.content,
+            kind: 'substitution',
+            badgeText: 'ΑΛΛΑΓΗ',
+            badgeColor: '#10b981',
+            icon: '⚡'
+        }];
+    }
+    changes.sort((a, b) => (parseInt(a.hour, 10) || 0) - (parseInt(b.hour, 10) || 0));
+    return changes;
+}
+
+// Returns ONLY the hour changes that have NOT yet been executed.
+// As each lesson hour finishes (currentHHMM >= SCHOOL_PERIOD_END_TIMES[hour]),
+// that change is automatically dropped from the card, leaving the remaining hours!
+function getActiveChangesForScheduleItem(item) {
+    if (!item) return [];
+    const changes = getRawChangesFromScheduleItem(item);
+    if (changes.length === 0) return [];
+
+    const now = getGreekNow();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentHHMM = window._auroraSimulatedHHMM
+        ? window._auroraSimulatedHHMM
+        : (String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'));
+
+    const targetDate = getScheduleTargetDate(item, '');
+
+    if (!window._auroraSimulateSchoolHours && !window._auroraSimulatedHHMM && targetDate && targetDate < todayStr) {
+        return [];
+    }
+
+    // Filter out completed hours on the day of the schedule change (or when simulating school time on localhost)
+    if (targetDate === todayStr || !targetDate || window._auroraSimulatedHHMM) {
+        return changes.filter(c => {
+            const h = parseInt(c.hour, 10);
+            const hourEnd = (h && SCHOOL_PERIOD_END_TIMES[h]) ? SCHOOL_PERIOD_END_TIMES[h] : "13:55";
+            return currentHHMM < hourEnd;
+        });
+    }
+
+    return changes;
+}
+
+// Consolidates schedule change items so that all active changes for the SAME section (Τμήμα)
+// on the same date appear together on ONE single card, containing only remaining (unexecuted) hours!
+function consolidateScheduleItemsBySection(items) {
+    if (!items || items.length === 0) return [];
+    const result = [];
+    const sectionMap = new Map();
+
+    for (const item of items) {
+        if (!isScheduleChangeSlide(item)) {
+            result.push(item);
+            continue;
+        }
+
+        const activeChanges = getActiveChangesForScheduleItem(item);
+        if (activeChanges.length === 0) continue; // All changes on this card have been executed
+
+        const section = normalizeScheduleSectionName(item);
+        const targetDate = getScheduleTargetDate(item, '');
+        const groupKey = `${section}__${targetDate}`;
+
+        const maxHour = Math.max(...activeChanges.map(c => parseInt(c.hour, 10) || 0));
+        const computedEndTime = SCHOOL_PERIOD_END_TIMES[maxHour] || item.endTime || "13:55";
+
+        if (!sectionMap.has(groupKey)) {
+            const cloned = {
+                ...item,
+                title: `Αλλαγή Προγράμματος - Τμήμα ${section}`,
+                endTime: computedEndTime,
+                scheduleData: {
+                    ...(item.scheduleData || {}),
+                    section: section,
+                    changes: [...activeChanges]
+                }
+            };
+            sectionMap.set(groupKey, cloned);
+            result.push(cloned);
+        } else {
+            // Merge into the existing card for the same section so all changes for a section appear on ONE card
+            const existing = sectionMap.get(groupKey);
+            const byHour = new Map();
+            (existing.scheduleData.changes || []).forEach(c => byHour.set(parseInt(c.hour, 10), c));
+            activeChanges.forEach(c => byHour.set(parseInt(c.hour, 10), c));
+            const mergedChanges = Array.from(byHour.values()).sort((a, b) => (parseInt(a.hour, 10) || 0) - (parseInt(b.hour, 10) || 0));
+            const mergedMaxHour = Math.max(...mergedChanges.map(c => parseInt(c.hour, 10) || 0));
+            existing.scheduleData.changes = mergedChanges;
+            existing.endTime = SCHOOL_PERIOD_END_TIMES[mergedMaxHour] || existing.endTime || "13:55";
+        }
+    }
+
+    return result;
+}
+
 function getActiveScheduleAnnouncements() {
     if (window._auroraDemoScheduleItems && window._auroraDemoScheduleItems.length > 0) {
-        return window._auroraDemoScheduleItems;
+        return consolidateScheduleItemsBySection(window._auroraDemoScheduleItems);
     }
     const activeFromSlides = getActiveSlides(allAnnouncements || []).filter(isScheduleChangeSlide);
     if (activeFromSlides.length > 0) {
@@ -799,30 +930,22 @@ function getActiveScheduleAnnouncements() {
     // Also include any unpaused, non-expired schedule changes in allAnnouncements
     // so that whenever normal announcements are playing on the main screen and schedule changes
     // have already been published, they are shown in the bottom bar in place of RSS news!
-    return (allAnnouncements || []).filter(item =>
+    const fallbackList = (allAnnouncements || []).filter(item =>
         !item.isPaused &&
         !isExpiredUrgentOrSchedule(item) &&
         isScheduleChangeSlide(item)
     );
+    return consolidateScheduleItemsBySection(fallbackList);
 }
 
 function buildScheduleTickerItem(scheduleItems) {
-    if (!scheduleItems || scheduleItems.length === 0) return null;
+    const consolidated = consolidateScheduleItemsBySection(scheduleItems || []);
+    if (!consolidated || consolidated.length === 0) return null;
 
-    const sectionsHtml = scheduleItems.map(item => {
-        const data = item.scheduleData || {};
-        const section = data.section || (item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Τμήμα';
-        let changes = data.changes || [];
-
-        if ((!changes || changes.length === 0) && item.content) {
-            changes = [{
-                hour: 1,
-                detail: item.content,
-                kind: 'substitution',
-                badgeText: 'ΑΛΛΑΓΗ',
-                icon: '⚡'
-            }];
-        }
+    const sectionsHtml = consolidated.map(item => {
+        const section = normalizeScheduleSectionName(item);
+        const changes = getActiveChangesForScheduleItem(item);
+        if (!changes || changes.length === 0) return '';
 
         const changesHtml = changes.map(c => {
             const badgeColor = c.badgeColor || (c.kind === 'free' ? '#ef4444' : (c.kind === 'room' ? '#f59e0b' : '#10b981'));
@@ -845,7 +968,9 @@ function buildScheduleTickerItem(scheduleItems) {
                 ${changesHtml}
             </span>
         `;
-    }).join('<span class="ticker-sched-sep">✦</span>');
+    }).filter(Boolean).join('<span class="ticker-sched-sep">✦</span>');
+
+    if (!sectionsHtml) return null;
 
     const hasDirMsg = !!getActiveDirectorTickerItem();
     const fullHtml = hasDirMsg
@@ -972,31 +1097,22 @@ function syncTickerWithCurrentSlide(item) {
     }
 }
 
-// Mapping of Greek school periods to their end times (used for schedule change removal)
-const SCHOOL_PERIOD_END_TIMES = {
-    1: "08:45",
-    2: "09:35",
-    3: "10:30",
-    4: "11:25",
-    5: "12:20",
-    6: "13:10",
-    7: "13:55"
-};
-
 function getScheduleChangeEndTime(item) {
-    if (item.endTime && item.endTime.trim() !== "") return item.endTime.trim();
-
-    // 1. Check scheduleData.changes
-    const changes = (item.scheduleData && item.scheduleData.changes) || [];
     let maxHour = 0;
-    for (let i = 0; i < changes.length; i++) {
-        const h = parseInt(changes[i].hour, 10);
-        if (h && h > maxHour) maxHour = h;
+
+    // 1. Schedule changes: endTime always reflects the latest remaining hour in scheduleData.changes
+    if (isScheduleChangeSlide(item)) {
+        const changes = (item.scheduleData && Array.isArray(item.scheduleData.changes)) ? item.scheduleData.changes : [];
+        for (let i = 0; i < changes.length; i++) {
+            const h = parseInt(changes[i].hour, 10);
+            if (h && h > maxHour) maxHour = h;
+        }
+        if (maxHour > 0 && SCHOOL_PERIOD_END_TIMES[maxHour]) {
+            return SCHOOL_PERIOD_END_TIMES[maxHour];
+        }
     }
 
-    if (maxHour > 0 && SCHOOL_PERIOD_END_TIMES[maxHour]) {
-        return SCHOOL_PERIOD_END_TIMES[maxHour];
-    }
+    if (item.endTime && item.endTime.trim() !== "") return item.endTime.trim();
 
     // 2. Fallback: Scan title & content for hour numbers (e.g. "3η ώρα", "5η ώρα")
     const text = `${item.title || ''} ${item.content || ''}`;
@@ -1027,23 +1143,29 @@ function isExpiredUrgentOrSchedule(item) {
 
     const now = getGreekNow();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+    const currentHHMM = window._auroraSimulatedHHMM
+        ? window._auroraSimulatedHHMM
+        : (String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'));
 
-    let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.endDate || item.startDate || "";
-    if (rawDate.includes('T')) {
-        rawDate = rawDate.split('T')[0];
-    }
-    const targetDate = rawDate.trim();
+    const targetDate = getScheduleTargetDate(item, '');
 
     // 1. Target date is strictly in the past
-    if (targetDate && targetDate < todayStr) {
+    if (!window._auroraSimulateSchoolHours && !window._auroraSimulatedHHMM && targetDate && targetDate < todayStr) {
         return true;
     }
 
-    // 2. Target date is today and end time has passed
+    // 2. For schedule changes on today's date: expired when ALL hours have been executed
+    if (isSchedule && (targetDate === todayStr || !targetDate || window._auroraSimulatedHHMM)) {
+        const raw = getRawChangesFromScheduleItem(item);
+        if (raw.length > 0 && getActiveChangesForScheduleItem(item).length === 0) {
+            return true;
+        }
+    }
+
+    // 3. Target date is today and end time has passed
     if (targetDate === todayStr || (!targetDate && isSchedule)) {
         const endTime = getScheduleChangeEndTime(item);
-        if (endTime && currentHHMM > endTime) {
+        if (endTime && (isSchedule ? currentHHMM >= endTime : currentHHMM > endTime)) {
             return true;
         }
     }
@@ -1054,19 +1176,93 @@ function isExpiredUrgentOrSchedule(item) {
 let isDisplayCleaningUp = false;
 
 async function cleanupExpiredAnnouncementsFromDisplay(items) {
+    // Never mutate live Firestore documents while testing local simulation modes
+    if (window._auroraSimulateSchoolHours || window._auroraSimulatedHHMM) return;
     if (isDisplayCleaningUp || !items || items.length === 0) return;
-    const expiredItems = items.filter(isExpiredUrgentOrSchedule);
-    if (expiredItems.length === 0) return;
 
     isDisplayCleaningUp = true;
     try {
-        console.log(`[Display Cleanup] Απομάκρυνση ${expiredItems.length} ληγμένων ανακοινώσεων:`, expiredItems.map(i => i.title));
-        for (const item of expiredItems) {
-            try {
-                await deleteDoc(doc(db, "announcements", item.id));
-                console.log(`[Display Cleanup] Διαγράφηκε επιτυχώς: ${item.title} (${item.id})`);
-            } catch (err) {
-                console.error(`[Display Cleanup] Σφάλμα διαγραφής ${item.id}:`, err);
+        // 1. Consolidate duplicate schedule_change docs for the same (section, targetDate) in Firestore
+        const scheduleGroups = new Map();
+        for (const item of items) {
+            if (!isScheduleChangeSlide(item) || item.isPaused) continue;
+            const section = normalizeScheduleSectionName(item);
+            const targetDate = getScheduleTargetDate(item, '');
+            const key = `${section}__${targetDate}`;
+            if (!scheduleGroups.has(key)) scheduleGroups.set(key, []);
+            scheduleGroups.get(key).push(item);
+        }
+
+        let didMerge = false;
+        for (const [, group] of scheduleGroups.entries()) {
+            if (group.length > 1) {
+                didMerge = true;
+                const primary = group[0];
+                const byHour = new Map();
+                group.forEach(docItem => {
+                    getRawChangesFromScheduleItem(docItem).forEach(c => {
+                        byHour.set(parseInt(c.hour, 10), c);
+                    });
+                });
+                const mergedChanges = Array.from(byHour.values()).sort((a, b) => (parseInt(a.hour, 10) || 0) - (parseInt(b.hour, 10) || 0));
+                const maxHour = Math.max(...mergedChanges.map(c => parseInt(c.hour, 10) || 0));
+                const newEndTime = SCHOOL_PERIOD_END_TIMES[maxHour] || primary.endTime || "13:55";
+                const updatedScheduleData = {
+                    ...(primary.scheduleData || {}),
+                    section: normalizeScheduleSectionName(primary),
+                    changes: mergedChanges
+                };
+                try {
+                    await updateDoc(doc(db, "announcements", primary.id), {
+                        title: `Αλλαγή Προγράμματος - Τμήμα ${updatedScheduleData.section}`,
+                        scheduleData: updatedScheduleData,
+                        endTime: newEndTime
+                    });
+                    for (let i = 1; i < group.length; i++) {
+                        await deleteDoc(doc(db, "announcements", group[i].id));
+                    }
+                    console.log(`[Display Consolidate] Συγχωνεύτηκαν ${group.length} κάρτες του Τμήματος ${updatedScheduleData.section} σε 1 ενιαία κάρτα.`);
+                } catch (mergeErr) {
+                    console.error(`[Display Consolidate] Σφάλμα συγχώνευσης:`, mergeErr);
+                }
+            }
+        }
+
+        // If merges happened, the local list is stale; the next Firestore snapshot will run step 2 with fresh data
+        if (didMerge) return;
+
+        // 2. Delete completed individual hours from multi-hour cards, or delete fully expired cards
+        for (const item of items) {
+            if (isExpiredUrgentOrSchedule(item)) {
+                try {
+                    await deleteDoc(doc(db, "announcements", item.id));
+                    console.log(`[Display Cleanup] Διαγράφηκε ληγμένη ανακοίνωση: ${item.title} (${item.id})`);
+                } catch (err) {
+                    console.error(`[Display Cleanup] Σφάλμα διαγραφής ${item.id}:`, err);
+                }
+                continue;
+            }
+
+            if (isScheduleChangeSlide(item)) {
+                const rawChanges = getRawChangesFromScheduleItem(item);
+                const activeChanges = getActiveChangesForScheduleItem(item);
+                if (rawChanges.length > 1 && activeChanges.length > 0 && activeChanges.length < rawChanges.length) {
+                    const maxHour = Math.max(...activeChanges.map(c => parseInt(c.hour, 10) || 0));
+                    const newEndTime = SCHOOL_PERIOD_END_TIMES[maxHour] || item.endTime || "13:55";
+                    const updatedScheduleData = {
+                        ...(item.scheduleData || {}),
+                        changes: activeChanges
+                    };
+                    try {
+                        await updateDoc(doc(db, "announcements", item.id), {
+                            scheduleData: updatedScheduleData,
+                            endTime: newEndTime
+                        });
+                        console.log(`[Display Hour Cleanup] Αφαιρέθηκαν οι εκτελεσμένες ώρες από το ${item.title}. Παραμένουν: ${activeChanges.map(c => c.hour + 'η').join(', ')}`);
+                    } catch (updateErr) {
+                        console.error(`[Display Hour Cleanup] Σφάλμα ενημέρωσης ${item.id}:`, updateErr);
+                    }
+                }
             }
         }
     } finally {
@@ -1078,20 +1274,23 @@ async function cleanupExpiredAnnouncementsFromDisplay(items) {
 const getActiveSlides = (list) => {
     const now = getGreekNow();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+    const currentHHMM = window._auroraSimulatedHHMM
+        ? window._auroraSimulatedHHMM
+        : (String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0'));
 
-    return list.filter(item => {
+    const filtered = (list || []).filter(item => {
         if (item.isPaused) return false; // Filter paused items
         if (isExpiredUrgentOrSchedule(item)) return false; // Filter expired urgent/schedule slides immediately
 
         // 1. Ειδικοί κανόνες για Αλλαγές Προγράμματος / Αναπληρώσεις
         if (isScheduleChangeSlide(item)) {
-            if (window._auroraSimulateSchoolHours) return true;
+            const remainingChanges = getActiveChangesForScheduleItem(item);
+            if (getRawChangesFromScheduleItem(item).length > 0 && remainingChanges.length === 0) return false;
+
+            if (window._auroraSimulateSchoolHours || window._auroraSimulatedHHMM) return true;
 
             // Ημερομηνία στην οποία αναφέρεται η αλλαγή
-            let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.endDate || item.startDate || todayStr;
-            if (rawDate.includes('T')) rawDate = rawDate.split('T')[0];
-            const targetDate = rawDate.trim();
+            const targetDate = getScheduleTargetDate(item, todayStr);
 
             let startDateStr = (item.startDate || targetDate).trim();
             if (startDateStr.includes('T')) startDateStr = startDateStr.split('T')[0];
@@ -1112,9 +1311,9 @@ const getActiveSlides = (list) => {
                 : "07:45";
             if (startTime && currentHHMM < startTime) return false;
 
-            // Απομάκρυνση: μετά το πέρας της ώρας για την οποία γίνεται λόγος
+            // Απομάκρυνση: μετά το πέρας της τελευταίας εναπομείνασας ώρας
             const endTime = getScheduleChangeEndTime(item);
-            if (currentHHMM > endTime) return false;
+            if (currentHHMM >= endTime) return false;
 
             return true;
         }
@@ -1131,7 +1330,20 @@ const getActiveSlides = (list) => {
 
         return true;
     });
+
+    // Always consolidate schedule change slides so multiple changes for the same section
+    // appear together on a single card with only the remaining (unexecuted) hours!
+    return consolidateScheduleItemsBySection(filtered);
 };
+
+function getSlideHoursSignature(s) {
+    if (!s) return '';
+    if (!isScheduleChangeSlide(s)) return s.id || '';
+    const hrs = (s.scheduleData && Array.isArray(s.scheduleData.changes))
+        ? s.scheduleData.changes.map(c => `${c.hour}:${c.detail || ''}`).join('|')
+        : '';
+    return `${s.id || ''}[${hrs}]`;
+}
 
 window.onload = () => {
     console.log("Display Cloud App Starting...");
@@ -1194,13 +1406,13 @@ window.onload = () => {
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Periodic auto-cleanup & slides refresh every 30 seconds
+    // Periodic auto-cleanup & per-hour schedule refresh every 15 seconds
     setInterval(() => {
         if (allAnnouncements && allAnnouncements.length > 0) {
             cleanupExpiredAnnouncementsFromDisplay(allAnnouncements);
             const freshSlides = getActiveSlides(allAnnouncements);
-            const hasChanged = freshSlides.length !== slides.length || 
-                freshSlides.some((s, idx) => !slides[idx] || s.id !== slides[idx].id);
+            const hasChanged = freshSlides.length !== slides.length ||
+                freshSlides.some((s, idx) => !slides[idx] || getSlideHoursSignature(s) !== getSlideHoursSignature(slides[idx]));
             if (hasChanged) {
                 slides = freshSlides;
                 if (!emergencyActive && slides.length > 0) {
@@ -1211,7 +1423,7 @@ window.onload = () => {
                 }
             }
         }
-    }, 30000);
+    }, 15000);
 
     // Audio Unlock
     document.body.addEventListener('click', () => {
@@ -1682,34 +1894,38 @@ function getLessonHourTime(hourNum) {
 
 function renderScheduleChangeBlock(item) {
     const data = item.scheduleData || {};
-    const section = data.section || (item.title ? item.title.replace(/Αλλαγή\s+Προγράμματος\s*[-–]?\s*/i, '').replace(/Τμήμα\s*/i, '').trim() : '') || 'Τμήμα';
+    const section = normalizeScheduleSectionName(item);
     const dateFormatted = data.dateFormatted || data.dateIso || '';
     const dayName = data.dayName || '';
-    let changes = data.changes || [];
+    let changes = getActiveChangesForScheduleItem(item);
 
-    // Fallback if changes array is empty but content exists
-    if ((!changes || changes.length === 0) && item.content) {
-        changes = [{
-            hour: 3,
-            detail: item.content,
-            badgeText: 'ΚΕΝΟ',
-            badgeColor: '#ef4444',
-            icon: '🛑',
-            kind: 'free'
-        }];
+    // Fallback if changes array is empty
+    if (!changes || changes.length === 0) {
+        changes = getRawChangesFromScheduleItem(item);
     }
+
+    const hoursLabelList = changes.map(c => `${c.hour}ης`);
+    const hoursJoined = hoursLabelList.length > 1
+        ? `${hoursLabelList.slice(0, -1).join(', ')} & ${hoursLabelList[hoursLabelList.length - 1]}`
+        : (hoursLabelList[0] || '');
 
     const headingText = changes.length === 1
         ? `Τμήμα ${section} — Τροποποίηση ${changes[0].hour}ης Ώρας`
-        : `Τμήμα ${section} — Τροποποίηση Προγράμματος`;
+        : (hoursJoined
+            ? `Τμήμα ${section} — Τροποποίηση ${hoursJoined} Ώρας`
+            : `Τμήμα ${section} — Τροποποίηση Προγράμματος`);
 
     const rowsHtml = changes.map(c => {
         const rawBadge = c.badgeText || (c.kind === 'free' ? 'ΚΕΝΟ' : (c.kind === 'room' ? 'ΑΛΛΑΓΗ ΑΙΘΟΥΣΑΣ' : 'ΑΝΑΠΛΗΡΩΣΗ'));
         const cleanBadge = rawBadge.replace('ΚΕΝΟ / ΑΠΟΧΩΡΗΣΗ', 'ΚΕΝΟ');
         const detailText = (c.detail || '').replace(/\n/g, '<br>');
+        const hTime = getLessonHourTime(c.hour);
+        const timeTag = (changes.length > 1 && hTime)
+            ? ` <span class="aurora-schedule-ice-time">(${hTime})</span>`
+            : '';
         return `
-            <div class="aurora-schedule-ice-row">
-                <span class="aurora-schedule-ice-lead">${c.hour}η Ώρα: ${cleanBadge} —</span>
+            <div class="aurora-schedule-ice-row ${changes.length > 1 ? 'aurora-schedule-ice-row-multi' : ''}">
+                <span class="aurora-schedule-ice-lead">${c.hour}η Ώρα${timeTag}: ${cleanBadge} —</span>
                 <span class="aurora-schedule-ice-detail">${detailText}</span>
             </div>
         `;
@@ -1719,7 +1935,12 @@ function renderScheduleChangeBlock(item) {
     if (changes.length === 1) {
         const t = getLessonHourTime(changes[0].hour);
         bottomTimeLabel = t ? `Σήμερα: ${t}` : (dateFormatted ? `${dayName} ${dateFormatted}` : 'Σήμερα');
-    } else if (changes.length > 1) {
+    } else if (changes.length === 2) {
+        bottomTimeLabel = `Σήμερα: ${changes.map(c => {
+            const t = getLessonHourTime(c.hour);
+            return t ? `${c.hour}η Ώρα (${t})` : `${c.hour}η Ώρα`;
+        }).join(' • ')}`;
+    } else if (changes.length > 2) {
         const firstT = getLessonHourTime(changes[0].hour).split(' - ')[0] || '';
         const lastT = (getLessonHourTime(changes[changes.length - 1].hour).split(' - ')[1]) || '';
         bottomTimeLabel = (firstT && lastT)
@@ -2329,7 +2550,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V25';
+const APP_VERSION = '2026_AURORA_V26';
 
 async function checkForAppUpdate() {
     try {
@@ -2365,10 +2586,11 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
         bar.id = 'auroraLocalTestBar';
         bar.innerHTML = `
             <span style="font-weight:800; color:#67e8f9; margin-right:4px;">🎛️ Δοκιμή Aurora:</span>
-            <button type="button" data-demo="live" class="aurora-demo-btn active">🔄 Ζωντανή Ροή Σχολείου</button>
-            <button type="button" data-demo="rotation" class="aurora-demo-btn">🔁 Δοκιμή Εναλλαγής (Κανονικές ↔ Αλλαγές)</button>
-            <button type="button" data-demo="mockup2" class="aurora-demo-btn">🚨 Δείγμα 2 (Αλλαγή Προγράμματος → RSS κάτω)</button>
-            <button type="button" data-demo="mockup1" class="aurora-demo-btn">🏰 Δείγμα 1 (Κανονική Ανακοίνωση → Αλλαγές κάτω)</button>
+            <button type="button" data-demo="live" class="aurora-demo-btn active">🔄 Ζωντανή Ροή</button>
+            <button type="button" data-demo="rotation" class="aurora-demo-btn">🔁 Ροή Σχολείου (09:50 • Β3: 3η &amp; 6η μαζί)</button>
+            <button type="button" data-demo="after_hour3" class="aurora-demo-btn">🕚 Μετά την 3η Ώρα (10:45 • Διαγράφεται η 3η από Β3!)</button>
+            <button type="button" data-demo="mockup2" class="aurora-demo-btn">🚨 Δείγμα 2 (Κάρτα Αλλαγής → RSS κάτω)</button>
+            <button type="button" data-demo="mockup1" class="aurora-demo-btn">🏰 Δείγμα 1 (Κανονική → Αλλαγές κάτω)</button>
             <button type="button" id="closeAuroraTestBar" title="Απόκρυψη μπάρας δοκιμής" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;padding:0 6px;">✕</button>
         `;
         document.body.appendChild(bar);
@@ -2403,6 +2625,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
 
                 if (mode === 'live') {
                     window._auroraSimulateSchoolHours = false;
+                    window._auroraSimulatedHHMM = null;
                     window._auroraDemoScheduleItems = null;
                     window._auroraDemoScheduleHtml = null;
                     window._auroraDemoClock = null;
@@ -2413,17 +2636,32 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                     startRotation();
                 } else if (mode === 'rotation') {
                     window._auroraSimulateSchoolHours = true;
+                    window._auroraSimulatedHHMM = '09:50';
                     window._auroraDemoScheduleItems = null;
                     window._auroraDemoScheduleHtml = null;
-                    window._auroraDemoClock = null;
+                    window._auroraDemoClock = { time: '09:50', date: 'Τρίτη 10 Νοεμβρίου' };
                     window._auroraDemoWeather = false;
                     updateClock();
-                    if (currentSettings && currentSettings.weatherCity) updateWeather(currentSettings.weatherCity);
-                    currentIndex = 0;
+                    slides = getActiveSlides(allAnnouncements);
+                    const b3Idx = slides.findIndex(s => isScheduleChangeSlide(s) && normalizeScheduleSectionName(s) === 'Β3');
+                    currentIndex = b3Idx !== -1 ? b3Idx : 0;
+                    startRotation();
+                } else if (mode === 'after_hour3') {
+                    window._auroraSimulateSchoolHours = true;
+                    window._auroraSimulatedHHMM = '10:45';
+                    window._auroraDemoScheduleItems = null;
+                    window._auroraDemoScheduleHtml = null;
+                    window._auroraDemoClock = { time: '10:45', date: 'Τρίτη 10 Νοεμβρίου' };
+                    window._auroraDemoWeather = false;
+                    updateClock();
+                    slides = getActiveSlides(allAnnouncements);
+                    const b3Idx = slides.findIndex(s => isScheduleChangeSlide(s) && normalizeScheduleSectionName(s) === 'Β3');
+                    currentIndex = b3Idx !== -1 ? b3Idx : 0;
                     startRotation();
                 } else if (mode === 'mockup2') {
                     if (timer) clearTimeout(timer);
                     window._auroraSimulateSchoolHours = false;
+                    window._auroraSimulatedHHMM = null;
                     window._auroraDemoScheduleItems = null;
                     window._auroraDemoClock = { time: '10:16', date: 'Τετάρτη 5 Νοεμβρίου' };
                     window._auroraDemoWeather = true;
@@ -2462,6 +2700,7 @@ if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 } else if (mode === 'mockup1') {
                     if (timer) clearTimeout(timer);
                     window._auroraSimulateSchoolHours = false;
+                    window._auroraSimulatedHHMM = null;
                     const realSched = getActiveScheduleAnnouncements();
                     window._auroraDemoScheduleItems = (realSched && realSched.length > 0) ? null : fallbackDemoScheduleItems;
                     window._auroraDemoClock = { time: '10:15', date: 'Πέμπτη, 24 Οκτ' };
