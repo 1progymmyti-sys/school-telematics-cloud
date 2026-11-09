@@ -923,19 +923,11 @@ function getActiveScheduleAnnouncements() {
     if (window._auroraDemoScheduleItems && window._auroraDemoScheduleItems.length > 0) {
         return consolidateScheduleItemsBySection(window._auroraDemoScheduleItems);
     }
-    const activeFromSlides = getActiveSlides(allAnnouncements || []).filter(isScheduleChangeSlide);
-    if (activeFromSlides.length > 0) {
-        return activeFromSlides;
-    }
-    // Also include any unpaused, non-expired schedule changes in allAnnouncements
-    // so that whenever normal announcements are playing on the main screen and schedule changes
-    // have already been published, they are shown in the bottom bar in place of RSS news!
-    const fallbackList = (allAnnouncements || []).filter(item =>
-        !item.isPaused &&
-        !isExpiredUrgentOrSchedule(item) &&
-        isScheduleChangeSlide(item)
-    );
-    return consolidateScheduleItemsBySection(fallbackList);
+    // Only return schedule changes that are CURRENTLY ACTIVE as announcement slides
+    // (valid for today, within school hours 07:45 - 13:55, not paused, not future, and not expired!)
+    // If a schedule change is not currently active in the slides playlist, it MUST NOT appear in the ticker!
+    const activeList = (slides && slides.length > 0) ? slides : getActiveSlides(allAnnouncements || []);
+    return (activeList || []).filter(isScheduleChangeSlide);
 }
 
 function buildScheduleTickerItem(scheduleItems) {
