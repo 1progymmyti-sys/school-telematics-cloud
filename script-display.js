@@ -499,6 +499,9 @@ async function fetchRSS(url) {
     if (items.length > 0) {
         cachedRssItems = items;
         updateTickerSequence();
+        if (slides && slides.length > 0) {
+            syncTickerWithCurrentSlide(slides[currentIndex] || slides[0]);
+        }
     }
 }
 
@@ -507,10 +510,32 @@ let currentTickerMode = 'normal'; // 'normal' | 'schedule'
 let lastScheduleTickerHtml = '';
 let currentPlayingTickerKey = '';
 let lastTickerSettingsKey = '';
+let currentDisplayedSlideItem = null;
+
+// Saved scroll states per mode so switching between normal slides ('schedule' ticker)
+// and schedule-change slides ('normal' RSS/Director ticker) never loses progress
+const savedTickerModeState = {
+    normal: { index: 0, offset: null, seqKey: '' },
+    schedule: { index: 0, offset: null, seqKey: '' }
+};
 
 function getTickerItemKey(item) {
     if (!item) return '';
     return `${item.label || ''}|${item.style || ''}|${item.html || ''}`;
+}
+
+function getSequenceKey(seq) {
+    if (!seq || seq.length === 0) return '';
+    return seq.map(getTickerItemKey).join('||');
+}
+
+function getFreshTickerStartOffset(immediateVisible = false) {
+    const tickerContent = document.getElementById('tickerContent');
+    const contentWidth = (tickerContent && tickerContent.clientWidth) ? tickerContent.clientWidth : window.innerWidth;
+    if (immediateVisible) {
+        return 48; // Immediately readable right next to the left pill badge
+    }
+    return Math.min(Math.max(contentWidth * 0.35, 220), 480);
 }
 
 function setTickerTheme(labelText, styleClass) {
@@ -535,7 +560,7 @@ function setTickerTheme(labelText, styleClass) {
     else tickerContainer.classList.add('ticker-mode-director');
 }
 
-function playTickerItem(item) {
+function playTickerItem(item, customStartOffset = null) {
     if (!item) return;
 
     const tickerContainer = document.getElementById('tickerContainer');
@@ -548,7 +573,7 @@ function playTickerItem(item) {
 
     tickerContent.innerHTML = `<div class="ticker-text" id="movingTicker">${item.html}</div>`;
     const el = document.getElementById('movingTicker');
-    if (el) startTickerAnim(el);
+    if (el) startTickerAnim(el, customStartOffset);
 }
 
 function showTickerText(htmlContent, labelText, styleClass = 'director') {
@@ -556,34 +581,46 @@ function showTickerText(htmlContent, labelText, styleClass = 'director') {
         label: labelText || '📢 ΕΝΗΜΕΡΩΣΗ',
         style: styleClass || 'director',
         html: htmlContent
-    });
+    }, 48);
 }
 
-function startTickerAnim(element) {
+function startTickerAnim(element, customStartOffset = null) {
     if (tickerAnimId) cancelAnimationFrame(tickerAnimId);
-    tickerOffset = window.innerWidth;
+    tickerOffset = (typeof customStartOffset === 'number' && !isNaN(customStartOffset))
+        ? customStartOffset
+        : getFreshTickerStartOffset(true);
     let elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 300);
 
     function loop() {
         tickerOffset -= 1.8; // Smooth Speed
         elementWidth = Math.max(element.scrollWidth || 0, element.offsetWidth || 0, 300);
 
+        // Save live progress for current mode
+        if (savedTickerModeState[currentTickerMode]) {
+            savedTickerModeState[currentTickerMode].index = tickerSequenceIndex;
+            savedTickerModeState[currentTickerMode].offset = tickerOffset;
+        }
+
         // When content has completely scrolled off the screen to the left
         if (tickerOffset < -elementWidth) {
             if (tickerSequence.length > 1) {
                 tickerSequenceIndex = (tickerSequenceIndex + 1) % tickerSequence.length;
-                playTickerItem(tickerSequence[tickerSequenceIndex]);
+                if (savedTickerModeState[currentTickerMode]) {
+                    savedTickerModeState[currentTickerMode].index = tickerSequenceIndex;
+                    savedTickerModeState[currentTickerMode].offset = null;
+                }
+                playTickerItem(tickerSequence[tickerSequenceIndex], getFreshTickerStartOffset(false));
                 return;
             } else if (tickerSequence.length === 1) {
                 const onlyItem = tickerSequence[0];
                 if (currentPlayingTickerKey !== getTickerItemKey(onlyItem)) {
                     tickerSequenceIndex = 0;
-                    playTickerItem(onlyItem);
+                    playTickerItem(onlyItem, getFreshTickerStartOffset(true));
                     return;
                 }
-                tickerOffset = window.innerWidth;
+                tickerOffset = getFreshTickerStartOffset(false);
             } else {
-                tickerOffset = window.innerWidth;
+                tickerOffset = getFreshTickerStartOffset(false);
             }
         }
 
@@ -618,7 +655,7 @@ function getActiveDirectorTickerItem() {
     };
 }
 
-function updateTickerSequence() {
+function buildNormalTickerSequence(forScheduleSlideOnScreen = false) {
     const s = currentSettings || {};
     let mode = s.tickerMode;
     if (!mode) {
@@ -627,26 +664,8 @@ function updateTickerSequence() {
         else mode = 'none';
     }
 
-    const dirMsg = s.tickerMessage ? s.tickerMessage.trim() : '';
-    const dirBadge = s.tickerBadgeLabel || '🏛️ ΔΙΕΥΘΥΝΣΗ';
-    const dirStyle = s.tickerStyle || 'gold';
-    const badgeIcon = getBadgeIcon(dirBadge);
+    const dirItem = getActiveDirectorTickerItem();
 
-    const settingsKey = `${mode}|${dirMsg}|${dirBadge}|${dirStyle}|${s.rssUrl || ''}`;
-    const settingsChanged = (settingsKey !== lastTickerSettingsKey);
-    lastTickerSettingsKey = settingsKey;
-
-    const newSeq = [];
-
-    // Director item (clean icon pill, no repeated text, no extra colon)
-    const dirItem = dirMsg ? {
-        type: 'director',
-        label: dirBadge,
-        style: dirStyle,
-        html: `<span class="ticker-director-pill">${badgeIcon}</span> <span class="ticker-director-message">${dirMsg}</span>`
-    } : null;
-
-    // RSS item(s)
     let rssFullItem = null;
     const rssChunks = [];
     if (cachedRssItems && cachedRssItems.length > 0) {
@@ -663,7 +682,6 @@ function updateTickerSequence() {
             html: buildRssHtml(cachedRssItems)
         };
 
-        // Split RSS into chunks of 3 headlines for 'both' mode so Director message alternates frequently
         const chunkSize = 3;
         for (let i = 0; i < cachedRssItems.length; i += chunkSize) {
             rssChunks.push({
@@ -675,15 +693,38 @@ function updateTickerSequence() {
         }
     }
 
+    const newSeq = [];
+
     if (mode === 'none') {
-        newSeq.length = 0;
-    } else if (mode === 'director') {
+        return newSeq;
+    }
+
+    // Rule: When a Schedule Change slide is on screen, RSS must appear (alongside Director message if active, respecting priority)
+    if (forScheduleSlideOnScreen) {
+        if (dirItem && rssChunks.length > 0) {
+            // Priority 1: Director's message, Priority 3: RSS chunks
+            rssChunks.forEach(chunk => {
+                newSeq.push(dirItem);
+                newSeq.push(chunk);
+            });
+        } else if (rssFullItem) {
+            newSeq.push(rssFullItem);
+        } else if (dirItem) {
+            newSeq.push(dirItem);
+        }
+        return newSeq;
+    }
+
+    // Standard normal mode (no active schedule changes)
+    if (mode === 'director') {
         if (dirItem) newSeq.push(dirItem);
+        else if (rssFullItem) newSeq.push(rssFullItem);
     } else if (mode === 'rss') {
         if (rssFullItem) newSeq.push(rssFullItem);
+        else if (dirItem) newSeq.push(dirItem);
     } else if (mode === 'both') {
         if (dirItem && rssChunks.length > 0) {
-            // Interleave Director's message with each chunk of RSS news
+            // Priority 1: Director's message first, then RSS chunk
             rssChunks.forEach(chunk => {
                 newSeq.push(dirItem);
                 newSeq.push(chunk);
@@ -695,19 +736,41 @@ function updateTickerSequence() {
         }
     }
 
-    normalTickerSequence = newSeq;
+    return newSeq;
+}
 
-    // If currently displaying schedule changes on ticker, include Director's message alongside schedule changes
+function updateTickerSequence() {
+    const s = currentSettings || {};
+    let mode = s.tickerMode;
+    if (!mode) {
+        if (s.tickerMessage && s.tickerMessage.trim() !== '') mode = 'director';
+        else if (s.rssUrl && s.rssUrl.trim() !== '') mode = 'rss';
+        else mode = 'none';
+    }
+
+    const dirMsg = s.tickerMessage ? s.tickerMessage.trim() : '';
+    const dirBadge = s.tickerBadgeLabel || '🏛️ ΔΙΕΥΘΥΝΣΗ';
+    const dirStyle = s.tickerStyle || 'gold';
+
+    const settingsKey = `${mode}|${dirMsg}|${dirBadge}|${dirStyle}|${s.rssUrl || ''}|${(cachedRssItems || []).length}`;
+    const settingsChanged = (settingsKey !== lastTickerSettingsKey);
+    lastTickerSettingsKey = settingsKey;
+
+    const isSchedSlideNow = isScheduleChangeSlide(currentDisplayedSlideItem);
+    normalTickerSequence = buildNormalTickerSequence(isSchedSlideNow);
+
     if (currentTickerMode === 'schedule') {
         const activeScheduleItems = getActiveScheduleAnnouncements();
         const schedItem = buildScheduleTickerItem(activeScheduleItems);
-        if (schedItem) {
-            tickerSequence = dirItem && (mode === 'director' || mode === 'both')
-                ? [dirItem, schedItem]
-                : [schedItem];
-            if (settingsChanged) {
+        const dirItem = getActiveDirectorTickerItem();
+        if (schedItem && !isSchedSlideNow) {
+            // Priority 1: Director's message, Priority 2: Schedule changes
+            tickerSequence = dirItem ? [dirItem, schedItem] : [schedItem];
+            const seqKey = getSequenceKey(tickerSequence);
+            if (settingsChanged || savedTickerModeState.schedule.seqKey !== seqKey) {
+                savedTickerModeState.schedule = { index: 0, offset: null, seqKey };
                 tickerSequenceIndex = 0;
-                playTickerItem(tickerSequence[0]);
+                playTickerItem(tickerSequence[0], getFreshTickerStartOffset(true));
             }
             return;
         } else {
@@ -737,19 +800,18 @@ function updateTickerSequence() {
 
     const expectedKey = getTickerItemKey(tickerSequence[tickerSequenceIndex]);
 
-    // Start or immediately update ticker if not running, if settings changed, or if stuck on initial loading text
     if (!tickerAnimId || settingsChanged || currentPlayingTickerKey !== expectedKey) {
         tickerSequenceIndex = 0;
-        playTickerItem(tickerSequence[0]);
+        playTickerItem(tickerSequence[0], getFreshTickerStartOffset(true));
     }
 }
 
 // ===================================================
 // DYNAMIC SCHEDULE TICKER SYNC
-// When schedule cards are NOT showing on the main slide area (because other
-// announcements are on screen), display timetable changes in the running ticker
-// with vibrant purple/amber theme. As soon as the schedule card appears on screen,
-// revert ticker back to the Director / RSS news stream!
+// Strict Rule & Priority Hierarchy:
+// 1st Priority: Director's Message (🏛️ ΔΙΕΥΘΥΝΣΗ) when active
+// 2nd Priority: Urgent Schedule Changes (📅 ΑΛΛΑΓΕΣ ΠΡΟΓΡΑΜΜΑΤΟΣ) when a NORMAL announcement is on screen
+// 3rd Priority: RSS News (🗞️ ΕΙΔΗΣΕΙΣ) when a SCHEDULE CHANGE card is on screen (or when no schedule changes exist)
 // ===================================================
 
 function isScheduleChangeSlide(item) {
@@ -816,55 +878,120 @@ function buildScheduleTickerItem(scheduleItems) {
     };
 }
 
-function syncTickerWithCurrentSlide(item) {
-    const activeScheduleItems = getActiveScheduleAnnouncements();
-    const hasNonScheduleSlides = (slides && slides.length > 0)
-        ? slides.some(s => !isScheduleChangeSlide(s))
-        : true;
+let hasShownInitialDirectorPriority = false;
 
-    // Target mode:
-    // Whenever active schedule changes exist alongside other slides, keep ticker in 'schedule' mode
-    // continuously (alternating Director's message + Schedule changes) so slide transitions never cut off the ticker mid-scroll!
-    const targetMode = (activeScheduleItems.length > 0 && hasNonScheduleSlides) ? 'schedule' : 'normal';
+function syncTickerWithCurrentSlide(item) {
+    currentDisplayedSlideItem = item || null;
+    const isCurrentSlideSchedule = isScheduleChangeSlide(item);
+    const activeScheduleItems = getActiveScheduleAnnouncements();
+
+    // STRICT RULE:
+    // - When a NORMAL announcement is on screen (!isCurrentSlideSchedule) AND active schedule changes exist -> 'schedule' mode
+    // - When a SCHEDULE CHANGE announcement is on screen (isCurrentSlideSchedule) OR no active schedule changes -> 'normal' mode (RSS / Director)
+    const targetMode = (!isCurrentSlideSchedule && activeScheduleItems.length > 0) ? 'schedule' : 'normal';
+
+    const previousItemType = (tickerSequence && tickerSequence[tickerSequenceIndex])
+        ? tickerSequence[tickerSequenceIndex].type
+        : null;
 
     if (targetMode === 'schedule') {
         const schedItem = buildScheduleTickerItem(activeScheduleItems);
         if (!schedItem) return;
 
         const dirItem = getActiveDirectorTickerItem();
-        const combinedHtmlKey = `${dirItem ? dirItem.html : ''}|${schedItem.html}`;
+        // Priority 1: Director's message, Priority 2: Schedule changes
+        const newScheduleSeq = dirItem ? [dirItem, schedItem] : [schedItem];
+        const seqKey = getSequenceKey(newScheduleSeq);
 
-        if (currentTickerMode !== 'schedule' || lastScheduleTickerHtml !== combinedHtmlKey) {
+        if (currentTickerMode !== 'schedule' || lastScheduleTickerHtml !== seqKey || !tickerAnimId) {
             currentTickerMode = 'schedule';
-            lastScheduleTickerHtml = combinedHtmlKey;
-            tickerSequence = dirItem ? [dirItem, schedItem] : [schedItem];
-            tickerSequenceIndex = 0;
+            lastScheduleTickerHtml = seqKey;
+            tickerSequence = newScheduleSeq;
+
+            let resumeIdx = 0;
+            let resumeOffset = getFreshTickerStartOffset(true);
+
+            if (savedTickerModeState.schedule.seqKey === seqKey && savedTickerModeState.schedule.index < tickerSequence.length) {
+                resumeIdx = savedTickerModeState.schedule.index;
+                if (typeof savedTickerModeState.schedule.offset === 'number' && savedTickerModeState.schedule.offset > -200) {
+                    resumeOffset = savedTickerModeState.schedule.offset;
+                }
+            }
+
+            // Ensure Priority 1 (Director's message) plays first on initial boot,
+            // and if Director's message just played in the previous mode, show Schedule Changes immediately!
+            if (dirItem && tickerSequence.length > 1) {
+                if (!hasShownInitialDirectorPriority) {
+                    resumeIdx = 0; // Director first (1st priority)
+                    resumeOffset = getFreshTickerStartOffset(true);
+                    hasShownInitialDirectorPriority = true;
+                } else if (previousItemType === 'director') {
+                    resumeIdx = 1; // Schedule changes immediately after Director
+                    resumeOffset = getFreshTickerStartOffset(true);
+                }
+            }
+
+            tickerSequenceIndex = resumeIdx;
+            savedTickerModeState.schedule = { index: resumeIdx, offset: resumeOffset, seqKey };
 
             const tickerContainer = document.getElementById('tickerContainer');
             if (tickerContainer) tickerContainer.style.display = 'flex';
             document.body.classList.remove('no-ticker');
 
-            playTickerItem(tickerSequence[0]);
+            playTickerItem(tickerSequence[tickerSequenceIndex], resumeOffset);
         }
     } else {
-        if (currentTickerMode !== 'normal') {
+        normalTickerSequence = buildNormalTickerSequence(isCurrentSlideSchedule);
+        const seqKey = getSequenceKey(normalTickerSequence);
+
+        if (currentTickerMode !== 'normal' || getSequenceKey(tickerSequence) !== seqKey || !tickerAnimId) {
             currentTickerMode = 'normal';
             lastScheduleTickerHtml = '';
+            tickerSequence = normalTickerSequence;
 
-            // Restore normal sequence (Director / RSS)
-            updateTickerSequence();
-            if (tickerSequence.length > 0) {
-                tickerSequenceIndex = 0;
-                playTickerItem(tickerSequence[0]);
-            } else {
-                const tickerContainer = document.getElementById('tickerContainer');
+            const tickerContainer = document.getElementById('tickerContainer');
+            if (tickerSequence.length === 0) {
                 if (tickerContainer) tickerContainer.style.display = 'none';
                 document.body.classList.add('no-ticker');
                 if (tickerAnimId) {
                     cancelAnimationFrame(tickerAnimId);
                     tickerAnimId = null;
                 }
+                return;
             }
+
+            if (tickerContainer) tickerContainer.style.display = 'flex';
+            document.body.classList.remove('no-ticker');
+
+            let resumeIdx = 0;
+            let resumeOffset = getFreshTickerStartOffset(true);
+
+            if (savedTickerModeState.normal.seqKey === seqKey && savedTickerModeState.normal.index < tickerSequence.length) {
+                resumeIdx = savedTickerModeState.normal.index;
+                if (typeof savedTickerModeState.normal.offset === 'number' && savedTickerModeState.normal.offset > -200) {
+                    resumeOffset = savedTickerModeState.normal.offset;
+                }
+            }
+
+            const dirItem = getActiveDirectorTickerItem();
+            if (isCurrentSlideSchedule && tickerSequence.length > 1 && dirItem) {
+                // On a Schedule Change slide: if Director's message has not been shown yet, show Director first (Priority 1);
+                // if Director's message was already shown, immediately show RSS (index 1, 3, ...) so RSS is always visible on Schedule Change slides!
+                if (!hasShownInitialDirectorPriority) {
+                    resumeIdx = 0; // Director first
+                    resumeOffset = getFreshTickerStartOffset(true);
+                    hasShownInitialDirectorPriority = true;
+                } else if (previousItemType === 'director' || tickerSequence[resumeIdx]?.type === 'director') {
+                    const rssIdx = tickerSequence.findIndex((it, idx) => idx >= resumeIdx && it.type === 'rss');
+                    resumeIdx = rssIdx !== -1 ? rssIdx : 1;
+                    resumeOffset = getFreshTickerStartOffset(true);
+                }
+            }
+
+            tickerSequenceIndex = resumeIdx;
+            savedTickerModeState.normal = { index: resumeIdx, offset: resumeOffset, seqKey };
+
+            playTickerItem(tickerSequence[tickerSequenceIndex], resumeOffset);
         }
     }
 }
@@ -984,7 +1111,9 @@ const getActiveSlides = (list) => {
         // 1. Ειδικοί κανόνες για Αλλαγές Προγράμματος / Αναπληρώσεις
         if (isScheduleChangeSlide(item)) {
             // Ημερομηνία στην οποία αναφέρεται η αλλαγή
-            const targetDate = (item.scheduleData && item.scheduleData.dateIso) || item.startDate || item.endDate || todayStr;
+            let rawDate = (item.scheduleData && item.scheduleData.dateIso) || item.startDate || item.endDate || todayStr;
+            if (rawDate.includes('T')) rawDate = rawDate.split('T')[0];
+            const targetDate = rawDate.trim();
 
             // Εμφανίζεται ΜΟΝΟ την ημέρα στην οποία αναφέρεται
             if (todayStr !== targetDate) return false;
@@ -1294,14 +1423,15 @@ function applySettings(s) {
     const rssUrl = s.rssUrl ? s.rssUrl.trim() : '';
     const mode = s.tickerMode || (s.tickerMessage ? 'director' : (s.rssUrl ? 'rss' : 'none'));
 
-    if (mode === 'rss' || mode === 'both') {
-        if (rssUrl) {
-            fetchRSS(rssUrl);
-            rssInterval = setInterval(() => fetchRSS(rssUrl), 600000);
-        }
+    if (mode !== 'none' && rssUrl) {
+        fetchRSS(rssUrl);
+        rssInterval = setInterval(() => fetchRSS(rssUrl), 600000);
     }
 
     updateTickerSequence();
+    if (slides && slides.length > 0) {
+        syncTickerWithCurrentSlide(slides[currentIndex] || slides[0]);
+    }
 
     // Theme - Remove old theme classes first
     document.body.classList.forEach(cls => {
@@ -2209,7 +2339,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V23';
+const APP_VERSION = '2026_AURORA_V24';
 
 async function checkForAppUpdate() {
     try {
