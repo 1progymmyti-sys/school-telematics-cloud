@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>School Telematics - Οθόνη Προβολής</title>
-    <link rel="stylesheet" href="style.css?v=2026_AURORA_V27">
+    <link rel="stylesheet" href="style.css?v=2026_AURORA_V28">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -58,7 +58,7 @@
     </div>
 
     <!-- MAIN SCRIPT CLOUD VERSION (MODULE) -->
-    <script type="module" src="script-display.js?v=2026_AURORA_V27"></script>
+    <script type="module" src="script-display.js?v=2026_AURORA_V28"></script>
 
     <style>
         /* Fix for banner - full width */
@@ -97,8 +97,23 @@
         }
     </style>
 
+    <!-- Universal TV Keep-Awake Video (1x1px visible in render tree, not display:none) -->
+    <video id="keepAwakeVideo"
+        src="keepawake.mp4"
+        autoplay
+        loop
+        muted
+        playsinline
+        webkit-playsinline="true"
+        preload="auto"
+        disablepictureinpicture
+        aria-hidden="true"
+        tabindex="-1"
+        style="position: fixed; bottom: 0; right: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; z-index: -1;">
+    </video>
+
     <!-- FullScreen Overlay (Large Screen Only) -->
-    <div id="fullscreenOverlay" style="
+    <div id="fullscreenOverlay" tabindex="0" role="button" aria-label="Κλικ για Πλήρη Οθόνη" style="
         display: none;
         position: fixed; inset: 0; z-index: 99999;
         background: rgba(0,0,0,0.85);
@@ -135,18 +150,225 @@
     </style>
 
     <script>
+        // ===================================================
+        // UNIVERSAL TV KEEP-AWAKE ENGINE
+        // Combines: (1) 1x1px looping H.264+AAC silent video,
+        // (2) Screen Wake Lock API, (3) Silent Web Audio loop,
+        // and (4) 25s watchdog to prevent Smart TV screensavers.
+        // ===================================================
+        (function initKeepAwakeEngine() {
+            const KEEPAWAKE_DATA_URI = "data:video/mp4;base64,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BAAAAAEAAAAcAAAABQAAAAEAAAAdAAAABAAAAAEAAAAfAAAABQAAAAEAAAAgAAAABAAAAAEAAAAiAAAABQAAAAEAAAAjAAAABAAAAAEAAAAlAAAABQAAAAEAAAAmAAAABAAAAAEAAAApAAAABQAAAAEAAAAqAAAABAAAAAEAAAAsAAAABQAAAAEAAAAtAAAABAAAAAEAAAAvAAAABQAAAAEAAAAwAAAABAAAAAEAAAAyAAAABQAAAAEAAAAzAAAABAAAAAEAAAN4c3RzegAAAAAAAAAAAAAA2QAAABUAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAABgAAAAYAAAAGAAAA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";
+            const KEEPAWAKE_GH_URL = "https://1progymmyti-sys.github.io/school-telematics-cloud/keepawake.mp4";
+            const vid = document.getElementById('keepAwakeVideo');
+
+            let wakeLockSentinel = null;
+            let hasUserGesture = false;
+            let unmuteBlocked = false;
+            let keepAwakeAudioCtx = null;
+            let keepAwakeAudioStarted = false;
+            let fallbackStep = 0;
+
+            function markMediaSessionPlaying() {
+                try {
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
+                } catch (e) {}
+            }
+
+            async function requestScreenWakeLock() {
+                if (document.hidden || !('wakeLock' in navigator)) return;
+                if (wakeLockSentinel && !wakeLockSentinel.released) return;
+                try {
+                    wakeLockSentinel = await navigator.wakeLock.request('screen');
+                    wakeLockSentinel.addEventListener('release', () => {
+                        wakeLockSentinel = null;
+                    });
+                } catch (e) {
+                    // Unsupported or requires HTTPS / user gesture on this browser
+                }
+            }
+
+            function ensureSilentAudioLoop() {
+                if (!hasUserGesture) return;
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtx) return;
+                    if (!keepAwakeAudioCtx) {
+                        keepAwakeAudioCtx = new AudioCtx();
+                    }
+                    if (keepAwakeAudioCtx.state === 'suspended') {
+                        keepAwakeAudioCtx.resume().catch(() => {});
+                    }
+                    if (!keepAwakeAudioStarted && keepAwakeAudioCtx.state === 'running') {
+                        const buf = keepAwakeAudioCtx.createBuffer(1, keepAwakeAudioCtx.sampleRate, keepAwakeAudioCtx.sampleRate);
+                        const src = keepAwakeAudioCtx.createBufferSource();
+                        const gain = keepAwakeAudioCtx.createGain();
+                        gain.gain.value = 0.001;
+                        src.buffer = buf;
+                        src.loop = true;
+                        src.connect(gain);
+                        gain.connect(keepAwakeAudioCtx.destination);
+                        src.start(0);
+                        keepAwakeAudioStarted = true;
+                    }
+                } catch (e) {}
+            }
+
+            function tryPlayVideo() {
+                if (!vid || document.hidden) return;
+                try {
+                    // Gently unmute once a user gesture occurred (silent AAC track -> 0 dB)
+                    if (hasUserGesture && !unmuteBlocked && vid.muted) {
+                        vid.muted = false;
+                        vid.volume = 0.01;
+                    }
+                    const p = vid.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(() => {
+                            markMediaSessionPlaying();
+                        }).catch(() => {
+                            // If unmuted autoplay was rejected, revert to muted & retry
+                            if (!vid.muted) {
+                                unmuteBlocked = true;
+                                vid.muted = true;
+                                const mp = vid.play();
+                                if (mp && mp.catch) mp.catch(() => {});
+                            }
+                        });
+                    } else {
+                        markMediaSessionPlaying();
+                    }
+                } catch (e) {}
+            }
+
+            function activateKeepAwake(fromGesture) {
+                if (fromGesture) {
+                    hasUserGesture = true;
+                    unmuteBlocked = false;
+                }
+                tryPlayVideo();
+                requestScreenWakeLock();
+                if (hasUserGesture) ensureSilentAudioLoop();
+            }
+
+            if (vid) {
+                vid.addEventListener('error', () => {
+                    if (fallbackStep === 0 && location.hostname !== '1progymmyti-sys.github.io' && /^https?:/i.test(location.protocol)) {
+                        fallbackStep = 1;
+                        vid.src = KEEPAWAKE_GH_URL;
+                        vid.load();
+                        tryPlayVideo();
+                    } else if (fallbackStep < 2 && KEEPAWAKE_DATA_URI.startsWith('data:')) {
+                        fallbackStep = 2;
+                        vid.src = KEEPAWAKE_DATA_URI;
+                        vid.load();
+                        tryPlayVideo();
+                    }
+                });
+
+                // Manual loop fallback for legacy Smart TV browsers that ignore loop attribute
+                vid.addEventListener('ended', () => {
+                    try {
+                        vid.currentTime = 0;
+                        tryPlayVideo();
+                    } catch (e) {}
+                });
+
+                // Resume if browser pauses keep-awake video unexpectedly (and no slide video is playing)
+                vid.addEventListener('pause', () => {
+                    if (document.hidden) return;
+                    setTimeout(() => {
+                        if (!document.hidden && vid.paused) {
+                            tryPlayVideo();
+                        }
+                    }, 1500);
+                });
+            }
+
+            function onFirstUserGesture() {
+                const overlay = document.getElementById('fullscreenOverlay');
+                if (overlay && overlay.style.display === 'flex') return;
+                if (!hasUserGesture || (vid && vid.paused) || !keepAwakeAudioStarted || !wakeLockSentinel) {
+                    activateKeepAwake(true);
+                }
+            }
+            ['click', 'keydown', 'touchstart', 'pointerdown'].forEach((evt) => {
+                document.addEventListener(evt, onFirstUserGesture, { capture: true, passive: true });
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    activateKeepAwake(hasUserGesture);
+                }
+            });
+
+            // Start immediately (muted autoplay + Wake Lock where allowed)
+            activateKeepAwake(false);
+
+            // Watchdog every 25s to keep video, Wake Lock, and audio alive
+            setInterval(() => {
+                if (document.hidden) return;
+                if (vid && vid.paused) tryPlayVideo();
+                requestScreenWakeLock();
+                if (hasUserGesture) ensureSilentAudioLoop();
+            }, 25000);
+
+            window.__keepAwake = {
+                activate: activateKeepAwake,
+                getStatus: () => ({
+                    hasUserGesture,
+                    videoPaused: vid ? vid.paused : null,
+                    videoMuted: vid ? vid.muted : null,
+                    videoReadyState: vid ? vid.readyState : null,
+                    videoSrc: vid ? (vid.currentSrc || vid.src).slice(0, 80) : null,
+                    wakeLockActive: Boolean(wakeLockSentinel && !wakeLockSentinel.released),
+                    audioState: keepAwakeAudioCtx ? keepAwakeAudioCtx.state : 'uninitialized'
+                })
+            };
+        })();
+
         function enterFullscreen() {
             const el = document.documentElement;
-            if (el.requestFullscreen)           el.requestFullscreen();
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            else if (el.mozRequestFullScreen)    el.mozRequestFullScreen();
-            else if (el.msRequestFullscreen)     el.msRequestFullscreen();
-            document.getElementById('fullscreenOverlay').style.display = 'none';
+            try {
+                const req = el.requestFullscreen
+                    ? el.requestFullscreen()
+                    : el.webkitRequestFullscreen
+                    ? el.webkitRequestFullscreen()
+                    : el.mozRequestFullScreen
+                    ? el.mozRequestFullScreen()
+                    : el.msRequestFullscreen
+                    ? el.msRequestFullscreen()
+                    : null;
+                if (req && typeof req.catch === 'function') {
+                    req.catch(() => {});
+                }
+            } catch (e) {}
+
+            const overlay = document.getElementById('fullscreenOverlay');
+            if (overlay) overlay.style.display = 'none';
+
+            if (window.__keepAwake) {
+                window.__keepAwake.activate(true);
+            }
         }
 
         function showFullscreenOverlay() {
-            document.getElementById('fullscreenOverlay').style.display = 'flex';
+            const overlay = document.getElementById('fullscreenOverlay');
+            if (!overlay) return;
+            overlay.style.display = 'flex';
+            try {
+                overlay.focus({ preventScroll: true });
+            } catch (e) {}
         }
+
+        // Allow TV remote OK/Enter or Space key to dismiss overlay and start Keep-Awake
+        document.addEventListener('keydown', (e) => {
+            const overlay = document.getElementById('fullscreenOverlay');
+            if (overlay && overlay.style.display === 'flex' && (e.key === 'Enter' || e.key === ' ' || e.keyCode === 13)) {
+                enterFullscreen();
+            }
+        });
 
         // Show overlay only on large screens (likely a TV / projector)
         if (window.screen.width >= 1200 || window.innerWidth >= 1200) {
@@ -155,13 +377,14 @@
         }
 
         // Re-show overlay if user presses ESC (exits fullscreen)
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
-                // Only if large screen
-                if (window.innerWidth >= 1200) {
-                    setTimeout(showFullscreenOverlay, 500);
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach((evt) => {
+            document.addEventListener(evt, () => {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    if (window.innerWidth >= 1200) {
+                        setTimeout(showFullscreenOverlay, 500);
+                    }
                 }
-            }
+            });
         });
     </script>
 

@@ -2542,7 +2542,7 @@ async function fetchAndRenderExamCalendar(slideId, apiUrl) {
 // the page reloads with a cache-busting URL. A localStorage guard prevents
 // repeated reloads if version.json was updated but script files were not.
 // ===================================================
-const APP_VERSION = '2026_AURORA_V26';
+const APP_VERSION = '2026_AURORA_V28';
 
 async function checkForAppUpdate() {
     try {
